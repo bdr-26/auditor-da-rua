@@ -2,20 +2,26 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { BarChart3, CalendarDays, ClipboardList, History, Home, ListChecks, Settings, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+/** Ícones referenciados por nome: componentes de servidor não podem passar funções a componentes de cliente. */
+export const NAV_ICONS = { home: Home, calendar: CalendarDays, history: History, checklist: ListChecks, chart: BarChart3, closing: ClipboardList, store: Store, settings: Settings } as const;
+export type NavIconName = keyof typeof NAV_ICONS;
 
 export function NavLink({
   href,
   label,
-  icon: Icon,
+  icon,
   variant,
 }: {
   href: string;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: NavIconName;
   variant: "side" | "bottom";
 }) {
   const pathname = usePathname();
+  const Icon = NAV_ICONS[icon];
   // raízes "exatas": subrotas que têm item próprio no menu não devem destacar a raiz
   const active = (() => {
     if (href === "/nutri") return pathname === "/nutri" || pathname.startsWith("/nutri/nova") || pathname.startsWith("/nutri/auditorias");
