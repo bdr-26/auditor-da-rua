@@ -1,39 +1,39 @@
 import Link from "next/link";
-import { BarChart3, CalendarDays, ClipboardList, History, Home, ListChecks, Settings, Store, LogOut, Bell } from "lucide-react";
+import { LogOut } from "lucide-react";
 import type { SessionProfile } from "@/lib/auth";
 import { APP_NAME, ROLE_LABELS } from "@/lib/constants";
 import { signOut } from "@/app/login/actions";
-import { NavLink } from "./nav-link";
+import { NavLink, type NavIconName } from "./nav-link";
 import { PushOptIn } from "@/components/pwa/push-opt-in";
 
 interface NavItem {
   href: string;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: NavIconName;
 }
 
 function navFor(role: SessionProfile["role"]): NavItem[] {
   switch (role) {
     case "auditor_geral":
       return [
-        { href: "/auditor", label: "Hoje", icon: Home },
-        { href: "/auditor/agenda", label: "Agenda", icon: CalendarDays },
-        { href: "/auditor/historico", label: "Histórico", icon: History },
+        { href: "/auditor", label: "Hoje", icon: "home" },
+        { href: "/auditor/agenda", label: "Agenda", icon: "calendar" },
+        { href: "/auditor/historico", label: "Histórico", icon: "history" },
       ];
     case "auditor_nutricao":
       return [
-        { href: "/nutri", label: "Início", icon: Home },
-        { href: "/nutri/historico", label: "Histórico", icon: History },
-        { href: "/nutri/checklists", label: "Checklists", icon: ListChecks },
+        { href: "/nutri", label: "Início", icon: "home" },
+        { href: "/nutri/historico", label: "Histórico", icon: "history" },
+        { href: "/nutri/checklists", label: "Checklists", icon: "checklist" },
       ];
     case "proprietario":
       return [
-        { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
-        { href: "/dashboard/calendario", label: "Rotina", icon: CalendarDays },
-        { href: "/dashboard/fechamento", label: "Fechamento", icon: ClipboardList },
-        { href: "/nutri/checklists", label: "Nutri", icon: ListChecks },
-        { href: "/admin/unidades", label: "Unidades", icon: Store },
-        { href: "/admin/configuracoes", label: "Ajustes", icon: Settings },
+        { href: "/dashboard", label: "Dashboard", icon: "chart" },
+        { href: "/dashboard/calendario", label: "Rotina", icon: "calendar" },
+        { href: "/dashboard/fechamento", label: "Fechamento", icon: "closing" },
+        { href: "/nutri/checklists", label: "Nutri", icon: "checklist" },
+        { href: "/admin/unidades", label: "Unidades", icon: "store" },
+        { href: "/admin/configuracoes", label: "Ajustes", icon: "settings" },
       ];
   }
 }
@@ -98,4 +98,3 @@ export function AppShell({ profile, children }: { profile: SessionProfile; child
   );
 }
 
-export { Bell };
