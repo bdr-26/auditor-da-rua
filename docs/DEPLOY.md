@@ -45,6 +45,10 @@ Copie `.env.example` para `.env.local` e preencha:
 | `NEXT_PUBLIC_SUPABASE_URL` | local + Vercel | URL do projeto |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | local + Vercel | chave anon (RLS) |
 | `SUPABASE_SERVICE_ROLE_KEY` | local + Vercel | chave service_role — **nunca** expor no client |
+
+> **Integração Supabase ↔ Vercel**: se você conectar os dois pelo marketplace do Vercel, ela cria sozinha as variáveis do Supabase
+> (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `SUPABASE_URL`, `POSTGRES_*`…). O app aceita
+> esses nomes; basta acrescentar as demais (`NEXT_PUBLIC_APP_URL`, VAPID e `CRON_SECRET`).
 | `NEXT_PUBLIC_APP_URL` | local + Vercel | URL pública (deep links dos pushes) |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | local + Vercel | Web Push (seção 5) |
 | `CRON_SECRET` | Vercel (+ Supabase, se usar pg_cron) | protege `/api/cron/*` |
