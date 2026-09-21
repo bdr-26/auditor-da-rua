@@ -56,6 +56,11 @@ async function remove(id: string): Promise<void> {
   await tx("readwrite", (s) => s.delete(id));
 }
 
+/** Remove uma foto ainda na fila (antes de subir). */
+export async function removeQueued(id: string): Promise<void> {
+  await remove(id);
+}
+
 let flushing = false;
 
 /**

@@ -31,6 +31,7 @@ Next.js 15 (App Router, TypeScript, Tailwind v4) + Supabase (Auth, Postgres, Sto
 | `/login` | — | e-mail/senha |
 | `/auditor` | gerente | card "Auditoria de hoje" (Iniciar/Continuar), semana, últimos dias |
 | `/auditor/agenda` | gerente | calendário mensal com status por dia |
+| `/auditor/nova` | gerente | auditoria fora da agenda (escolhe unidade e tipo) |
 | `/auditor/historico` | gerente | auditorias próprias |
 | `/auditorias/[id]` | gerente/nutri | preenchimento (um bloco/área por tela, autosave) |
 | `/auditorias/[id]/revisao` | auditor | revisão + "Concluir auditoria" |
