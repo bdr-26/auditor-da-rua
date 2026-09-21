@@ -22,12 +22,12 @@ export async function getTemplateById(supabase: AnyClient, id: string): Promise<
     supabase.from("template_blocks").select("*, template_items(*)").eq("template_id", id).order("ordem"),
   ]);
   if (!t) return null;
-  const withItems: TemplateBlockWithItems[] = (blocks ?? []).map((b) => {
-    const { template_items, ...rest } = b as typeof b & { template_items: TemplateItem[] };
+  const withItems: TemplateBlockWithItems[] = (blocks ?? []).map((row) => {
+    const { template_items, ...rest } = row as Record<string, unknown> & { template_items: TemplateItem[] };
     return {
-      ...(rest as TemplateBlockWithItems),
+      ...(rest as unknown as TemplateBlockWithItems),
       peso: Number(rest.peso),
-      items: (template_items ?? []).filter((i) => i.ativo).sort((a, b) => a.ordem - b.ordem),
+      items: (template_items ?? []).filter((i: TemplateItem) => i.ativo).sort((a: TemplateItem, b: TemplateItem) => a.ordem - b.ordem),
     };
   });
   return { ...(t as AuditTemplate), blocks: withItems };
