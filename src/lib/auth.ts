@@ -10,9 +10,12 @@ export async function getSessionProfile(): Promise<SessionProfile | null> {
   const supabase = await createClient();
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
+  if (userError) console.error("[auth] getUser", userError.message);
   if (!user) return null;
-  const { data } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+  const { data, error } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+  if (error) console.error("[auth] profiles", error.message, error.code, error.details);
   if (!data) return null;
   return data as SessionProfile;
 }

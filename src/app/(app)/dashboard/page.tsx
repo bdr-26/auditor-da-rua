@@ -3,6 +3,7 @@ import { AlertTriangle, BarChart3, CalendarCheck, CalendarDays, ClipboardList, F
 import { Badge } from "@/components/ui/badge";
 import { Card, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorPanel } from "@/components/ui/error-panel";
 import { PageHeader } from "@/components/ui/page-header";
 import { PctBadge } from "@/components/ui/score";
 import { Delta } from "@/components/dashboard/delta";
@@ -23,7 +24,18 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const { mes: mesParam } = await searchParams;
   const mes = parseMesParam(mesParam);
   const supabase = await createClient();
-  const ov = await getMonthOverview(supabase, mes);
+  let ov: Awaited<ReturnType<typeof getMonthOverview>>;
+  try {
+    ov = await getMonthOverview(supabase, mes);
+  } catch (error) {
+    console.error("[dashboard] falha ao carregar", error);
+    return (
+      <div>
+        <PageHeader title="Dashboard" subtitle={formatMonthPT(mes)} />
+        <ErrorPanel title="Não foi possível carregar o dashboard" error={error} />
+      </div>
+    );
+  }
 
   const hasAudits = ov.ranking.length > 0 || (ov.production?.summary.n_auditorias ?? 0) > 0;
   const avgDelta = ov.networkAvg != null && ov.prevNetworkAvg != null ? ov.networkAvg - ov.prevNetworkAvg : null;
