@@ -16,10 +16,13 @@ export function NavLink({
   variant: "side" | "bottom";
 }) {
   const pathname = usePathname();
-  const exactRoots = ["/auditor", "/nutri", "/dashboard"];
-  const active = exactRoots.includes(href)
-    ? pathname === href || (href === "/dashboard" && pathname.startsWith("/dashboard/lojas")) || (href === "/dashboard" && pathname.startsWith("/dashboard/auditores")) || (href === "/dashboard" && pathname.startsWith("/dashboard/criterios")) || (href === "/dashboard" && pathname.startsWith("/dashboard/pendencias"))
-    : pathname === href || pathname.startsWith(href + "/");
+  // raízes "exatas": subrotas que têm item próprio no menu não devem destacar a raiz
+  const active = (() => {
+    if (href === "/nutri") return pathname === "/nutri" || pathname.startsWith("/nutri/nova") || pathname.startsWith("/nutri/auditorias");
+    if (href === "/dashboard") return pathname === "/dashboard" || ["/dashboard/lojas", "/dashboard/auditores", "/dashboard/criterios", "/dashboard/pendencias"].some((p) => pathname.startsWith(p));
+    if (href === "/auditor") return pathname === "/auditor" || pathname.startsWith("/auditor/nova") || pathname.startsWith("/auditorias");
+    return pathname === href || pathname.startsWith(href + "/");
+  })();
 
   if (variant === "side") {
     return (

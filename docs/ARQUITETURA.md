@@ -17,7 +17,8 @@ Next.js 15 (App Router, TypeScript, Tailwind v4) + Supabase (Auth, Postgres, Sto
 | `src/lib/domain/nutri.ts` | Nota % binária com pesos, faixas Food Checker |
 | `src/lib/supabase/{client,server,admin}.ts` | Clientes (browser / server com cookies / service_role) |
 | `src/lib/auth.ts` | `requireProfile(roles?)`, `getSessionProfile()`, `homeForRole()` |
-| `src/lib/data/*` | Consultas reutilizáveis (templates, unidades, auditorias, pendências) |
+| `src/lib/data/*` | Consultas reutilizáveis (templates, unidades, auditorias, pendências, audit-flow, dashboard, nutri) |
+| `src/lib/*-actions.ts` | Server actions por área (audit, nutri, dashboard, admin) e `closing.ts` (fechamento) |
 | `src/lib/schedule-sync.ts` | `ensureSchedule(admin)` materializa a agenda (mês atual + próximo) |
 | `src/lib/push.ts` | `sendPushToUsers(admin, ids, tipo, chaveDedup, payload)` com dedup em `notifications_log` |
 | `src/components/ui/*` | Button, Card, Badge, PctBadge, ScoreBar, ProgressBar, EmptyState, PageHeader, Field/Input |
@@ -37,7 +38,8 @@ Next.js 15 (App Router, TypeScript, Tailwind v4) + Supabase (Auth, Postgres, Sto
 | `/auditorias/[id]/revisao` | auditor | revisão + "Concluir auditoria" |
 | `/auditorias/[id]/resumo` | todos | resumo escaneável (destino do push) |
 | `/nutri`, `/nutri/nova`, `/nutri/historico` | nutricionista | home, nova auditoria (escolhe loja), histórico |
-| `/nutri/checklists`, `/nutri/checklists/[unitId]` | nutri + proprietário | banco de itens + composição por unidade |
+| `/nutri/auditorias/[id]`, `/revisao`, `/resumo` | nutricionista (resumo: todos) | preenchimento por área, revisão, relatório da auditoria |
+| `/nutri/checklists`, `/nutri/checklists/banco`, `/nutri/checklists/[unitId]` | nutri + proprietário | banco de itens + composição por unidade |
 | `/dashboard` | proprietário | KPIs → ranking → produção → pendências |
 | `/dashboard/lojas/[unitId]` | proprietário | drill-down da loja |
 | `/dashboard/calendario` | proprietário | rotina do gerente (feito / pendente / não cumprido) + troca manual |
