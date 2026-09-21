@@ -1,0 +1,46 @@
+{
+  "name": "auditor-da-rua",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "sql:check": "node scripts/check-sql.mjs",
+    "seed:users": "tsx scripts/seed-users.ts",
+    "reports:sample": "tsx scripts/render-report-sample.tsx",
+    "vapid": "node scripts/generate-vapid.mjs",
+    "db:test": "scripts/db-local-test.sh"
+  },
+  "dependencies": {
+    "@react-pdf/renderer": "^4.3.3",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.116.0",
+    "date-fns": "^4.4.0",
+    "lucide-react": "^1.47.0",
+    "next": "15.5.25",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "recharts": "^3.10.1",
+    "web-push": "^3.6.7",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/web-push": "^3.6.4",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.25",
+    "pgsql-parser": "^17.9.17",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4",
+    "typescript": "^5",
+    "vitest": "^5.0.1"
+  }
+}
