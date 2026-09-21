@@ -7,7 +7,11 @@ Next.js 15 (App Router, TypeScript, Tailwind v4) + Supabase (Auth, Postgres, Sto
 | Caminho | O que é |
 |---|---|
 | `supabase/migrations/` | Esquema (0001), RLS (0002), seeds (0003 templates/unidades, 0004 nutricional), cron (0005) |
-| `supabase/functions/` | Edge Functions (Deno) agendadas: lembrete 8h, verificação 23h |
+| `supabase/functions/` | Edge Functions (Deno) agendadas: lembrete 8h, verificação 23h (alternativa aos crons do Vercel) |
+| `vercel.json` | Crons que chamam `/api/cron/*` (11:00 e 02:05 UTC = 08:00 e 23:05 em SP) |
+| `src/lib/cron/` | Lógica dos jobs (lembrete diário, verificação de fim de dia) usada pelas rotas `/api/cron/*` |
+| `src/lib/reports/` | Relatórios PDF: `data.ts` (montagem), `loja-report.tsx` / `consolidado-report.tsx`, `render.ts`, `generate.ts` |
+| `scripts/` | `seed-users.ts`, `generate-vapid.mjs`, `render-report-sample.tsx`, `db-local-test.sh` (migrations num Postgres local), `check-sql.mjs` |
 | `src/lib/types.ts` | Tipos de domínio espelhando as tabelas |
 | `src/lib/constants.ts` | Escala de notas, rótulos, pesos, faixas nutricionais |
 | `src/lib/dates.ts` | Datas em `YYYY-MM-DD`, hoje em SP, formatação pt-BR |
@@ -51,6 +55,7 @@ Next.js 15 (App Router, TypeScript, Tailwind v4) + Supabase (Auth, Postgres, Sto
 | `/api/cron/daily-reminder`, `/api/cron/end-of-day` | `CRON_SECRET` | pushes agendados (alternativa às Edge Functions) |
 | `/api/push/subscribe` | logado | salva/remove subscription |
 | `/api/reports/[id]` | proprietário | download do PDF |
+| `/api/reports/generate` | proprietário | (re)gera os PDFs de um mês |
 
 ## Regras de escrita
 

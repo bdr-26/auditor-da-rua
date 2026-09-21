@@ -11,7 +11,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "sql:check": "node scripts/check-sql.mjs",
-    "seed:users": "tsx scripts/seed-users.ts"
+    "seed:users": "tsx scripts/seed-users.ts",
+    "reports:sample": "tsx scripts/render-report-sample.tsx",
+    "vapid": "node scripts/generate-vapid.mjs",
+    "db:test": "scripts/db-local-test.sh"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.3.3",
