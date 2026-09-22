@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, Info } from "lucide-react";
 import { Textarea } from "@/components/ui/form";
+import { getItemGuidance } from "@/lib/audit-guidance";
 import { PHOTO_REQUIRED_MAX_SCORE, SCORE_COLORS, SCORE_LABELS } from "@/lib/constants";
 import type { ScoringItem } from "@/lib/domain/scoring";
 import type { Score } from "@/lib/types";
@@ -38,10 +39,12 @@ export function ScoreItem({
   const low = nota != null && nota <= PHOTO_REQUIRED_MAX_SCORE;
   const [obsOpen, setObsOpen] = useState(false);
   const showObs = low || obsOpen || !!answer?.observacao;
+  const guidance = getItemGuidance(item.chave);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   return (
     <div className={cn("card", low && "border-orange-300")}>
-      <div className="mb-3 flex items-start justify-between gap-2">
+      <div className="mb-2 flex items-start justify-between gap-2">
         <p className="text-base font-medium leading-snug">{item.descricao}</p>
         {item.falha_grave && (
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
@@ -49,6 +52,44 @@ export function ScoreItem({
           </span>
         )}
       </div>
+
+      {guidance && (
+        <div className="mb-3">
+          <button
+            type="button"
+            aria-expanded={guideOpen}
+            onClick={() => setGuideOpen((v) => !v)}
+            className="flex min-h-[36px] items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-brand-dark hover:bg-surface-muted"
+          >
+            <Info className="h-4 w-4" />
+            O que conferir
+            {guideOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          </button>
+          {guideOpen && (
+            <div className="mt-1 rounded-xl bg-surface-muted p-3 text-sm text-gray-700">
+              <ul className="list-disc space-y-1 pl-4">
+                {guidance.conferir.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+              <dl className="mt-3 grid gap-1 border-t border-line pt-2 text-xs">
+                <div className="flex gap-2">
+                  <dt className="w-5 shrink-0 font-bold text-green-700">5</dt>
+                  <dd>{guidance.notas[5]}</dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt className="w-5 shrink-0 font-bold text-yellow-700">3</dt>
+                  <dd>{guidance.notas[3]}</dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt className="w-5 shrink-0 font-bold text-red-700">1</dt>
+                  <dd>{guidance.notas[1]}</dd>
+                </div>
+              </dl>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-5 gap-1.5">
         {SCORES.map((s) => {
