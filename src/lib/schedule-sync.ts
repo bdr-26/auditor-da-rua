@@ -51,3 +51,25 @@ export async function ensureSchedule(admin: SupabaseClient<any, any, any>, from?
   if (error) throw error;
   return rows.length;
 }
+
+const lastRun = new Map<string, number>();
+const THROTTLE_MS = 60 * 60 * 1000;
+
+/**
+ * Versão para uso nas telas: só executa se não rodou para o mesmo intervalo na última hora
+ * (nesta instância do servidor). Evita 5–6 consultas a cada abertura da home/agenda.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function ensureScheduleThrottled(admin: SupabaseClient<any, any, any>, from?: string, to?: string): Promise<number> {
+  const key = `${from ?? ""}:${to ?? ""}`;
+  const now = Date.now();
+  const last = lastRun.get(key) ?? 0;
+  if (now - last < THROTTLE_MS) return 0;
+  lastRun.set(key, now);
+  try {
+    return await ensureSchedule(admin, from, to);
+  } catch (e) {
+    lastRun.delete(key);
+    throw e;
+  }
+}

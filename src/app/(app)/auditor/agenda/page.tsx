@@ -15,7 +15,7 @@ import { ClipboardList } from "lucide-react";
 import { addDays, addMonths, formatMonthPT, formatWeekdayPT, monthEnd, monthStart, todaySP, weekday } from "@/lib/dates";
 import { workWeekRange } from "@/lib/domain/schedule";
 import { AUDIT_TYPE_SHORT } from "@/lib/constants";
-import { ensureSchedule } from "@/lib/schedule-sync";
+import { ensureScheduleThrottled } from "@/lib/schedule-sync";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Audit, ScheduleDay } from "@/lib/types";
@@ -51,7 +51,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
 
   if (end >= today) {
     try {
-      await ensureSchedule(createAdminClient(), start > today ? start : monthStart(today), monthEnd(addMonths(end, 0)));
+      await ensureScheduleThrottled(createAdminClient(), start > today ? start : monthStart(today), monthEnd(addMonths(end, 0)));
     } catch (e) {
       console.error("[agenda] falha ao materializar", e);
     }

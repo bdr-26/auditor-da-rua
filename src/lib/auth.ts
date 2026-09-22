@@ -1,12 +1,13 @@
 import "server-only";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { createClient } from "./supabase/server";
 import type { Profile, UserRole } from "./types";
 
 export type SessionProfile = Profile;
 
-/** Perfil do usuário logado (null se não autenticado). */
-export async function getSessionProfile(): Promise<SessionProfile | null> {
+/** Perfil do usuário logado (null se não autenticado). Memoizado por requisição: layout + página fazem 1 consulta, não 2. */
+export const getSessionProfile = cache(async function getSessionProfile(): Promise<SessionProfile | null> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -18,7 +19,7 @@ export async function getSessionProfile(): Promise<SessionProfile | null> {
   if (error) console.error("[auth] profiles", error.message, error.code, error.details);
   if (!data) return null;
   return data as SessionProfile;
-}
+});
 
 /** Exige login; opcionalmente exige um dos papéis. Redireciona se não atender. */
 export async function requireProfile(roles?: UserRole[]): Promise<SessionProfile> {
