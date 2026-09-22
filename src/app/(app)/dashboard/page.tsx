@@ -13,6 +13,8 @@ import { RankingTable } from "@/components/dashboard/ranking-table";
 import { requireProfile } from "@/lib/auth";
 import { AUDIT_TYPE_SHORT } from "@/lib/constants";
 import { getMonthOverview, parseMesParam } from "@/lib/data/dashboard";
+import { getDemandas, isAtrasada } from "@/lib/data/demandas";
+import { ClipboardCheck, Plus } from "lucide-react";
 import { formatDateShortPT, formatMonthPT } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
 import { cn, fmtBRL, fmtPct } from "@/lib/utils";
@@ -36,6 +38,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       </div>
     );
   }
+
+  const demandas = await getDemandas(supabase, { status: "abertas" });
+  const demandasAtrasadas = demandas.filter((d) => isAtrasada(d)).length;
 
   const hasAudits = ov.ranking.length > 0 || (ov.production?.summary.n_auditorias ?? 0) > 0;
   const avgDelta = ov.networkAvg != null && ov.prevNetworkAvg != null ? ov.networkAvg - ov.prevNetworkAvg : null;
@@ -106,6 +111,23 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           }
           sub={`${ov.nutriAuditorNome ?? "Nutricionista"}: ${ov.nutriTotal} auditoria${ov.nutriTotal === 1 ? "" : "s"} no mês`}
         />
+      </section>
+
+      {/* Demandas para o gerente */}
+      <section className="mt-3">
+        <div className={cn("flex items-center gap-3 rounded-2xl border px-4 py-3", demandasAtrasadas > 0 ? "border-red-200 bg-red-50" : "border-line bg-white")}>
+          <ClipboardCheck className={cn("h-5 w-5 shrink-0", demandasAtrasadas > 0 ? "text-red-700" : "text-brand-dark")} />
+          <Link href="/dashboard/demandas" className="min-w-0 flex-1">
+            <div className="text-sm font-semibold">Demandas para o gerente</div>
+            <div className="text-xs text-gray-600">
+              {demandas.length === 0 ? "nenhuma aberta" : `${demandas.length} aberta${demandas.length === 1 ? "" : "s"}`}
+              {demandasAtrasadas > 0 && <span className="font-semibold text-red-700"> · {demandasAtrasadas} atrasada{demandasAtrasadas === 1 ? "" : "s"}</span>}
+            </div>
+          </Link>
+          <Link href="/dashboard/demandas/nova" className="flex min-h-[40px] shrink-0 items-center gap-1 rounded-xl bg-brand px-3 text-sm font-semibold text-ink">
+            <Plus className="h-4 w-4" /> Nova
+          </Link>
+        </div>
       </section>
 
       {/* Nível 2 — Ranking */}
