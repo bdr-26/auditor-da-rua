@@ -6,6 +6,7 @@ import { APP_NAME, ROLE_LABELS } from "@/lib/constants";
 import { signOut } from "@/app/login/actions";
 import { NavLink, type NavIconName } from "./nav-link";
 import { PushOptIn } from "@/components/pwa/push-opt-in";
+import { InstallBanner } from "@/components/pwa/install-banner";
 
 interface NavItem {
   href: string;
@@ -87,6 +88,7 @@ export function AppShell({ profile, children }: { profile: SessionProfile; child
           </div>
         </header>
 
+        <InstallBanner />
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-24 pt-5 sm:px-6 lg:pb-8">{children}</main>
 
         <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-line bg-white lg:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>

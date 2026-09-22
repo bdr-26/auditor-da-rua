@@ -6,14 +6,15 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { BRAND_YELLOW } from "../constants";
 
-/** Ícone do app embutido como data URI (lido do disco no servidor; vazio se indisponível). */
-const BRAND_ICON: string = (() => {
+/** Logo DA RUA FOOD INC embutido como data URI (lido do disco no servidor; vazio se indisponível). */
+const BRAND_LOGO: string = (() => {
   try {
-    return "data:image/png;base64," + readFileSync(join(process.cwd(), "public", "icons", "icon-192.png")).toString("base64");
+    return "data:image/png;base64," + readFileSync(join(process.cwd(), "public", "brand", "darua-food-inc.png")).toString("base64");
   } catch {
     return "";
   }
 })();
+const BRAND_LOGO_RATIO = 1858 / 986;
 
 // Sem hifenização automática (regras em inglês quebram palavras em português).
 Font.registerHyphenationCallback((word) => [word]);
@@ -101,7 +102,7 @@ export const styles = StyleSheet.create({
     marginHorizontal: -40,
     marginTop: -36,
     paddingHorizontal: 40,
-    paddingVertical: 10,
+    paddingVertical: 9,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -207,13 +208,12 @@ export function BrandHeader({ title, subtitle, right, meta }: { title: string; s
   return (
     <View>
       <View style={styles.brandBar} fixed>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          {BRAND_ICON ? (
-            // eslint-disable-next-line jsx-a11y/alt-text -- Image do react-pdf não tem alt
-            <Image src={BRAND_ICON} style={{ width: 18, height: 18, borderRadius: 4 }} />
-          ) : null}
-          <Text style={styles.brandText}>ROTA  ·  BURGER DA RUA</Text>
-        </View>
+        {BRAND_LOGO ? (
+          // eslint-disable-next-line jsx-a11y/alt-text -- Image do react-pdf não tem alt
+          <Image src={BRAND_LOGO} style={{ height: 34, width: 34 * BRAND_LOGO_RATIO }} />
+        ) : (
+          <Text style={styles.brandText}>DA RUA FOOD INC</Text>
+        )}
         <Text style={styles.brandRight}>{right}</Text>
       </View>
       <Text style={styles.headerTitle}>{title}</Text>

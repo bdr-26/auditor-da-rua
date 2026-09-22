@@ -18,9 +18,10 @@ export interface UnitOption {
   rascunho: boolean;
 }
 
-export function NewAuditForm({ units, today }: { units: UnitOption[]; today: string }) {
-  const [unitId, setUnitId] = useState<string>("");
+export function NewAuditForm({ units, today, initialUnitId }: { units: UnitOption[]; today: string; initialUnitId?: string }) {
+  const [unitId, setUnitId] = useState<string>(initialUnitId && units.some((u) => u.unit.id === initialUnitId) ? initialUnitId : "");
   const [data, setData] = useState(today);
+  const [outraData, setOutraData] = useState(false);
   const { run, pending, error } = useAction();
 
   const submit = () => {
@@ -66,10 +67,23 @@ export function NewAuditForm({ units, today }: { units: UnitOption[]; today: str
       </section>
 
       <section>
-        <h2 className="mb-2 text-sm font-semibold text-gray-600">2. Data da visita</h2>
-        <Field label="Data" hint="Padrão: hoje. Não é possível lançar datas futuras.">
-          <Input type="date" value={data} max={today} onChange={(e) => setData(e.target.value)} />
-        </Field>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-600">2. Data da visita</h2>
+          {!outraData && (
+            <button type="button" onClick={() => setOutraData(true)} className="min-h-0 text-sm font-medium text-brand-dark">
+              Outra data
+            </button>
+          )}
+        </div>
+        {outraData ? (
+          <Field label="Data" hint="Não é possível lançar datas futuras." className="mt-2">
+            <Input type="date" value={data} max={today} onChange={(e) => setData(e.target.value)} />
+          </Field>
+        ) : (
+          <p className="mt-1 text-sm text-gray-700">
+            Hoje, <span className="font-semibold">{formatDatePT(today)}</span>
+          </p>
+        )}
       </section>
 
       {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}

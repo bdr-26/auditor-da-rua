@@ -1,0 +1,9 @@
+{
+  "name": "auditor-da-rua-preview",
+  "private": true,
+  "type": "module",
+  "description": "Harness local de preview: mock do Supabase + screenshots com Playwright",
+  "dependencies": {
+    "playwright-core": "1.56.1"
+  }
+}

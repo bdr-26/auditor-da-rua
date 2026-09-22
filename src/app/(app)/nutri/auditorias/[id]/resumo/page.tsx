@@ -2,16 +2,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ClassBadge, NotaNutri } from "@/components/nutri/nutri-badges";
 import { PhotoGallery } from "@/components/nutri/photo-gallery";
+import { ShareReport } from "@/components/reports/share-report";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
+import { ScoreBar } from "@/components/ui/score";
 import { requireProfile } from "@/lib/auth";
 import { getNutriFillData } from "@/lib/data/nutri";
 import { formatDatePT, formatDateTimePT } from "@/lib/dates";
 import { computeNutriScore } from "@/lib/domain/nutri";
 import { createClient } from "@/lib/supabase/server";
-import { fmtPct } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -79,35 +80,26 @@ export default async function NutriResumoPage({ params }: { params: Promise<{ id
         )}
       </Card>
 
+      {!draft && (
+        <ShareReport
+          pdfUrl={`/api/nutri/relatorio/${id}`}
+          fileName={`auditoria-nutricional-${unit.nome.toLowerCase().replace(/\s+/g, "-")}-${audit.data}.pdf`}
+          title={`Auditoria Nutricional · ${unit.nome} · ${formatDatePT(audit.data)}`}
+          text={`Relatório da auditoria nutricional de ${unit.nome} em ${formatDatePT(audit.data)}: nota ${nota != null ? Math.round(nota) : "—"}% (${classificacao ?? "—"}).`}
+        />
+      )}
+
       <Card>
         <CardTitle>Pontos perdidos por grupo</CardTitle>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-xs text-gray-500">
-              <th className="pb-1 font-medium">Área</th>
-              <th className="pb-1 text-right font-medium">perdidos / aplicáveis</th>
-              <th className="pb-1 text-right font-medium">% da área</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-line">
+        {score.perdidos_por_area.length === 0 ? (
+          <p className="text-sm text-gray-500">Sem itens respondidos.</p>
+        ) : (
+          <div className="space-y-3">
             {score.perdidos_por_area.map((p) => (
-              <tr key={p.area} className={p.perdidos > 0 ? "font-medium text-red-800" : ""}>
-                <td className="py-1.5 pr-2">{p.area}</td>
-                <td className="py-1.5 text-right tabular-nums">
-                  {p.perdidos}/{p.aplicaveis}
-                </td>
-                <td className="py-1.5 text-right tabular-nums">{fmtPct(p.nota)}</td>
-              </tr>
+              <ScoreBar key={p.area} label={p.area} value={p.nota} hint={p.perdidos > 0 ? `${p.perdidos} de ${p.aplicaveis} perdido${p.perdidos === 1 ? "" : "s"}` : `${p.aplicaveis} ok`} />
             ))}
-            {score.perdidos_por_area.length === 0 && (
-              <tr>
-                <td colSpan={3} className="py-2 text-center text-gray-500">
-                  Sem itens respondidos.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+          </div>
+        )}
       </Card>
 
       <Card>

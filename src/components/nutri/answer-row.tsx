@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { Camera, Loader2, X } from "lucide-react";
+import { Camera, Check, Loader2, Minus, X } from "lucide-react";
 import { Textarea } from "@/components/ui/form";
 import type { NutriFillAnswer } from "@/lib/data/nutri";
 import type { NutriAnswer } from "@/lib/types";
@@ -12,10 +12,10 @@ export interface LocalPhoto {
   url: string;
 }
 
-const OPTIONS: { value: NutriAnswer; label: string; on: string; off: string }[] = [
-  { value: "conforme", label: "Conforme", on: "bg-green-600 text-white ring-green-600", off: "bg-green-50 text-green-800 hover:bg-green-100" },
-  { value: "nao_conforme", label: "Não conforme", on: "bg-red-600 text-white ring-red-600", off: "bg-red-50 text-red-800 hover:bg-red-100" },
-  { value: "na", label: "N/A", on: "bg-gray-700 text-white ring-gray-700", off: "bg-gray-100 text-gray-700 hover:bg-gray-200" },
+const OPTIONS: { value: NutriAnswer; label: string; icon: typeof Check; on: string; off: string }[] = [
+  { value: "conforme", label: "Conforme", icon: Check, on: "bg-green-600 text-white ring-green-600", off: "bg-green-50 text-green-800 hover:bg-green-100" },
+  { value: "nao_conforme", label: "Não conforme", icon: X, on: "bg-red-600 text-white ring-red-600", off: "bg-red-50 text-red-800 hover:bg-red-100" },
+  { value: "na", label: "N/A", icon: Minus, on: "bg-gray-700 text-white ring-gray-700", off: "bg-gray-100 text-gray-700 hover:bg-gray-200" },
 ];
 
 export function AnswerRow({
@@ -44,11 +44,11 @@ export function AnswerRow({
   const semApontamento = nc && !(answer.observacao ?? "").trim();
 
   return (
-    <div id={`item-${answer.id}`} className={cn("card scroll-mt-40", highlight && "ring-2 ring-brand")}>
-      <p className="text-base font-medium leading-snug">
-        <span className="mr-1.5 text-xs font-semibold text-gray-400">{index}.</span>
-        {answer.descricao}
-      </p>
+    <div id={`item-${answer.id}`} className={cn("card scroll-mt-40", highlight && "ring-2 ring-brand", answer.resposta == null && "border-l-4 border-l-brand")}>
+      <div className="flex gap-2.5">
+        <span className={cn("mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold", answer.resposta ? "bg-ink text-white" : "bg-surface-muted text-gray-500")}>{index}</span>
+        <p className="text-[15px] font-medium leading-snug">{answer.descricao}</p>
+      </div>
       {answer.peso !== 1 && <p className="mt-1 text-xs text-gray-500">peso {answer.peso}</p>}
 
       <div className="mt-3 grid grid-cols-3 gap-2">
@@ -60,8 +60,9 @@ export function AnswerRow({
               type="button"
               aria-pressed={selected}
               onClick={() => onResposta(o.value)}
-              className={cn("min-h-[52px] rounded-xl px-2 text-sm font-semibold leading-tight transition", selected ? cn(o.on, "ring-2 ring-offset-1") : o.off)}
+              className={cn("flex min-h-[56px] flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-xs font-semibold leading-tight transition", selected ? cn(o.on, "ring-2 ring-offset-1") : o.off)}
             >
+              <o.icon className="h-5 w-5" />
               {o.label}
             </button>
           );

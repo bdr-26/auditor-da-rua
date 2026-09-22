@@ -41,6 +41,20 @@ export async function getLastNutriAuditByUnit(supabase: AnyClient): Promise<Map<
   return map;
 }
 
+/** Progresso (respondidos/total) dos rascunhos informados, para o card "Continuar". */
+export async function getDraftProgress(supabase: AnyClient, auditIds: string[]): Promise<Map<string, { answered: number; total: number }>> {
+  const map = new Map<string, { answered: number; total: number }>();
+  if (auditIds.length === 0) return map;
+  const { data } = await supabase.from("audit_answers").select("audit_id, resposta").in("audit_id", auditIds);
+  for (const row of (data ?? []) as { audit_id: string; resposta: string | null }[]) {
+    const g = map.get(row.audit_id) ?? { answered: 0, total: 0 };
+    g.total++;
+    if (row.resposta) g.answered++;
+    map.set(row.audit_id, g);
+  }
+  return map;
+}
+
 /** Auditoria nutricional existente para (unidade, data), se houver. */
 export async function findNutriAudit(supabase: AnyClient, unitId: string, data: string): Promise<Audit | null> {
   const { data: row } = await supabase.from("audits").select("*").eq("unit_id", unitId).eq("tipo", "nutricional").eq("data", data).maybeSingle();

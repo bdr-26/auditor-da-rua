@@ -56,6 +56,8 @@ Next.js 15 (App Router, TypeScript, Tailwind v4) + Supabase (Auth, Postgres, Sto
 | `/api/push/subscribe` | logado | salva/remove subscription |
 | `/api/reports/[id]` | proprietário | download do PDF |
 | `/api/reports/generate` | proprietário | (re)gera os PDFs de um mês |
+| `/api/nutri/relatorio/[auditId]` | nutricionista (própria) / proprietário | GET: PDF da auditoria nutricional (inline; `?download=1`); POST: guarda no Storage e devolve link assinado de 7 dias p/ WhatsApp |
+| `/api/nutri/relatorio-mensal?unit=&mes=` | nutricionista / proprietário | GET: PDF mensal nutricional da unidade; POST: link assinado |
 
 ## Regras de escrita
 

@@ -9,7 +9,8 @@ import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export default async function NovaAuditoriaPage() {
+export default async function NovaAuditoriaPage({ searchParams }: { searchParams: Promise<{ unit?: string }> }) {
+  const { unit: preselect } = await searchParams;
   const profile = await requireProfile(["auditor_nutricao"]);
   const supabase = await createClient();
   const today = todaySP();
@@ -30,7 +31,7 @@ export default async function NovaAuditoriaPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <PageHeader title="Nova auditoria" subtitle="Auditoria Nutricional" back="/nutri" />
-      {options.length === 0 ? <EmptyState title="Nenhuma unidade ativa" /> : <NewAuditForm units={options} today={today} />}
+      {options.length === 0 ? <EmptyState title="Nenhuma unidade ativa" /> : <NewAuditForm units={options} today={today} initialUnitId={preselect} />}
     </div>
   );
 }

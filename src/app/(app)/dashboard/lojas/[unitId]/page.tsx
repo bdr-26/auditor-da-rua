@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AlertTriangle, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { MonthlyReportLinks } from "@/components/nutri/monthly-report-links";
 import { Card, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
@@ -203,6 +204,11 @@ export default async function UnitPage({ params, searchParams }: { params: Promi
       <section className="mt-4">
         <Card>
           <CardTitle>Apontamentos nutricionais</CardTitle>
+          {d.nutriAudits.length > 0 && (
+            <div className="mb-3">
+              <MonthlyReportLinks mes={mes} units={[{ id: d.unit.id, nome: d.unit.nome }]} />
+            </div>
+          )}
           {d.nutriAudits.length === 0 ? (
             <p className="text-sm text-gray-500">Nenhuma auditoria nutricional neste mês.</p>
           ) : (

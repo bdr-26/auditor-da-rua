@@ -298,33 +298,52 @@ export function NutriFill({
 
   return (
     <div className="-mt-5 pb-28">
-      {/* header fixo */}
-      <div className="sticky z-20 -mx-4 border-b border-line bg-white/95 px-4 pb-2 pt-3 backdrop-blur sm:-mx-6 sm:px-6" style={{ top: inset.top }}>
+      {/* header fixo: linha 1 = voltar + unidade + contador/salvo; linha 2 = barra; linha 3 = chips das áreas */}
+      <div className="sticky z-20 -mx-4 border-b border-line bg-white/95 px-4 pt-2 backdrop-blur sm:-mx-6 sm:px-6" style={{ top: inset.top }}>
         <div className="mx-auto max-w-3xl">
-          <div className="flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <div className="truncate text-sm font-bold">{unit.nome}</div>
-              <div className="text-xs text-gray-500">
-                Auditoria Nutricional · {formatDatePT(audit.data)} · <Badge tone="brand">rascunho</Badge>
+          <div className="flex items-center gap-2">
+            <Link href="/nutri" aria-label="Voltar" className="-ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-600 hover:bg-surface-muted">
+              <ChevronLeft className="h-5 w-5" />
+            </Link>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-bold leading-tight">{unit.nome}</div>
+              <div className="truncate text-[11px] text-gray-500">
+                {formatDatePT(audit.data)} · {current?.kind === "area" ? current.area.area : "Visita anterior"}
               </div>
             </div>
             <div className="flex shrink-0 flex-col items-end">
-              <span className="text-sm font-semibold tabular-nums">
-                {answered}/{total} itens
+              <span className="text-sm font-bold tabular-nums">
+                {answered}<span className="text-gray-400">/{total}</span>
               </span>
               <SaveIndicator status={status} onRetry={() => void flushAll()} />
             </div>
           </div>
-          <ProgressBar value={answered} max={total} className="mt-2" />
-          <div className="mt-1.5 flex items-center justify-between text-xs text-gray-500">
-            <span>
-              Etapa {step + 1} de {steps.length}
-            </span>
-            {current?.kind === "area" && (
-              <span>
-                {stepAnswered}/{stepAnswers.length} nesta área
-              </span>
-            )}
+          <ProgressBar value={answered} max={total} className="mt-2 h-1.5" />
+          <div className="-mx-4 mt-2 flex gap-1.5 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {steps.map((st, i) => {
+              const label = st.kind === "pendings" ? "Visita anterior" : st.area.area;
+              const list = st.kind === "pendings" ? pendings.map((p) => pend[p.pending_issue_id] != null) : st.area.answers.map((a) => answers[a.id]?.resposta != null);
+              const done = list.filter(Boolean).length;
+              const complete = list.length > 0 && done === list.length;
+              const active = i === step;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => go(i)}
+                  aria-current={active ? "step" : undefined}
+                  className={cn(
+                    "flex min-h-0 shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+                    active ? "border-ink bg-ink text-white" : complete ? "border-green-200 bg-green-50 text-green-800" : "border-line bg-white text-gray-600",
+                  )}
+                >
+                  <span className="max-w-[9rem] truncate">{label}</span>
+                  <span className={cn("tabular-nums", active ? "text-gray-300" : "text-gray-400")}>
+                    {done}/{list.length}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -375,7 +394,12 @@ export function NutriFill({
 
         {current?.kind === "area" && (
           <section className="space-y-3">
-            <h2 className="text-lg font-bold">{current.area.area}</h2>
+            <div className="flex items-baseline justify-between gap-2">
+              <h2 className="text-lg font-bold">{current.area.area}</h2>
+              <span className="shrink-0 text-xs text-gray-500">
+                {stepAnswered}/{stepAnswers.length} respondidos
+              </span>
+            </div>
             <p className="flex items-start gap-1.5 rounded-xl bg-brand-light px-3 py-2 text-xs text-brand-dark">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <span>
@@ -430,7 +454,7 @@ export function NutriFill({
             </button>
           ) : (
             <button type="button" onClick={() => go(step + 1)} className="flex min-h-[52px] flex-[2] items-center justify-center gap-1 rounded-xl bg-brand font-semibold text-ink">
-              Próximo <ChevronRight className="h-5 w-5" />
+              {steps[step + 1]?.kind === "area" ? "Próxima área" : "Próximo"} <ChevronRight className="h-5 w-5" />
             </button>
           )}
         </div>
