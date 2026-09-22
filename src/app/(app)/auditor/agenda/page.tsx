@@ -9,6 +9,9 @@ import { requireProfile } from "@/lib/auth";
 import { getAuditsByIds, getAuditsInRange, getScheduleRange } from "@/lib/data/audit-flow";
 import { getUnits } from "@/lib/data/units";
 import { getDaysOff } from "@/lib/data/days-off";
+import { getDemandas, isAtrasada } from "@/lib/data/demandas";
+import { DemandaCard } from "@/components/demandas/demanda-card";
+import { ClipboardList } from "lucide-react";
 import { addDays, addMonths, formatMonthPT, formatWeekdayPT, monthEnd, monthStart, todaySP, weekday } from "@/lib/dates";
 import { workWeekRange } from "@/lib/domain/schedule";
 import { AUDIT_TYPE_SHORT } from "@/lib/constants";
@@ -55,12 +58,14 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
   }
 
   const supabase = await createClient();
-  const [rows, units, rangeAudits, daysOff] = await Promise.all([
+  const [rows, units, rangeAudits, daysOff, demandas] = await Promise.all([
     getScheduleRange(supabase, start, end),
     getUnits(supabase, { ativas: false }),
     getAuditsInRange(supabase, start, end),
     getDaysOff(supabase, start, end, profile.id),
+    verMes ? Promise.resolve([]) : getDemandas(supabase, { responsavelId: profile.id, status: "abertas" }),
   ]);
+  const demandasAtrasadas = demandas.filter((d) => isAtrasada(d, today)).length;
   const offByDate = new Map(daysOff.map((d) => [d.data, d]));
   const unitsById = new Map(units.map((u) => [u.id, u]));
   const linked = await getAuditsByIds(supabase, rows.map((r) => r.audit_id).filter((id): id is string => !!id));
@@ -119,6 +124,29 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
           </Link>
         </div>
 
+        {demandas.length > 0 && (
+          <section className="mb-4">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="flex items-center gap-1.5 text-base font-semibold">
+                <ClipboardList className="h-4 w-4 text-brand-dark" /> Demandas
+                <span className="text-sm font-normal text-gray-500">
+                  · {demandas.length} aberta{demandas.length === 1 ? "" : "s"}
+                  {demandasAtrasadas > 0 && <span className="font-semibold text-red-700"> · {demandasAtrasadas} atrasada{demandasAtrasadas === 1 ? "" : "s"}</span>}
+                </span>
+              </h2>
+              <Link href="/auditor/demandas" className="text-sm font-medium text-brand-dark">
+                Ver todas
+              </Link>
+            </div>
+            <div className="space-y-2">
+              {demandas.slice(0, 4).map((d) => (
+                <DemandaCard key={d.id} d={d} href={`/auditor/demandas/${d.id}`} unitName={d.unit_id ? unitsById.get(d.unit_id)?.nome : null} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        <h2 className="mb-2 text-base font-semibold">Auditorias da semana</h2>
         <div className="space-y-2">
           {days.map((d) => {
             const row = rowsByDate.get(d);

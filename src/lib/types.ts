@@ -164,6 +164,46 @@ export interface ScheduleDay {
   created_at: string;
 }
 
+export type DemandaStatus = "aberta" | "em_andamento" | "concluida" | "cancelada";
+export type DemandaPrioridade = "normal" | "alta";
+
+export interface Demanda {
+  id: string;
+  titulo: string;
+  descricao: string | null;
+  prazo: string | null;
+  prioridade: DemandaPrioridade;
+  status: DemandaStatus;
+  unit_id: string | null;
+  responsavel_id: string;
+  criado_por: string;
+  conclusao_texto: string | null;
+  concluida_em: string | null;
+  concluida_por: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DemandaComentario {
+  id: string;
+  demanda_id: string;
+  user_id: string;
+  texto: string;
+  status_novo: DemandaStatus | null;
+  created_at: string;
+}
+
+export interface DemandaAnexo {
+  id: string;
+  demanda_id: string;
+  storage_path: string;
+  nome: string;
+  mime: string | null;
+  tamanho: number | null;
+  user_id: string;
+  created_at: string;
+}
+
 export interface AuditorDayOff {
   id: string;
   data: string;
