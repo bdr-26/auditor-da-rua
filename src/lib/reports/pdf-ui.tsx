@@ -1,8 +1,19 @@
 // Primitivos visuais dos relatórios (react-pdf). Fontes built-in (Helvetica) — sem download externo.
 // Atenção: Helvetica usa codificação WinAnsi; evite símbolos fora dela (Δ, ≥, ⚠, setas).
-import { Font, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Font, Image, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type { ReactNode } from "react";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { BRAND_YELLOW } from "../constants";
+
+/** Ícone do app embutido como data URI (lido do disco no servidor; vazio se indisponível). */
+const BRAND_ICON: string = (() => {
+  try {
+    return "data:image/png;base64," + readFileSync(join(process.cwd(), "public", "icons", "icon-192.png")).toString("base64");
+  } catch {
+    return "";
+  }
+})();
 
 // Sem hifenização automática (regras em inglês quebram palavras em português).
 Font.registerHyphenationCallback((word) => [word]);
@@ -196,7 +207,13 @@ export function BrandHeader({ title, subtitle, right, meta }: { title: string; s
   return (
     <View>
       <View style={styles.brandBar} fixed>
-        <Text style={styles.brandText}>AUDITOR DA RUA  ·  BURGER DA RUA</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          {BRAND_ICON ? (
+            // eslint-disable-next-line jsx-a11y/alt-text -- Image do react-pdf não tem alt
+            <Image src={BRAND_ICON} style={{ width: 18, height: 18, borderRadius: 4 }} />
+          ) : null}
+          <Text style={styles.brandText}>AUDITOR DA RUA  ·  BURGER DA RUA</Text>
+        </View>
         <Text style={styles.brandRight}>{right}</Text>
       </View>
       <Text style={styles.headerTitle}>{title}</Text>
