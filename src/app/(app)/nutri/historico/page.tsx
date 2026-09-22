@@ -1,4 +1,5 @@
 import { NutriAuditRow } from "@/components/nutri/audit-row";
+import { MonthlyReportLinks } from "@/components/nutri/monthly-report-links";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
@@ -55,6 +56,10 @@ export default async function NutriHistoricoPage() {
                   <NutriAuditRow key={a.id} audit={a} unitName={unitName.get(a.unit_id) ?? "Unidade"} auditorName={isNutri ? undefined : auditorName.get(a.auditor_id)} />
                 ))}
               </div>
+              <MonthlyReportLinks
+                mes={mes}
+                units={Array.from(new Set(concluded.map((a) => a.unit_id))).map((id) => ({ id, nome: unitName.get(id) ?? "Unidade" }))}
+              />
             </section>
           );
         })

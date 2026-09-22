@@ -14,7 +14,11 @@
     "seed:users": "tsx scripts/seed-users.ts",
     "reports:sample": "tsx scripts/render-report-sample.tsx",
     "vapid": "node scripts/generate-vapid.mjs",
-    "db:test": "scripts/db-local-test.sh"
+    "db:test": "scripts/db-local-test.sh",
+    "preview": "scripts/preview/run.sh",
+    "preview:stop": "scripts/preview/stop.sh",
+    "preview:shots": "node scripts/preview/screenshot.mjs",
+    "reports:nutri-sample": "tsx scripts/render-nutri-sample.tsx"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.3.3",

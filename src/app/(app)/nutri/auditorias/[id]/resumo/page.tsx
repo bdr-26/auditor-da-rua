@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ClassBadge, NotaNutri } from "@/components/nutri/nutri-badges";
 import { PhotoGallery } from "@/components/nutri/photo-gallery";
+import { ShareReport } from "@/components/reports/share-report";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -78,6 +79,15 @@ export default async function NutriResumoPage({ params }: { params: Promise<{ id
           </div>
         )}
       </Card>
+
+      {!draft && (
+        <ShareReport
+          pdfUrl={`/api/nutri/relatorio/${id}`}
+          fileName={`auditoria-nutricional-${unit.nome.toLowerCase().replace(/\s+/g, "-")}-${audit.data}.pdf`}
+          title={`Auditoria Nutricional · ${unit.nome} · ${formatDatePT(audit.data)}`}
+          text={`Relatório da auditoria nutricional de ${unit.nome} em ${formatDatePT(audit.data)}: nota ${nota != null ? Math.round(nota) : "—"}% (${classificacao ?? "—"}).`}
+        />
+      )}
 
       <Card>
         <CardTitle>Pontos perdidos por grupo</CardTitle>
