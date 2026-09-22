@@ -15,7 +15,7 @@ import { getDemandas, isAtrasada } from "@/lib/data/demandas";
 import { ClipboardList } from "lucide-react";
 import { formatDayLabelPT, formatWeekdayPT, todaySP, weekday } from "@/lib/dates";
 import { workWeekRange } from "@/lib/domain/schedule";
-import { ensureSchedule } from "@/lib/schedule-sync";
+import { ensureScheduleThrottled } from "@/lib/schedule-sync";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Audit, ScheduleDay, Unit } from "@/lib/types";
@@ -27,7 +27,7 @@ export const metadata = { title: "Hoje" };
 export default async function AuditorHomePage() {
   const profile = await requireProfile(["auditor_geral"]);
   try {
-    await ensureSchedule(createAdminClient());
+    await ensureScheduleThrottled(createAdminClient());
   } catch (e) {
     console.error("[agenda] falha ao materializar", e);
   }
@@ -44,19 +44,17 @@ export default async function AuditorHomePage() {
     getDaysOff(supabase, week.start, week.end, profile.id),
   ]);
   const todayOff = isDayOff(daysOff, today);
-  const demandas = await getDemandas(supabase, { responsavelId: profile.id, status: "abertas" });
-  const demandasAtrasadas = demandas.filter((d) => isAtrasada(d, today)).length;
   const unitsById = new Map(units.map((u) => [u.id, u]));
 
-  const audits = await getAuditsByIds(
-    supabase,
-    [...weekRows, ...recentRows, ...(todayRow ? [todayRow] : [])].map((r) => r.audit_id).filter((id): id is string => !!id),
-  );
+  const [audits, unlinkedToday, demandas] = await Promise.all([
+    getAuditsByIds(supabase, [...weekRows, ...recentRows, ...(todayRow ? [todayRow] : [])].map((r) => r.audit_id).filter((id): id is string => !!id)),
+    // rascunho de hoje mesmo sem vínculo na agenda
+    todayRow && !todayRow.audit_id ? findAudit(supabase, todayRow.unit_id, todayRow.tipo, today) : Promise.resolve(null),
+    getDemandas(supabase, { responsavelId: profile.id, status: "abertas" }),
+  ]);
   const auditsById = new Map(audits.map((a) => [a.id, a]));
-
-  // rascunho de hoje mesmo sem vínculo na agenda
-  let todayAudit: Audit | null = todayRow?.audit_id ? (auditsById.get(todayRow.audit_id) ?? null) : null;
-  if (todayRow && !todayAudit) todayAudit = await findAudit(supabase, todayRow.unit_id, todayRow.tipo, today);
+  const todayAudit: Audit | null = (todayRow?.audit_id ? auditsById.get(todayRow.audit_id) : null) ?? unlinkedToday;
+  const demandasAtrasadas = demandas.filter((d) => isAtrasada(d, today)).length;
 
   const todayUnit = todayRow ? unitsById.get(todayRow.unit_id) : undefined;
   const isMonday = weekday(today) === 1;

@@ -13,6 +13,7 @@ const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? process.env.V
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  experimental: { staleTimes: { dynamic: 30, static: 180 } },
   env: {
     NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: supabaseAnonKey,

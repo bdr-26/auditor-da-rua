@@ -1,9 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { supabaseAnonKey, supabaseUrl } from "./env";
 
-/** Cliente Supabase para Server Components / Server Actions / Route Handlers (sessão via cookies, RLS). */
-export async function createClient() {
+/** Cliente Supabase para Server Components / Server Actions / Route Handlers (sessão via cookies, RLS).
+ *  Memoizado por requisição (React cache): layout, página e helpers compartilham a mesma instância. */
+export const createClient = cache(async function createClient() {
   const cookieStore = await cookies();
   return createServerClient(supabaseUrl(), supabaseAnonKey(), {
     cookies: {
@@ -19,4 +21,4 @@ export async function createClient() {
       },
     },
   });
-}
+});

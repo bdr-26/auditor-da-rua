@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { cache } from "react";
 import { AUDIT_WEIGHTS, ELIGIBILITY_MIN, PRIZE_VALUE, RECURRENCE_VISITS, REDUCED_SAMPLE_MIN } from "./constants";
 
 export interface AppSettings {
@@ -29,10 +30,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
   pendencia_reincidente_visitas: RECURRENCE_VISITS,
 };
 
+/** Memoizado por requisição para o mesmo cliente (React cache). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function getSettings(supabase: SupabaseClient<any, any, any>): Promise<AppSettings> {
+export const getSettings = cache(async function getSettings(supabase: SupabaseClient<any, any, any>): Promise<AppSettings> {
   const { data } = await supabase.from("app_settings").select("chave, valor");
   const out: Record<string, unknown> = { ...DEFAULT_SETTINGS };
   for (const row of data ?? []) out[row.chave] = row.valor;
   return out as unknown as AppSettings;
-}
+});

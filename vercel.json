@@ -1,6 +1,15 @@
 {
   "crons": [
-    { "path": "/api/cron/daily-reminder", "schedule": "0 11 * * *" },
-    { "path": "/api/cron/end-of-day", "schedule": "5 2 * * *" }
+    {
+      "path": "/api/cron/daily-reminder",
+      "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/cron/end-of-day",
+      "schedule": "5 2 * * *"
+    }
+  ],
+  "regions": [
+    "gru1"
   ]
 }
