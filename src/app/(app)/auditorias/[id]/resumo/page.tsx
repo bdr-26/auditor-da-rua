@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { AlertTriangle, Check, ChevronRight, RotateCcw } from "lucide-react";
+import { AlertTriangle, ChevronRight } from "lucide-react";
+import { PhotoGallery } from "@/components/nutri/photo-gallery";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -11,7 +12,7 @@ import { requireProfile } from "@/lib/auth";
 import { AUDIT_TYPE_LABELS, GRAVE_FAILURE_CAP, SCORE_COLORS, SCORE_LABELS } from "@/lib/constants";
 import { getAuditFillData, toScoringAnswers } from "@/lib/data/audit-flow";
 import { signedPhotoUrl } from "@/lib/data/audits";
-import { formatDateTimePT, formatDayLabelPT } from "@/lib/dates";
+import { formatDatePT, formatDateTimePT, formatDayLabelPT } from "@/lib/dates";
 import { computeAuditScore, pctTone } from "@/lib/domain/scoring";
 import { createClient } from "@/lib/supabase/server";
 import type { BlockScore, Score } from "@/lib/types";
@@ -20,13 +21,16 @@ import { cn, fmtPct } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Resumo da auditoria" };
 
-const CLASSIFICACAO: Record<ReturnType<typeof pctTone>, { label: string; cls: string }> = {
-  green: { label: "Dentro do padrão", cls: "text-green-700" },
-  yellow: { label: "Atenção", cls: "text-yellow-700" },
-  orange: { label: "Não conforme", cls: "text-orange-700" },
-  red: { label: "Crítico", cls: "text-red-700" },
-  gray: { label: "Sem nota", cls: "text-gray-500" },
+const CLASSIFICACAO: Record<ReturnType<typeof pctTone>, { label: string; tone: "green" | "yellow" | "orange" | "red" | "gray" }> = {
+  green: { label: "Dentro do padrão", tone: "green" },
+  yellow: { label: "Atenção", tone: "yellow" },
+  orange: { label: "Não conforme", tone: "orange" },
+  red: { label: "Crítico", tone: "red" },
+  gray: { label: "Sem nota", tone: "gray" },
 };
+
+/** Fundo/borda do cartão de um ponto de atenção conforme a nota. */
+const LOW_CARD: Record<number, string> = { 1: "border-red-200 bg-red-50/70", 2: "border-orange-200 bg-orange-50/70", 3: "border-yellow-200 bg-yellow-50/70" };
 
 export default async function ResumoPage({ params }: { params: Promise<{ id: string }> }) {
   const profile = await requireProfile();
@@ -67,162 +71,174 @@ export default async function ResumoPage({ params }: { params: Promise<{ id: str
   const resolvidas = pendings.filter((p) => p.resolvida === true);
   const mantidas = pendings.filter((p) => p.resolvida === false);
 
+  // distribuição das notas dadas (itens aplicáveis) e N/A
+  const scored = answers.filter((a) => !a.na && a.nota != null && itemsById.has(a.item_id));
+  const dist: Record<Score, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  for (const a of scored) dist[a.nota as Score]++;
+  const naCount = answers.filter((a) => a.na && itemsById.has(a.item_id)).length;
+  const tipoLabel = AUDIT_TYPE_LABELS[audit.tipo];
+  const surpresa = audit.tipo !== "nutricional" && profile.role === "proprietario" && mine;
+
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
-      <PageHeader
-        title={unit.nome}
-        subtitle={
-          <>
-            {AUDIT_TYPE_LABELS[audit.tipo]} · <span className="capitalize">{formatDayLabelPT(audit.data)}</span> · {auditorNome}
-          </>
-        }
-        back={backHref}
-        actions={isDraft && mine ? <ButtonLink href={`/auditorias/${id}`} size="sm">Continuar</ButtonLink> : undefined}
-      />
+    <div className="mx-auto max-w-2xl space-y-5">
+      <PageHeader title="Resumo da auditoria" subtitle={tipoLabel} back={backHref} />
 
-      {isDraft ? (
-        <Card className="border-yellow-300">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <Badge tone="yellow">rascunho em andamento</Badge>
-              <p className="mt-2 font-medium">
-                {result.respondidos}/{result.total} itens respondidos
-              </p>
-              <p className="text-xs text-gray-500">A nota só é calculada quando o auditor conclui a auditoria.</p>
-            </div>
-          </div>
-          <ProgressBar value={result.respondidos} max={result.total} className="mt-3" />
-        </Card>
-      ) : (
-        <Card className="p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Nota final</p>
-              <p className={cn("mt-0.5 text-lg font-bold", CLASSIFICACAO[tone].cls)}>{CLASSIFICACAO[tone].label}</p>
-              <p className="text-xs text-gray-500">Concluída em {audit.concluida_em ? formatDateTimePT(audit.concluida_em) : "—"}</p>
-            </div>
-            <PctBadge value={notaFinal} size="lg" className="px-4 py-2 text-3xl" />
-          </div>
-          {falhaGrave && (
-            <div className="mt-4 flex items-start gap-2 rounded-xl bg-red-600 px-3 py-2.5 text-sm font-medium text-white">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>
-                Falha grave — nota limitada a {GRAVE_FAILURE_CAP}%
-                {produtoVencido && (
-                  <span className="ml-2 inline-block rounded-full bg-white/20 px-2 py-0.5 text-xs">produto vencido em uso · inelegível à premiação</span>
-                )}
-              </span>
-            </div>
+      {/* nota */}
+      <Card className="text-center">
+        <div className="flex flex-col items-center gap-2">
+          {isDraft ? (
+            <Badge tone="yellow">rascunho · prévia</Badge>
+          ) : (
+            <Badge tone="dark">{surpresa ? "auditoria surpresa" : "concluída"}</Badge>
           )}
-        </Card>
-      )}
+          <PctBadge value={isDraft ? null : notaFinal} size="lg" className="rounded-xl px-6 py-3 text-5xl" />
+          {!isDraft && <Badge tone={CLASSIFICACAO[tone].tone} className="text-sm">{CLASSIFICACAO[tone].label}</Badge>}
+        </div>
+        <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
+          <div>
+            <div className="text-xs text-gray-500">Unidade</div>
+            <div className="font-semibold">{unit.nome}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500">Data</div>
+            <div className="font-semibold">{formatDatePT(audit.data)}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500">Auditor</div>
+            <div className="font-semibold leading-tight">{auditorNome}</div>
+          </div>
+        </div>
+        <div className="mt-3 flex flex-wrap justify-center gap-1.5 text-xs">
+          {([5, 4, 3, 2, 1] as Score[]).map((sc) => (
+            <span key={sc} className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold", SCORE_COLORS[sc].bg, SCORE_COLORS[sc].text)}>
+              <span>{sc}</span>
+              <span className="font-normal opacity-80">× {dist[sc]}</span>
+            </span>
+          ))}
+          {naCount > 0 && <Badge tone="gray">{naCount} N/A</Badge>}
+        </div>
+        {isDraft ? (
+          <div className="mt-4">
+            <p className="text-sm font-medium">
+              {result.respondidos}/{result.total} itens respondidos
+            </p>
+            <ProgressBar value={result.respondidos} max={result.total} className="mt-2" />
+            <p className="mt-2 text-xs text-gray-500">A nota só é calculada quando a auditoria é concluída.</p>
+            {mine && (
+              <div className="mt-4">
+                <ButtonLink href={`/auditorias/${id}`} full>
+                  Continuar preenchendo
+                </ButtonLink>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="mt-2 text-xs text-gray-400">concluída em {audit.concluida_em ? formatDateTimePT(audit.concluida_em) : "—"}</p>
+        )}
+        {!isDraft && falhaGrave && (
+          <div className="mt-4 flex items-start gap-2 rounded-xl bg-red-600 px-3 py-2.5 text-left text-sm font-medium text-white">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              Falha grave: nota limitada a {GRAVE_FAILURE_CAP}%
+              {result.nota_sem_teto != null && result.nota_sem_teto > GRAVE_FAILURE_CAP && <span className="opacity-80"> (seria {fmtPct(result.nota_sem_teto)})</span>}
+              {produtoVencido && <span className="mt-1 block rounded-full bg-white/20 px-2 py-0.5 text-xs">produto vencido em uso · loja inelegível à premiação</span>}
+            </span>
+          </div>
+        )}
+      </Card>
 
-      {/* blocos */}
       {!isDraft && (
         <ShareReport
           pdfUrl={`/api/auditorias/${audit.id}/relatorio`}
           fileName={`auditoria-${audit.tipo}-${unit.nome.toLowerCase().replace(/\s+/g, "-")}-${audit.data}.pdf`}
-          title={`${AUDIT_TYPE_LABELS[audit.tipo]} · ${unit.nome} · ${formatDayLabelPT(audit.data)}`}
-          text={`Relatório da ${AUDIT_TYPE_LABELS[audit.tipo].toLowerCase()} de ${unit.nome} em ${formatDayLabelPT(audit.data)}: nota ${notaFinal != null ? Math.round(notaFinal) : "—"}%${falhaGrave ? " (falha grave)" : ""}.`}
+          title={`${tipoLabel} · ${unit.nome} · ${formatDayLabelPT(audit.data)}`}
+          text={`Relatório da ${tipoLabel.toLowerCase()} de ${unit.nome} em ${formatDayLabelPT(audit.data)}: nota ${notaFinal != null ? Math.round(notaFinal) : "—"}%${falhaGrave ? " (falha grave)" : ""}.`}
         />
       )}
 
       <Card>
-        <CardTitle>{audit.tipo === "completa" ? "Blocos (20% cada)" : "Por área"}</CardTitle>
+        <CardTitle>{audit.tipo === "completa" ? "Nota por bloco" : "Nota por área"}</CardTitle>
         <div className="space-y-3">
           {bars.map((b) => (
-            <ScoreBar key={b.chave} label={b.nome} value={isDraft ? null : b.nota} zerado={!isDraft && b.zerado} hint={`${b.itens_aplicaveis} item(ns)`} />
+            <ScoreBar key={b.chave} label={b.nome} value={isDraft ? null : b.nota} zerado={!isDraft && b.zerado} hint={`${b.itens_aplicaveis} ${b.itens_aplicaveis === 1 ? "item" : "itens"}`} />
           ))}
         </div>
+        {audit.tipo === "completa" && <p className="mt-3 text-xs text-gray-500">Cada bloco vale 20% da nota final.</p>}
       </Card>
 
-      {/* itens ≤ 3 */}
       <Card>
-        <CardTitle>Pontos de atenção {lowWithPhotos.length > 0 && <span className="text-gray-400">({lowWithPhotos.length})</span>}</CardTitle>
+        <CardTitle>
+          Pontos de atenção {lowWithPhotos.length > 0 && <span className="text-sm font-normal text-gray-500">· {lowWithPhotos.length} {lowWithPhotos.length === 1 ? "item" : "itens"} com nota 3 ou menor</span>}
+        </CardTitle>
         {lowWithPhotos.length === 0 ? (
           <p className="text-sm text-gray-500">Nenhum item com nota 3 ou menor{isDraft ? " até agora" : ""}.</p>
         ) : (
-          <div className="divide-y divide-line">
+          <ul className="space-y-3">
             {lowWithPhotos.map((a) => {
               const meta = itemsById.get(a.item_id)!;
-              const s = a.nota as Score;
-              const c = SCORE_COLORS[s];
+              const sc = a.nota as Score;
+              const c = SCORE_COLORS[sc];
               return (
-                <div key={a.id} className="flex gap-3 py-3 first:pt-0 last:pb-0">
-                  <span className={cn("flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-lg font-bold", c.bg, c.text)}>
-                    <span className="text-lg leading-none">{s}</span>
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium leading-snug">{meta.item.descricao}</p>
-                    <p className="text-xs text-gray-500">
-                      {meta.bloco} · {SCORE_LABELS[s]}
-                      {meta.item.falha_grave && s === 1 && <span className="ml-1 font-semibold text-red-700">· falha grave</span>}
-                      {meta.item.produto_vencido && a.produto_vencido && <span className="ml-1 font-semibold text-red-700">· produto vencido</span>}
-                    </p>
-                    {a.observacao && <p className="mt-1.5 rounded-lg bg-surface-muted px-3 py-2 text-sm text-gray-700">{a.observacao}</p>}
-                    {a.photoUrls.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {a.photoUrls.map((u, i) => (
-                          <a key={i} href={u} target="_blank" rel="noopener noreferrer" className="block h-20 w-20 overflow-hidden rounded-lg border border-line">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={u} alt={`Foto ${i + 1} — ${meta.item.descricao}`} className="h-full w-full object-cover" />
-                          </a>
-                        ))}
-                      </div>
-                    )}
+                <li key={a.id} className={cn("rounded-xl border p-3", LOW_CARD[sc])}>
+                  <div className="flex items-start gap-3">
+                    <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-lg font-bold", c.solid, "text-white")}>{sc}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium leading-snug">{meta.item.descricao}</p>
+                      <p className="mt-0.5 text-xs text-gray-600">
+                        {meta.bloco} · {SCORE_LABELS[sc]}
+                        {meta.item.falha_grave && sc === 1 && <span className="ml-1 font-semibold text-red-700">· falha grave</span>}
+                        {meta.item.produto_vencido && a.produto_vencido && <span className="ml-1 font-semibold text-red-700">· produto vencido</span>}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                  {a.observacao && <p className="mt-2 rounded-lg bg-white/80 px-3 py-2 text-sm text-gray-700">{a.observacao}</p>}
+                  {a.photoUrls.length > 0 && (
+                    <div className="mt-2">
+                      <PhotoGallery size="sm" photos={a.photoUrls.map((url, i) => ({ id: `${a.id}-${i}`, url }))} />
+                    </div>
+                  )}
+                </li>
               );
             })}
-          </div>
-        )}
-      </Card>
-
-      {/* pendências avaliadas */}
-      <Card>
-        <CardTitle>
-          Pendências avaliadas{" "}
-          {pendings.length > 0 && (
-            <span className="text-sm font-normal text-gray-500">
-              · {resolvidas.length} resolvida(s) × {mantidas.length} mantida(s)
-            </span>
-          )}
-        </CardTitle>
-        {pendings.length === 0 ? (
-          <p className="text-sm text-gray-500">Não havia pendências da visita anterior.</p>
-        ) : (
-          <ul className="divide-y divide-line">
-            {pendings.map((p) => (
-              <li key={p.pending_issue_id} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
-                {p.resolvida === true ? (
-                  <Check className="mt-0.5 h-5 w-5 shrink-0 text-green-700" />
-                ) : p.resolvida === false ? (
-                  <RotateCcw className="mt-0.5 h-5 w-5 shrink-0 text-red-700" />
-                ) : (
-                  <span className="mt-0.5 h-5 w-5 shrink-0 rounded-full border-2 border-gray-300" />
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{p.descricao}</p>
-                  <p className="text-xs text-gray-500">
-                    {p.resolvida === true ? "resolvida" : p.resolvida === false ? "mantida" : "não avaliada"}
-                    {p.reincidente && <span className="ml-1 font-semibold text-red-700">· reincidente</span>}
-                    {p.observacao && ` · ${p.observacao}`}
-                  </p>
-                </div>
-              </li>
-            ))}
           </ul>
         )}
       </Card>
 
-      {!isDraft && result.falha_grave && result.nota_sem_teto != null && result.nota_sem_teto > GRAVE_FAILURE_CAP && (
-        <p className="text-center text-xs text-gray-500">Nota sem o teto de falha grave: {fmtPct(result.nota_sem_teto)}</p>
+      {pendings.length > 0 && (
+        <Card>
+          <CardTitle>
+            Pendências da visita anterior{" "}
+            <span className="text-sm font-normal text-gray-500">
+              · {resolvidas.length} resolvida{resolvidas.length === 1 ? "" : "s"} × {mantidas.length} mantida{mantidas.length === 1 ? "" : "s"}
+            </span>
+          </CardTitle>
+          <ul className="space-y-2 text-sm">
+            {pendings.map((p) => (
+              <li key={p.pending_issue_id} className="flex items-start gap-2">
+                <Badge tone={p.resolvida === true ? "green" : p.resolvida === false ? "red" : "gray"} className="mt-0.5 shrink-0">
+                  {p.resolvida === true ? "resolvida" : p.resolvida === false ? "mantida" : "não avaliada"}
+                </Badge>
+                <span>
+                  {p.descricao}
+                  {p.reincidente && <span className="ml-1 text-xs font-semibold text-red-700">· reincidente</span>}
+                  {p.observacao && <span className="block text-xs text-gray-500">{p.observacao}</span>}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Card>
       )}
 
-      {profile.role === "proprietario" && (
+      {profile.role === "proprietario" ? (
         <Link href={`/dashboard/lojas/${unit.id}`} className="flex items-center justify-between rounded-2xl border border-line bg-white px-4 py-3 text-sm font-medium hover:bg-surface-muted">
           Ver página de {unit.nome} <ChevronRight className="h-4 w-4 text-gray-400" />
         </Link>
+      ) : (
+        <p className="text-center text-xs text-gray-500">
+          <Link href={backHref} className="underline">
+            Voltar
+          </Link>
+        </p>
       )}
     </div>
   );
