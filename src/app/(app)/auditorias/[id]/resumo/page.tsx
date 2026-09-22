@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
+import { ShareReport } from "@/components/reports/share-report";
 import { PctBadge, ProgressBar, ScoreBar } from "@/components/ui/score";
 import { requireProfile } from "@/lib/auth";
 import { AUDIT_TYPE_LABELS, GRAVE_FAILURE_CAP, SCORE_COLORS, SCORE_LABELS } from "@/lib/constants";
@@ -117,6 +118,15 @@ export default async function ResumoPage({ params }: { params: Promise<{ id: str
       )}
 
       {/* blocos */}
+      {!isDraft && (
+        <ShareReport
+          pdfUrl={`/api/auditorias/${audit.id}/relatorio`}
+          fileName={`auditoria-${audit.tipo}-${unit.nome.toLowerCase().replace(/\s+/g, "-")}-${audit.data}.pdf`}
+          title={`${AUDIT_TYPE_LABELS[audit.tipo]} · ${unit.nome} · ${formatDayLabelPT(audit.data)}`}
+          text={`Relatório da ${AUDIT_TYPE_LABELS[audit.tipo].toLowerCase()} de ${unit.nome} em ${formatDayLabelPT(audit.data)}: nota ${notaFinal != null ? Math.round(notaFinal) : "—"}%${falhaGrave ? " (falha grave)" : ""}.`}
+        />
+      )}
+
       <Card>
         <CardTitle>{audit.tipo === "completa" ? "Blocos (20% cada)" : "Por área"}</CardTitle>
         <div className="space-y-3">

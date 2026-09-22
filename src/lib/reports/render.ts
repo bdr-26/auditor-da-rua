@@ -3,6 +3,8 @@
 import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import { createElement, type ReactElement } from "react";
 import { ConsolidadoReportDocument } from "./consolidado-report";
+import { GerenteAuditReportDocument } from "./gerente-audit-report";
+import type { GerenteAuditReportData } from "./gerente-types";
 import { LojaReportDocument } from "./loja-report";
 import { NutriAuditReportDocument } from "./nutri-audit-report";
 import { NutriMonthlyReportDocument } from "./nutri-monthly-report";
@@ -25,4 +27,8 @@ export async function renderNutriAuditReport(data: NutriAuditReportData): Promis
 
 export async function renderNutriMonthlyReport(data: NutriMonthlyReportData): Promise<Buffer> {
   return renderToBuffer(createElement(NutriMonthlyReportDocument, { data }) as unknown as DocElement);
+}
+
+export async function renderGerenteAuditReport(data: GerenteAuditReportData): Promise<Buffer> {
+  return renderToBuffer(createElement(GerenteAuditReportDocument, { data }) as unknown as DocElement);
 }
