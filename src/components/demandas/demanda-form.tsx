@@ -6,8 +6,13 @@ import { Field, Input, Select, Textarea } from "@/components/ui/form";
 import { createDemandaAndGo, updateDemanda } from "@/lib/demandas-actions";
 import type { Demanda, Unit } from "@/lib/types";
 
-/** Formulário do proprietário: criar ou editar uma demanda. */
-export function DemandaForm({ units, responsaveis, demanda }: { units: Unit[]; responsaveis: { id: string; nome: string }[]; demanda?: Demanda }) {
+/**
+ * Formulário de demanda: criar ou editar.
+ * `mode="owner"`: proprietário atribui ao gerente (escolhe o responsável).
+ * `mode="self"`: o próprio gerente cria uma demanda pessoal para se organizar (responsável é ele mesmo).
+ */
+export function DemandaForm({ units, responsaveis = [], demanda, mode = "owner" }: { units: Unit[]; responsaveis?: { id: string; nome: string }[]; demanda?: Demanda; mode?: "owner" | "self" }) {
+  const self = mode === "self";
   const [titulo, setTitulo] = useState(demanda?.titulo ?? "");
   const [descricao, setDescricao] = useState(demanda?.descricao ?? "");
   const [prazo, setPrazo] = useState(demanda?.prazo ?? "");
@@ -33,7 +38,7 @@ export function DemandaForm({ units, responsaveis, demanda }: { units: Unit[]; r
   return (
     <form onSubmit={submit} className="space-y-4">
       <Field label="Título">
-        <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} required maxLength={120} placeholder="Ex.: Trocar a borracha da geladeira da chapa" />
+        <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} required maxLength={120} placeholder={self ? "Ex.: Conferir estoque de embalagens da Matriz" : "Ex.: Trocar a borracha da geladeira da chapa"} />
       </Field>
       <Field label="Descrição" hint="O que precisa ser feito, onde e como você espera o resultado.">
         <Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={4} />
@@ -49,7 +54,7 @@ export function DemandaForm({ units, responsaveis, demanda }: { units: Unit[]; r
           </Select>
         </Field>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className={self ? "" : "grid grid-cols-2 gap-3"}>
         <Field label="Unidade (opcional)">
           <Select value={unitId} onChange={(e) => setUnitId(e.target.value)}>
             <option value="">—</option>
@@ -60,22 +65,28 @@ export function DemandaForm({ units, responsaveis, demanda }: { units: Unit[]; r
             ))}
           </Select>
         </Field>
-        <Field label="Responsável">
-          <Select value={responsavelId} onChange={(e) => setResponsavelId(e.target.value)} disabled={!!demanda}>
-            {responsaveis.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.nome}
-              </option>
-            ))}
-          </Select>
-        </Field>
+        {!self && (
+          <Field label="Responsável">
+            <Select value={responsavelId} onChange={(e) => setResponsavelId(e.target.value)} disabled={!!demanda}>
+              {responsaveis.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.nome}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        )}
       </div>
       {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
       {ok && demanda && <p className="rounded-xl bg-green-50 px-4 py-3 text-sm text-green-700">Alterações salvas.</p>}
       <Button type="submit" size="lg" full disabled={pending || !titulo.trim()}>
         {pending ? "Salvando…" : demanda ? "Salvar alterações" : "Criar demanda"}
       </Button>
-      {!demanda && <p className="text-center text-xs text-gray-500">Depois de criar, você pode anexar fotos ou PDFs na página da demanda. O gerente recebe uma notificação.</p>}
+      {!demanda && (
+        <p className="text-center text-xs text-gray-500">
+          {self ? "A demanda entra na sua agenda, junto com as dos proprietários. Depois de criar, você pode anexar fotos ou PDFs." : "Depois de criar, você pode anexar fotos ou PDFs na página da demanda. O gerente recebe uma notificação."}
+        </p>
+      )}
     </form>
   );
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, CalendarRange, ChevronLeft, ChevronRight, Coffee, Play } from "lucide-react";
+import { CalendarDays, CalendarRange, ChevronLeft, ChevronRight, Coffee, Play, Plus } from "lucide-react";
 import { StartAuditButton } from "@/components/audit/start-audit-button";
 import { AuditStatusBadge, DayStateChip, TIPO_ABBR, dayState, shortUnitName, type DayState } from "@/components/audit/status-chip";
 import { Badge } from "@/components/ui/badge";
@@ -124,27 +124,43 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
           </Link>
         </div>
 
-        {demandas.length > 0 && (
-          <section className="mb-4">
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="flex items-center gap-1.5 text-base font-semibold">
-                <ClipboardList className="h-4 w-4 text-brand-dark" /> Demandas
+        <section className="mb-4">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <h2 className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-base font-semibold">
+              <ClipboardList className="h-4 w-4 text-brand-dark" /> Demandas
+              {demandas.length > 0 && (
                 <span className="text-sm font-normal text-gray-500">
                   · {demandas.length} aberta{demandas.length === 1 ? "" : "s"}
                   {demandasAtrasadas > 0 && <span className="font-semibold text-red-700"> · {demandasAtrasadas} atrasada{demandasAtrasadas === 1 ? "" : "s"}</span>}
                 </span>
-              </h2>
-              <Link href="/auditor/demandas" className="text-sm font-medium text-brand-dark">
-                Ver todas
+              )}
+            </h2>
+            <div className="flex shrink-0 items-center gap-3">
+              {demandas.length > 0 && (
+                <Link href="/auditor/demandas" className="text-sm font-medium text-brand-dark">
+                  Ver todas
+                </Link>
+              )}
+              <Link href="/auditor/demandas/nova" className="inline-flex min-h-9 items-center gap-1 rounded-full bg-ink px-3 text-sm font-semibold text-white">
+                <Plus className="h-4 w-4" /> Nova
               </Link>
             </div>
+          </div>
+          {demandas.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-line bg-white px-4 py-3 text-sm text-gray-500">Nenhuma demanda aberta. Use “Nova” para anotar o que você precisa fazer; as demandas dos proprietários também aparecem aqui.</p>
+          ) : (
             <div className="space-y-2">
               {demandas.slice(0, 4).map((d) => (
                 <DemandaCard key={d.id} d={d} href={`/auditor/demandas/${d.id}`} unitName={d.unit_id ? unitsById.get(d.unit_id)?.nome : null} />
               ))}
+              {demandas.length > 4 && (
+                <Link href="/auditor/demandas" className="block text-center text-sm font-medium text-brand-dark">
+                  + {demandas.length - 4} demanda{demandas.length - 4 === 1 ? "" : "s"}
+                </Link>
+              )}
             </div>
-          </section>
-        )}
+          )}
+        </section>
 
         <h2 className="mb-2 text-base font-semibold">Auditorias da semana</h2>
         <div className="space-y-2">
