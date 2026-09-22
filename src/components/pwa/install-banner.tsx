@@ -65,7 +65,7 @@ export function InstallBanner() {
   }
 
   return (
-    <div className="mx-4 mt-3 rounded-2xl border border-brand/40 bg-brand-light p-3 text-sm text-ink lg:hidden">
+    <div className="mx-4 mt-3 rounded-2xl border border-line bg-white p-3 text-sm text-ink shadow-sm lg:hidden">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p className="font-semibold">Instale o ROTA como aplicativo</p>
@@ -86,7 +86,7 @@ export function InstallBanner() {
             </button>
           )}
         </div>
-        <button type="button" onClick={dismiss} aria-label="Fechar" className="flex h-8 w-8 min-h-0 shrink-0 items-center justify-center rounded-full text-gray-500 hover:bg-white/60">
+        <button type="button" onClick={dismiss} aria-label="Fechar" className="flex h-8 w-8 min-h-0 shrink-0 items-center justify-center rounded-full text-gray-500 hover:bg-surface-muted">
           <X className="h-4 w-4" />
         </button>
       </div>

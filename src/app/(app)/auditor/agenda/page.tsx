@@ -30,7 +30,7 @@ const WEEK_HEAD = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"];
 
 const CELL_TONE: Record<DayState, string> = {
   feito: "bg-green-100 text-green-900 border-green-200",
-  hoje: "bg-brand text-ink border-brand",
+  hoje: "bg-brand text-white border-brand",
   rascunho: "bg-yellow-100 text-yellow-900 border-yellow-200",
   pendente: "bg-gray-100 text-gray-700 border-gray-200",
   nao_cumprida: "bg-red-100 text-red-900 border-red-200",
@@ -218,7 +218,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
                   {audit?.status === "concluida" && <PctBadge value={audit.nota_final} size="sm" />}
                   {audit?.status === "rascunho" ? <AuditStatusBadge status="rascunho" /> : state !== "hoje" ? <DayStateChip state={state} /> : null}
                   {isToday && !audit && (
-                    <StartAuditButton unitId={row.unit_id} tipo={row.tipo} data={today} unstyled className="inline-flex min-h-[40px] items-center gap-1 rounded-xl bg-brand px-3 text-sm font-semibold text-ink">
+                    <StartAuditButton unitId={row.unit_id} tipo={row.tipo} data={today} unstyled className="inline-flex min-h-[40px] items-center gap-1 rounded-xl bg-brand px-3 text-sm font-semibold text-white">
                       <Play className="h-4 w-4" /> Iniciar
                     </StartAuditButton>
                   )}

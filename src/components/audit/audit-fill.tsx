@@ -507,7 +507,7 @@ export function AuditFill({ auditId, tipo, unitNome, data, blocks, initialAnswer
             <button
               type="button"
               onClick={() => goTo(step + 1)}
-              className="inline-flex min-h-[52px] flex-1 items-center justify-center gap-1 rounded-xl bg-brand px-4 font-semibold text-ink hover:bg-brand-dark hover:text-white"
+              className="inline-flex min-h-[52px] flex-1 items-center justify-center gap-1 rounded-xl bg-brand px-4 font-semibold text-white hover:bg-brand-dark"
             >
               Próximo <ChevronRight className="h-5 w-5" />
             </button>

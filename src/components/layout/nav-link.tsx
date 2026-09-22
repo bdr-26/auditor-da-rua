@@ -35,8 +35,8 @@ export function NavLink({
       <Link
         href={href}
         className={cn(
-          "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition",
-          active ? "bg-brand-light text-brand-dark" : "text-gray-700 hover:bg-surface-muted",
+          "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition",
+          active ? "bg-ink text-white shadow-sm" : "text-gray-700 hover:bg-surface-muted",
         )}
       >
         <Icon className="h-5 w-5" />
@@ -47,9 +47,11 @@ export function NavLink({
   return (
     <Link
       href={href}
-      className={cn("flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium", active ? "text-brand-dark" : "text-gray-500")}
+      className={cn("flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[11px] font-medium", active ? "text-ink" : "text-gray-500")}
     >
-      <Icon className={cn("h-5 w-5", active && "text-brand-dark")} />
+      <span className={cn("flex h-7 w-12 items-center justify-center rounded-full", active && "bg-ink text-white")}>
+        <Icon className="h-5 w-5" />
+      </span>
       {label}
     </Link>
   );

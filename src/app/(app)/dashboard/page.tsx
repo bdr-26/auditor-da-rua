@@ -127,7 +127,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               {rascunhosSurpresa > 0 ? `${rascunhosSurpresa} em andamento · toque para continuar` : "Visitou uma unidade? Faça a auditoria agora; vale como qualquer outra."}
             </div>
           </Link>
-          <Link href="/dashboard/surpresa" className="flex min-h-[40px] shrink-0 items-center gap-1 rounded-xl bg-brand px-3 text-sm font-semibold text-ink">
+          <Link href="/dashboard/surpresa" className="flex min-h-[40px] shrink-0 items-center gap-1 rounded-xl bg-brand px-3 text-sm font-semibold text-white">
             <Play className="h-4 w-4" /> {rascunhosSurpresa > 0 ? "Continuar" : "Iniciar"}
           </Link>
         </div>
@@ -140,7 +140,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               {demandasAtrasadas > 0 && <span className="font-semibold text-red-700"> · {demandasAtrasadas} atrasada{demandasAtrasadas === 1 ? "" : "s"}</span>}
             </div>
           </Link>
-          <Link href="/dashboard/demandas/nova" className="flex min-h-[40px] shrink-0 items-center gap-1 rounded-xl bg-brand px-3 text-sm font-semibold text-ink">
+          <Link href="/dashboard/demandas/nova" className="flex min-h-[40px] shrink-0 items-center gap-1 rounded-xl bg-brand px-3 text-sm font-semibold text-white">
             <Plus className="h-4 w-4" /> Nova
           </Link>
         </div>

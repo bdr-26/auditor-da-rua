@@ -453,7 +453,7 @@ export function NutriFill({
               {leaving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Check className="h-5 w-5" />} Revisar
             </button>
           ) : (
-            <button type="button" onClick={() => go(step + 1)} className="flex min-h-[52px] flex-[2] items-center justify-center gap-1 rounded-xl bg-brand font-semibold text-ink">
+            <button type="button" onClick={() => go(step + 1)} className="flex min-h-[52px] flex-[2] items-center justify-center gap-1 rounded-xl bg-brand font-semibold text-white">
               {steps[step + 1]?.kind === "area" ? "Próxima área" : "Próximo"} <ChevronRight className="h-5 w-5" />
             </button>
           )}

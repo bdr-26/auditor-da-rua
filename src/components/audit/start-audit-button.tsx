@@ -41,7 +41,7 @@ export function StartAuditButton({
         disabled={pending}
         className={cn(
           !unstyled &&
-            "inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-6 py-4 text-lg font-semibold text-ink transition hover:bg-brand-dark hover:text-white disabled:opacity-60",
+            "inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-6 py-4 text-lg font-semibold text-white transition hover:bg-brand-dark disabled:opacity-60",
           className,
         )}
       >

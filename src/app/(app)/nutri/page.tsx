@@ -62,7 +62,7 @@ export default async function NutriHome() {
         return (
           <Link key={a.id} href={`/nutri/auditorias/${a.id}`} className="block rounded-2xl bg-ink p-4 text-white shadow-lg shadow-black/10 active:scale-[0.99]">
             <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand text-ink">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand text-white">
                 <PlayCircle className="h-6 w-6" />
               </span>
               <div className="min-w-0 flex-1">
@@ -83,13 +83,13 @@ export default async function NutriHome() {
 
       {/* ação principal */}
       {isNutri && (
-        <Link href="/nutri/nova" className="flex items-center gap-4 rounded-2xl bg-brand p-4 text-ink shadow-md shadow-brand/30 active:scale-[0.99]">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-ink/10">
+        <Link href="/nutri/nova" className="flex items-center gap-4 rounded-2xl bg-brand p-4 text-white shadow-md shadow-brand/30 active:scale-[0.99]">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15">
             <ClipboardPlus className="h-7 w-7" />
           </span>
           <span className="flex-1">
             <span className="block text-lg font-bold leading-tight">Nova auditoria</span>
-            <span className="block text-sm text-ink/70">Escolha a loja e comece o checklist</span>
+            <span className="block text-sm text-white/70">Escolha a loja e comece o checklist</span>
           </span>
           <ChevronRight className="h-6 w-6 text-ink/60" />
         </Link>

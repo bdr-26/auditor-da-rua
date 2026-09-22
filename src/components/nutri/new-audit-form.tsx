@@ -47,7 +47,7 @@ export function NewAuditForm({ units, today, initialUnitId }: { units: UnitOptio
                   selected ? "border-brand ring-2 ring-brand/40" : "border-line hover:bg-surface-muted",
                 )}
               >
-                <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", selected ? "bg-brand text-ink" : "bg-surface-muted text-gray-500")}>
+                <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", selected ? "bg-brand text-white" : "bg-surface-muted text-gray-500")}>
                   {selected ? <Check className="h-5 w-5" /> : <Store className="h-5 w-5" />}
                 </span>
                 <span className="min-w-0 flex-1">

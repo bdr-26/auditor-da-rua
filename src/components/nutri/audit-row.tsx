@@ -22,7 +22,7 @@ export function NutriAuditRow({ audit, unitName, auditorName }: { audit: Audit; 
         </div>
       </div>
       {draft ? (
-        <span className="rounded-xl bg-brand px-3 py-2 text-sm font-semibold text-ink">Continuar</span>
+        <span className="rounded-xl bg-brand px-3 py-2 text-sm font-semibold text-white">Continuar</span>
       ) : (
         <div className="flex items-center gap-2">
           <NotaNutri nota={audit.nota_final} classificacao={audit.classificacao} size="sm" />
