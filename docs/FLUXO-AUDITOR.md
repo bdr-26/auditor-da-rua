@@ -59,3 +59,7 @@ Os proprietários podem iniciar, em `/dashboard/surpresa` (ou pelo atalho na pá
 - Não vincula nem conclui a linha da agenda do gerente: a rotina dele continua devida.
 - Pode coexistir com a auditoria do gerente na mesma unidade/tipo/dia (a unicidade em `audits` passou a ser `(unit_id, tipo, data, auditor_id)` na migration 0008).
 - Entra normalmente na nota mensal, no ranking e nos relatórios (as agregações filtram por unidade/tipo/status, não por auditor). O push de conclusão avisa os outros proprietários com o sufixo "(surpresa)".
+
+## Orientações por item ("O que conferir")
+
+Cada item das auditorias completa, simplificada e de produção tem um texto de orientação em `src/lib/audit-guidance.ts`, indexado pela `chave` do item do template (a mesma chave vale nos três templates, ex.: `temperaturas`). O cartão de pontuação (`ScoreItem`) mostra um botão "O que conferir" que abre a lista do que verificar e a régua de notas 5 / 3 / 1. Para alterar um texto, edite o arquivo; itens novos sem entrada no mapa simplesmente não mostram o botão.
