@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
  */
 async function handle(req: Request) {
   const auth = checkCronAuth(req);
-  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  if (!auth.ok) return NextResponse.json({ error: auth.error, detalhe: auth.detalhe }, { status: auth.status });
   const data = new URL(req.url).searchParams.get("data") ?? undefined;
   if (data && !/^\d{4}-\d{2}-\d{2}$/.test(data)) return NextResponse.json({ error: "data inválida (YYYY-MM-DD)" }, { status: 400 });
   try {
