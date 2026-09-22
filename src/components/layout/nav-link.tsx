@@ -14,12 +14,16 @@ export function NavLink({
   label,
   icon,
   variant,
+  badge,
 }: {
   href: string;
   label: string;
   icon: NavIconName;
   variant: "side" | "bottom";
+  /** Contador (ex.: demandas abertas); some quando 0. */
+  badge?: number;
 }) {
+  const badgeText = badge && badge > 0 ? (badge > 99 ? "99+" : String(badge)) : null;
   const pathname = usePathname();
   const Icon = NAV_ICONS[icon];
   // raízes "exatas": subrotas que têm item próprio no menu não devem destacar a raiz
@@ -40,7 +44,8 @@ export function NavLink({
         )}
       >
         <Icon className="h-5 w-5" />
-        {label}
+        <span className="flex-1">{label}</span>
+        {badgeText && <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-bold", active ? "bg-white/20 text-white" : "bg-red-600 text-white")}>{badgeText}</span>}
       </Link>
     );
   }
@@ -49,8 +54,9 @@ export function NavLink({
       href={href}
       className={cn("flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[11px] font-medium", active ? "text-ink" : "text-gray-500")}
     >
-      <span className={cn("flex h-7 w-12 items-center justify-center rounded-full", active && "bg-ink text-white")}>
+      <span className={cn("relative flex h-7 w-12 items-center justify-center rounded-full", active && "bg-ink text-white")}>
         <Icon className="h-5 w-5" />
+        {badgeText && <span className="absolute -right-1 -top-1.5 min-w-[18px] rounded-full bg-red-600 px-1 text-center text-[10px] font-bold leading-[18px] text-white">{badgeText}</span>}
       </span>
       {label}
     </Link>

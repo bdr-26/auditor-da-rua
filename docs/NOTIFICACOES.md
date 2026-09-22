@@ -19,7 +19,7 @@ O payload é `{ titulo, corpo, url, tag? }`. `tag` agrupa notificações no apar
 
 ### Textos
 
-1. **Lembrete 8h** — título `Hoje: Auditoria Completa — Bela Vista`; corpo `Toque para abrir a agenda e iniciar`.
+1. **Lembrete 8h** — título `Hoje: Auditoria Completa — Bela Vista`; corpo `<endereço da unidade> · 2 demandas abertas (1 atrasada)` (sem endereço: `Toque para abrir a agenda e iniciar`). Um envio por destinatário, pois o corpo depende das demandas de cada um.
 2. **Auditoria concluída** — título `Rodrigo concluiu Completa em Bela Vista`; corpo `Nota 83% · ⚠ falha grave` (quando houver). Nutricional: `Daniele concluiu Auditoria Nutricional em Mooca` / `Nota 93% · Excelente`.
 3. **Rotina não cumprida** — título `Auditoria não registrada`; corpo `Auditoria de Imigrantes (Completa) prevista para 13/09/2026 não foi registrada`. O dia fica vermelho na agenda e no calendário do dashboard. **A loja não é penalizada** — só o indicador de rotina.
 4. **Pendência reincidente** — título `Pendência reincidente`; corpo `Mooca: "Limpeza geral" segue sem solução há 2 visitas`.
