@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, CalendarDays, ClipboardList, FileText, History, Home, ListChecks, Settings, Store } from "lucide-react";
+import { BarChart3, CalendarDays, ClipboardCheck, ClipboardList, FileText, History, Home, ListChecks, Settings, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /** Ícones referenciados por nome: componentes de servidor não podem passar funções a componentes de cliente. */
-export const NAV_ICONS = { home: Home, calendar: CalendarDays, history: History, checklist: ListChecks, chart: BarChart3, closing: ClipboardList, store: Store, settings: Settings, report: FileText } as const;
+export const NAV_ICONS = { home: Home, calendar: CalendarDays, history: History, checklist: ListChecks, chart: BarChart3, closing: ClipboardList, store: Store, settings: Settings, report: FileText, tasks: ClipboardCheck } as const;
 export type NavIconName = keyof typeof NAV_ICONS;
 
 export function NavLink({
