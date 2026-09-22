@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { requireProfile } from "@/lib/auth";
 import { getAuditsByIds, getAuditsInRange, getScheduleRange } from "@/lib/data/audit-flow";
 import { getUnits } from "@/lib/data/units";
+import { getDaysOff } from "@/lib/data/days-off";
 import { addDays, addMonths, formatMonthPT, monthEnd, monthStart, todaySP, weekday } from "@/lib/dates";
 import { ensureSchedule } from "@/lib/schedule-sync";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -43,7 +44,13 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
   }
 
   const supabase = await createClient();
-  const [rows, units, monthAudits] = await Promise.all([getScheduleRange(supabase, start, end), getUnits(supabase, { ativas: false }), getAuditsInRange(supabase, start, end)]);
+  const [rows, units, monthAudits, daysOff] = await Promise.all([
+    getScheduleRange(supabase, start, end),
+    getUnits(supabase, { ativas: false }),
+    getAuditsInRange(supabase, start, end),
+    getDaysOff(supabase, start, end, profile.id),
+  ]);
+  const offByDate = new Map(daysOff.map((d) => [d.data, d]));
   const unitsById = new Map(units.map((u) => [u.id, u]));
   const linked = await getAuditsByIds(supabase, rows.map((r) => r.audit_id).filter((id): id is string => !!id));
   const auditsById = new Map([...linked, ...monthAudits].map((a) => [a.id, a]));
@@ -110,6 +117,11 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
           return (
             <div key={d} className={cn("flex min-h-[76px] flex-col gap-1 rounded-xl border border-line bg-white p-1", isToday && "ring-2 ring-brand")}>
               <div className={cn("text-right text-xs font-semibold tabular-nums", isToday ? "text-brand-dark" : "text-gray-500")}>{d.slice(8, 10)}</div>
+              {!row && (offByDate.has(d) || weekday(d) === 1) && (
+                <div className="rounded-lg border border-dashed border-line px-1 py-0.5 text-center text-[10px] font-semibold uppercase tracking-wide text-gray-400" title={offByDate.get(d)?.motivo ?? "Segunda: folga fixa"}>
+                  folga
+                </div>
+              )}
               {row && <DayCell row={row} audit={audit ?? null} today={today} unitName={unitsById.get(row.unit_id)?.nome ?? "—"} />}
               {extras.map((a) => (
                 <Link

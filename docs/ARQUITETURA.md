@@ -6,7 +6,7 @@ Next.js 15 (App Router, TypeScript, Tailwind v4) + Supabase (Auth, Postgres, Sto
 
 | Caminho | O que é |
 |---|---|
-| `supabase/migrations/` | Esquema (0001), RLS (0002), seeds (0003 templates/unidades, 0004 nutricional), cron (0005) |
+| `supabase/migrations/` | Esquema (0001), RLS (0002), seeds (0003 templates/unidades, 0004 nutricional), cron (0005), folgas do auditor (0006) |
 | `supabase/functions/` | Edge Functions (Deno) agendadas: lembrete 8h, verificação 23h (alternativa aos crons do Vercel) |
 | `vercel.json` | Crons que chamam `/api/cron/*` (11:00 e 02:05 UTC = 08:00 e 23:05 em SP) |
 | `src/lib/cron/` | Lógica dos jobs (lembrete diário, verificação de fim de dia) usada pelas rotas `/api/cron/*` |

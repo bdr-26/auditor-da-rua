@@ -23,7 +23,7 @@ Login e-mail/senha (Supabase Auth), sem cadastro aberto. Supervisores de loja n�
 Ranqueadas: Moema Salão, Moema Delivery, Imigrantes, Bela Vista, Mooca. Fora do ranking: Moema Produção (cozinha central; nota mensal própria em card separado). Moema Salão e Delivery têm o mesmo endereço mas são auditadas separadamente. CRUD aberto ao proprietário; novas lojas entram na rotação e no ranking.
 
 ## 5. Rotina do gerente (agenda rotativa)
-Semana ter–dom (segunda folga). Terça: Produção (Moema Produção, fixo). Qua/Qui: Simplificada (1 loja rotativa). Sex/Sáb/Dom: Completa (1 loja rotativa).
+Semana ter–dom (segunda folga fixa). Além disso, o gerente folga **1 domingo por mês**, escolhido pelo proprietário no calendário da rotina (antes ou depois de gerar a agenda): esse domingo sai da rotação (a loja daquele dia não é visitada nessa semana), não gera lembrete nem conta no indicador de rotina. Terça: Produção (Moema Produção, fixo). Qua/Qui: Simplificada (1 loja rotativa). Sex/Sáb/Dom: Completa (1 loja rotativa).
 Rotação: as 5 lojas ocupam as 5 posições (qua–dom) e a escala desliza 1 posição por semana; ciclo de 5 semanas, cada loja 1x em cada dia.
 
 | Semana | Qua | Qui | Sex | Sáb | Dom |

@@ -5,7 +5,7 @@ import { requireProfile } from "./auth";
 import { closeMonth, reopenMonth, regenerateReports } from "./closing";
 import { getClosings } from "./data/dashboard";
 import { getTemplateById, toScoringBlocks } from "./data/templates";
-import { addMonths, monthEnd, monthStart, todaySP } from "./dates";
+import { addMonths, monthEnd, monthStart, todaySP, weekday } from "./dates";
 import { computeAuditScore, type ScoringAnswer } from "./domain/scoring";
 import { ensureSchedule } from "./schedule-sync";
 import { createAdminClient } from "./supabase/admin";
@@ -75,6 +75,49 @@ export async function generateScheduleAction(mes: string): Promise<ActionResult>
     revalidateDashboard();
     revalidatePath("/auditor", "layout");
     return { ok: true, message: n === 0 ? "A agenda já estava completa." : `${n} dia(s) gerado(s).` };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+/**
+ * Define o domingo de folga do mês (1 por mês): substitui a folga de domingo já registrada no mesmo mês,
+ * remove o dia previsto na agenda (se ainda não houver auditoria) e regenera a agenda do mês.
+ */
+export async function setSundayOff(data: string): Promise<ActionResult> {
+  try {
+    const profile = await requireProfile(["proprietario"]);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) throw new Error("Data inválida.");
+    if (weekday(data) !== 0) throw new Error("A folga mensal deve cair num domingo.");
+    if (data < todaySP()) throw new Error("Não é possível marcar folga em data passada.");
+    const admin = createAdminClient();
+    const mes = monthStart(data);
+    const { data: linked } = await admin.from("schedule_days").select("id").eq("data", data).not("audit_id", "is", null).limit(1);
+    if (linked && linked.length > 0) throw new Error("Já existe auditoria registrada nesse dia.");
+    // 1 domingo por mês: remove o anterior do mesmo mês
+    await admin.from("auditor_days_off").delete().gte("data", mes).lte("data", monthEnd(mes)).eq("motivo", "Folga de domingo");
+    const { error } = await admin.from("auditor_days_off").insert({ data, auditor_id: null, motivo: "Folga de domingo", criado_por: profile.id });
+    if (error) throw error;
+    await ensureSchedule(admin, mes, monthEnd(mes)); // remove o dia de folga e completa o resto
+    revalidateDashboard();
+    revalidatePath("/auditor", "layout");
+    return { ok: true, message: "Domingo de folga definido." };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+/** Remove uma folga registrada e devolve o dia à rotação. */
+export async function removeDayOff(data: string): Promise<ActionResult> {
+  try {
+    await requireProfile(["proprietario"]);
+    const admin = createAdminClient();
+    const { error } = await admin.from("auditor_days_off").delete().eq("data", data);
+    if (error) throw error;
+    await ensureSchedule(admin, data, data);
+    revalidateDashboard();
+    revalidatePath("/auditor", "layout");
+    return { ok: true, message: "Folga removida; o dia voltou para a rotação." };
   } catch (e) {
     return fail(e);
   }

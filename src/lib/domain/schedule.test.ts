@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateSchedule, rotationWeekIndex, unitForDay, workWeekRange } from "./schedule";
+import { generateSchedule, rotationWeekIndex, sundaysOfMonth, unitForDay, workWeekRange } from "./schedule";
 
 const units = [
   { id: "ms", nome: "Moema Salão", ordem_rotacao: 1 },
@@ -70,5 +70,17 @@ describe("rotação semanal", () => {
     expect(workWeekRange("2026-09-25")).toEqual({ start: "2026-09-22", end: "2026-09-27" });
     expect(workWeekRange("2026-09-28")).toEqual({ start: "2026-09-22", end: "2026-09-27" }); // segunda pertence à semana anterior
     expect(workWeekRange("2026-09-22")).toEqual({ start: "2026-09-22", end: "2026-09-27" });
+  });
+
+  it("domingo de folga sai da agenda sem alterar a rotação dos outros dias", () => {
+    const sched = generateSchedule("2026-09-22", "2026-10-04", units, "prod", base, ["2026-09-27"]);
+    expect(sched.find((d) => d.data === "2026-09-27")).toBeUndefined();
+    expect(sched.find((d) => d.data === "2026-09-26")!.unit_id).toBe("bv");
+    expect(sched.find((d) => d.data === "2026-10-04")!.unit_id).toBe("bv"); // semana 2: dom = Bela Vista
+  });
+
+  it("lista os domingos do mês", () => {
+    expect(sundaysOfMonth("2026-09-01")).toEqual(["2026-09-06", "2026-09-13", "2026-09-20", "2026-09-27"]);
+    expect(sundaysOfMonth("2026-11-01")).toEqual(["2026-11-01", "2026-11-08", "2026-11-15", "2026-11-22", "2026-11-29"]);
   });
 });

@@ -10,6 +10,7 @@ import { requireProfile } from "@/lib/auth";
 import { AUDIT_TYPE_LABELS, AUDIT_TYPE_SHORT } from "@/lib/constants";
 import { findAudit, getAuditsByIds, getRecentScheduleDays, getScheduleDay, getScheduleRange } from "@/lib/data/audit-flow";
 import { getUnits } from "@/lib/data/units";
+import { getDaysOff, isDayOff } from "@/lib/data/days-off";
 import { formatDayLabelPT, formatWeekdayPT, todaySP, weekday } from "@/lib/dates";
 import { workWeekRange } from "@/lib/domain/schedule";
 import { ensureSchedule } from "@/lib/schedule-sync";
@@ -33,12 +34,14 @@ export default async function AuditorHomePage() {
   const today = todaySP();
   const week = workWeekRange(today);
 
-  const [todayRow, weekRows, recentRows, units] = await Promise.all([
+  const [todayRow, weekRows, recentRows, units, daysOff] = await Promise.all([
     getScheduleDay(supabase, today, profile.id),
     getScheduleRange(supabase, week.start, week.end),
     getRecentScheduleDays(supabase, today, 7),
     getUnits(supabase, { ativas: false }),
+    getDaysOff(supabase, week.start, week.end, profile.id),
   ]);
+  const todayOff = isDayOff(daysOff, today);
   const unitsById = new Map(units.map((u) => [u.id, u]));
 
   const audits = await getAuditsByIds(
@@ -70,8 +73,10 @@ export default async function AuditorHomePage() {
             <Coffee className="h-6 w-6" />
           </div>
           <div>
-            <p className="text-lg font-semibold">{isMonday ? "Segunda é folga" : "Nada agendado para hoje"}</p>
-            <p className="text-sm text-gray-500">{isMonday ? "Bom descanso. A semana começa na terça com a produção." : "Se houver visita combinada, inicie uma auditoria fora da agenda."}</p>
+            <p className="text-lg font-semibold">{isMonday ? "Segunda é folga" : todayOff ? "Hoje é sua folga" : "Nada agendado para hoje"}</p>
+            <p className="text-sm text-gray-500">
+              {isMonday ? "Bom descanso. A semana começa na terça com a produção." : todayOff ? "Domingo de folga do mês. Bom descanso." : "Se houver visita combinada, inicie uma auditoria fora da agenda."}
+            </p>
           </div>
         </Card>
       )}
@@ -96,6 +101,21 @@ export default async function AuditorHomePage() {
           {weekRows.map((r) => (
             <DayRow key={r.id} row={r} unit={unitsById.get(r.unit_id)} audit={r.audit_id ? auditsById.get(r.audit_id) : undefined} today={today} />
           ))}
+          {daysOff
+            .filter((d) => !weekRows.some((r) => r.data === d.data))
+            .map((d) => (
+              <div key={d.id} className={cn("flex items-center gap-3 px-4 py-3 text-gray-500", d.data === today && "bg-brand-light/40")}>
+                <div className="w-14 shrink-0">
+                  <div className="text-[11px] font-semibold uppercase text-gray-500">{formatWeekdayPT(d.data, true)}</div>
+                  <div className="text-base font-bold tabular-nums">{d.data.slice(8, 10)}/{d.data.slice(5, 7)}</div>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium">Folga</div>
+                  <div className="text-xs text-gray-500">{d.motivo}</div>
+                </div>
+                <Badge tone="gray">folga</Badge>
+              </div>
+            ))}
         </Card>
       </section>
 
