@@ -36,7 +36,7 @@ export function NavLink({
         href={href}
         className={cn(
           "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition",
-          active ? "bg-ink text-white shadow-sm" : "text-gray-700 hover:bg-surface-muted",
+          active ? "bg-ink text-white shadow-sm" : "text-gray-700 hover:bg-white/70",
         )}
       >
         <Icon className="h-5 w-5" />
