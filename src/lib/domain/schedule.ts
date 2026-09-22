@@ -59,9 +59,12 @@ export function generateSchedule(
   units: RotationUnit[],
   productionUnitId: string | null,
   baseTuesday: string,
+  skipDates: Iterable<string> = [],
 ): PlannedDay[] {
+  const skip = new Set(skipDates);
   const out: PlannedDay[] = [];
   for (let d = from; d <= to; d = addDays(d, 1)) {
+    if (skip.has(d)) continue; // folga (ex.: domingo de folga do mês)
     const tipo = auditTypeForWeekday(weekday(d));
     if (!tipo) continue;
     if (tipo === "producao") {
@@ -71,6 +74,15 @@ export function generateSchedule(
     const u = unitForDay(d, units, baseTuesday);
     if (u) out.push({ data: d, unit_id: u.id, tipo });
   }
+  return out;
+}
+
+/** Domingos de um mês (YYYY-MM-01) — candidatos à folga mensal. */
+export function sundaysOfMonth(mes: string): string[] {
+  const out: string[] = [];
+  const start = mes.slice(0, 7) + "-01";
+  const end = new Date(Date.UTC(Number(start.slice(0, 4)), Number(start.slice(5, 7)), 0)).toISOString().slice(0, 10);
+  for (let d = start; d <= end; d = addDays(d, 1)) if (weekday(d) === 0) out.push(d);
   return out;
 }
 

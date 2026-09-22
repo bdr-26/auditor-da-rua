@@ -22,9 +22,10 @@ import type {
   Report,
   ScheduleDay,
   Unit,
-} from "../types";
+ AuditorDayOff } from "../types";
 import { getMonthAudits } from "./audits";
 import { getUnits } from "./units";
+import { getDaysOff } from "./days-off";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyClient = SupabaseClient<any, any, any>;
@@ -601,15 +602,17 @@ export interface RoutineCalendar {
   today: string;
   days: CalendarDay[];
   units: Unit[];
+  daysOff: AuditorDayOff[];
   summary: { planned: number; done: number };
 }
 
 export async function getRoutineCalendar(supabase: AnyClient, mesInput: string): Promise<RoutineCalendar> {
   const mes = monthStart(mesInput);
   const today = todaySP();
-  const [{ data: rows }, units] = await Promise.all([
+  const [{ data: rows }, units, daysOff] = await Promise.all([
     supabase.from("schedule_days").select("*").gte("data", mes).lte("data", monthEnd(mes)).order("data"),
     getUnits(supabase, { ativas: false }),
+    getDaysOff(supabase, mes, monthEnd(mes)),
   ]);
   const days = (rows ?? []) as ScheduleDay[];
   const auditIds = days.map((d) => d.audit_id).filter((id): id is string => !!id);
@@ -644,6 +647,7 @@ export async function getRoutineCalendar(supabase: AnyClient, mesInput: string):
     today,
     days: out,
     units: units.filter((u) => u.ativa),
+    daysOff,
     summary: { planned: considered.length, done: considered.filter((d) => d.state === "feito").length },
   };
 }

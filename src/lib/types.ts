@@ -164,6 +164,15 @@ export interface ScheduleDay {
   created_at: string;
 }
 
+export interface AuditorDayOff {
+  id: string;
+  data: string;
+  auditor_id: string | null;
+  motivo: string;
+  criado_por: string | null;
+  created_at: string;
+}
+
 export interface NutriBankItem {
   id: string;
   descricao: string;

@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { GenerateScheduleButton } from "@/components/dashboard/close-month-panel";
 import { MonthPicker } from "@/components/dashboard/month-picker";
 import { RoutineCalendar } from "@/components/dashboard/routine-calendar";
+import { DayOffPanel } from "@/components/dashboard/day-off-panel";
 import { requireProfile } from "@/lib/auth";
 import { getRoutineCalendar, parseMesParam } from "@/lib/data/dashboard";
 import { formatMonthPT } from "@/lib/dates";
@@ -37,6 +38,7 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
         actions={<MonthPicker mes={mes} basePath="/dashboard/calendario" />}
       />
       <Card>
+        <DayOffPanel mes={mes} today={cal.today} daysOff={cal.daysOff} />
         {cal.days.length === 0 ? (
           <div className="mb-4 rounded-xl bg-surface-muted p-4 text-sm text-gray-600">
             A agenda deste mês ainda não foi gerada.
@@ -50,7 +52,7 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
             <GenerateScheduleButton mes={mes} />
           </div>
         )}
-        <RoutineCalendar mes={mes} today={cal.today} days={cal.days} units={cal.units} />
+        <RoutineCalendar mes={mes} today={cal.today} days={cal.days} units={cal.units} daysOff={cal.daysOff} />
       </Card>
     </div>
   );

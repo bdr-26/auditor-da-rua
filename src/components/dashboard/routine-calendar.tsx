@@ -9,7 +9,7 @@ import { AUDIT_TYPE_SHORT } from "@/lib/constants";
 import { swapScheduleDay } from "@/lib/dashboard-actions";
 import { addDays, formatDayLabelPT, monthEnd, weekday } from "@/lib/dates";
 import type { CalendarDay, DayState } from "@/lib/data/dashboard";
-import type { Unit } from "@/lib/types";
+import type { AuditorDayOff, Unit } from "@/lib/types";
 import { cn, fmtPct } from "@/lib/utils";
 
 const STATE_CLASS: Record<DayState, string> = {
@@ -25,8 +25,9 @@ function shortName(nome: string): string {
   return nome.replace("Moema ", "M. ");
 }
 
-export function RoutineCalendar({ mes, today, days, units }: { mes: string; today: string; days: CalendarDay[]; units: Unit[] }) {
+export function RoutineCalendar({ mes, today, days, units, daysOff = [] }: { mes: string; today: string; days: CalendarDay[]; units: Unit[]; daysOff?: AuditorDayOff[] }) {
   const [selected, setSelected] = useState<CalendarDay | null>(null);
+  const offByDate = useMemo(() => new Map(daysOff.map((d) => [d.data, d])), [daysOff]);
   const byDate = useMemo(() => new Map(days.map((d) => [d.day.data, d])), [days]);
 
   // grade seg–dom
@@ -54,6 +55,16 @@ export function RoutineCalendar({ mes, today, days, units }: { mes: string; toda
             if (!date) return <div key={i} />;
             const cd = byDate.get(date);
             const isToday = date === today;
+            const off = offByDate.get(date);
+            const isMonday = weekday(date) === 1;
+            if (!cd && (off || isMonday)) {
+              return (
+                <div key={date} title={off?.motivo ?? "Segunda: folga fixa"} className={cn("flex min-h-[3.5rem] flex-col rounded-lg border border-line bg-white p-1 text-xs text-gray-400 sm:min-h-[4.5rem]", isToday && "border-brand")}>
+                  <span className="font-bold tabular-nums">{Number(date.slice(8))}</span>
+                  <span className="mt-auto text-[10px] font-semibold uppercase tracking-wide text-gray-400">folga</span>
+                </div>
+              );
+            }
             if (!cd) {
               return (
                 <div key={date} className={cn("min-h-[3.5rem] rounded-lg border border-dashed border-line p-1 text-xs text-gray-400 sm:min-h-[4.5rem]", isToday && "border-brand")}>
@@ -92,6 +103,7 @@ export function RoutineCalendar({ mes, today, days, units }: { mes: string; toda
           <span className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-0.5 text-gray-600">
             <ArrowLeftRight className="h-3 w-3" /> trocado
           </span>
+          <span className="rounded-md border border-line bg-white px-2 py-0.5 text-gray-400">folga</span>
         </div>
       </div>
 
