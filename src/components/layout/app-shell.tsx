@@ -49,10 +49,10 @@ export function AppShell({ profile, children }: { profile: SessionProfile; child
     <div className="min-h-dvh lg:flex">
       <aside className="hidden w-64 shrink-0 flex-col border-r border-line bg-white lg:flex">
         <div className="flex items-center gap-3 px-5 py-5">
-          <Image src="/icons/icon-192.png" alt="" width={36} height={36} className="h-9 w-9 rounded-xl" />
+          <Image src="/brand/darua-food-inc.png" alt="Da Rua Food Inc" width={88} height={47} priority className="h-11 w-auto" />
           <div>
-            <div className="text-sm font-bold leading-tight">{APP_NAME}</div>
-            <div className="text-xs text-gray-500">Burger da Rua</div>
+            <div className="text-lg font-bold leading-tight tracking-tight">{APP_NAME}</div>
+            <div className="text-sm text-gray-500">Grupo Da Rua</div>
           </div>
         </div>
         <nav className="flex-1 space-y-1 px-3">
@@ -76,17 +76,20 @@ export function AppShell({ profile, children }: { profile: SessionProfile; child
 
       <div className="flex min-h-dvh flex-1 flex-col">
         <header
-          className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-ink px-4 pb-3 text-white lg:hidden"
-          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
+          className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-white px-4 pb-2.5 lg:hidden"
+          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.625rem)" }}
         >
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/icons/icon-192.png" alt="" width={28} height={28} className="h-7 w-7 rounded-lg" />
-            <span className="text-sm font-semibold">{APP_NAME}</span>
+          <Link href="/" className="flex items-center gap-2.5">
+            <Image src="/brand/darua-food-inc.png" alt="Da Rua Food Inc" width={64} height={34} priority className="h-8 w-auto" />
+            <span className="leading-tight">
+              <span className="block text-base font-bold tracking-tight">{APP_NAME}</span>
+              <span className="block text-[11px] text-gray-500">Grupo Da Rua</span>
+            </span>
           </Link>
           <div className="flex items-center gap-1">
-            <PushOptIn compact dark />
+            <PushOptIn compact />
             <form action={signOut}>
-              <button type="submit" aria-label="Sair" className="flex h-9 w-9 items-center justify-center rounded-full text-gray-300 hover:bg-graphite">
+              <button type="submit" aria-label="Sair" className="flex h-9 w-9 items-center justify-center rounded-full text-gray-600 hover:bg-surface-muted">
                 <LogOut className="h-4 w-4" />
               </button>
             </form>
@@ -105,4 +108,3 @@ export function AppShell({ profile, children }: { profile: SessionProfile; child
     </div>
   );
 }
-
