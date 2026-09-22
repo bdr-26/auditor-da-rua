@@ -42,8 +42,25 @@ export async function runDailyReminder(admin: AdminClient, opts: { data?: string
   }
 
   const unitIds = Array.from(new Set(previstas.map((r) => r.unit_id)));
-  const { data: units } = await admin.from("units").select("id, nome").in("id", unitIds);
+  const { data: units } = await admin.from("units").select("id, nome, endereco").in("id", unitIds);
   const unitName = new Map((units ?? []).map((u) => [u.id as string, u.nome as string]));
+  const unitAddr = new Map((units ?? []).map((u) => [u.id as string, (u.endereco as string | null) ?? null]));
+
+  // demandas abertas por responsável (entram no corpo do lembrete)
+  const { data: abertas } = await admin.from("demandas").select("responsavel_id, prazo").in("status", ["aberta", "em_andamento"]);
+  const demandasPor = new Map<string, { total: number; atrasadas: number }>();
+  for (const d of (abertas ?? []) as { responsavel_id: string; prazo: string | null }[]) {
+    const cur = demandasPor.get(d.responsavel_id) ?? { total: 0, atrasadas: 0 };
+    cur.total++;
+    if (d.prazo && d.prazo < data) cur.atrasadas++;
+    demandasPor.set(d.responsavel_id, cur);
+  }
+  const corpoPara = (userId: string, endereco: string | null) => {
+    const parts = [endereco ?? "Toque para abrir a agenda e iniciar"];
+    const dm = demandasPor.get(userId);
+    if (dm && dm.total > 0) parts.push(`${dm.total} demanda${dm.total === 1 ? "" : "s"} aberta${dm.total === 1 ? "" : "s"}${dm.atrasadas ? ` (${dm.atrasadas} atrasada${dm.atrasadas === 1 ? "" : "s"})` : ""}`);
+    return parts.join(" · ");
+  };
 
   let auditoresGerais: string[] | null = null;
   for (const row of previstas) {
@@ -55,12 +72,18 @@ export async function runDailyReminder(admin: AdminClient, opts: { data?: string
     }
     const nome = unitName.get(row.unit_id) ?? "unidade";
     const titulo = `Hoje: ${AUDIT_TYPE_LABELS[row.tipo]} — ${nome}`;
-    const { enviados, pulados } = await sendPushToUsers(admin, destinatarios, "lembrete_8h", `lembrete:${data}`, {
-      titulo,
-      corpo: "Toque para abrir a agenda e iniciar",
-      url: appUrl(`/auditor?data=${data}`),
-      tag: `lembrete-${data}`,
-    });
+    let enviados = 0;
+    let pulados = 0;
+    for (const userId of destinatarios) {
+      const r = await sendPushToUsers(admin, [userId], "lembrete_8h", `lembrete:${data}`, {
+        titulo,
+        corpo: corpoPara(userId, unitAddr.get(row.unit_id) ?? null),
+        url: appUrl(`/auditor?data=${data}`),
+        tag: `lembrete-${data}`,
+      });
+      enviados += r.enviados;
+      pulados += r.pulados;
+    }
     result.lembretes.push({ schedule_id: row.id, unidade: nome, tipo: row.tipo, destinatarios: destinatarios.length, enviados, pulados, titulo });
   }
   return result;

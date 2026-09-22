@@ -44,7 +44,7 @@ function navFor(role: SessionProfile["role"]): NavItem[] {
 }
 
 /** Layout com navegação: barra inferior no celular, lateral no desktop. */
-export function AppShell({ profile, children }: { profile: SessionProfile; children: React.ReactNode }) {
+export function AppShell({ profile, badges = {}, children }: { profile: SessionProfile; badges?: Record<string, number>; children: React.ReactNode }) {
   const nav = navFor(profile.role);
   return (
     <div className="min-h-dvh lg:flex">
@@ -58,7 +58,7 @@ export function AppShell({ profile, children }: { profile: SessionProfile; child
         </div>
         <nav className="flex-1 space-y-1 px-3">
           {nav.map((item) => (
-            <NavLink key={item.href} href={item.href} label={item.label} icon={item.icon} variant="side" />
+            <NavLink key={item.href} href={item.href} label={item.label} icon={item.icon} variant="side" badge={badges[item.href]} />
           ))}
         </nav>
         <div className="border-t border-gray-300 px-5 py-4">
@@ -102,7 +102,7 @@ export function AppShell({ profile, children }: { profile: SessionProfile; child
 
         <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-gray-300 bg-gray-200 lg:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
           {nav.slice(0, 5).map((item) => (
-            <NavLink key={item.href} href={item.href} label={item.label} icon={item.icon} variant="bottom" />
+            <NavLink key={item.href} href={item.href} label={item.label} icon={item.icon} variant="bottom" badge={badges[item.href]} />
           ))}
         </nav>
       </div>

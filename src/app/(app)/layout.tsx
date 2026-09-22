@@ -1,4 +1,5 @@
 import { getSessionProfile } from "@/lib/auth";
+import { navBadges } from "@/lib/nav-badges";
 import { AppShell } from "@/components/layout/app-shell";
 import { ErrorPanel } from "@/components/ui/error-panel";
 import { redirect } from "next/navigation";
@@ -17,5 +18,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     );
   }
   if (!profile) redirect("/login");
-  return <AppShell profile={profile}>{children}</AppShell>;
+  const badges = await navBadges(profile);
+  return (
+    <AppShell profile={profile} badges={badges}>
+      {children}
+    </AppShell>
+  );
 }
