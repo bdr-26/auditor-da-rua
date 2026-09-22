@@ -10,12 +10,15 @@ export const metadata: Metadata = {
   title: { default: APP_NAME, template: `%s · ${APP_NAME}` },
   description: "Auditoria multilojas do grupo Burger da Rua",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: APP_NAME },
-  icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
+  applicationName: APP_NAME,
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: APP_NAME, startupImage: ["/icons/icon-1024.png"] },
+  formatDetection: { telephone: false },
+  icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png", shortcut: "/icons/icon-192.png" },
+  other: { "mobile-web-app-capable": "yes", "apple-mobile-web-app-capable": "yes" },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#141414",
+  themeColor: "#000000",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
