@@ -107,6 +107,9 @@ export const FK = {
   notifications_log: { user_id: "profiles" },
   reports: { unit_id: "units", gerado_por: "profiles" },
   auditor_days_off: { auditor_id: "profiles", criado_por: "profiles" },
+  demandas: { unit_id: "units", responsavel_id: "profiles", criado_por: "profiles", concluida_por: "profiles" },
+  demanda_comentarios: { demanda_id: "demandas", user_id: "profiles" },
+  demanda_anexos: { demanda_id: "demandas", user_id: "profiles" },
 };
 
 /** Colunas numeric(…) devolvidas como string pelo PostgREST: nome → casas decimais. */
@@ -175,6 +178,9 @@ export const TABLE_DEFAULTS = {
   external_indicators: { nota_99food: null, cancelamentos: null, tempo_medio_entrega: null, lancado_por: null },
   reports: { unit_id: null, gerado_por: null },
   auditor_days_off: { auditor_id: null, motivo: "Folga de domingo", criado_por: null },
+  demandas: { descricao: null, prazo: null, prioridade: "normal", status: "aberta", unit_id: null, conclusao_texto: null, concluida_em: null, concluida_por: null },
+  demanda_comentarios: { status_novo: null },
+  demanda_anexos: { mime: null, tamanho: null },
   notifications_log: { user_id: null, chave_dedup: null, url: null },
   push_subscriptions: { user_agent: null },
   app_settings: { descricao: null },
@@ -201,6 +207,9 @@ export const TIMESTAMP_COLS = {
   notifications_log: ["enviado_em"],
   reports: ["gerado_em"],
   auditor_days_off: ["created_at"],
+  demandas: ["created_at", "updated_at"],
+  demanda_comentarios: ["created_at"],
+  demanda_anexos: ["created_at"],
   app_settings: ["updated_at"],
 };
 
@@ -744,6 +753,9 @@ export function buildFixtures(today = todaySP()) {
     external_indicators: [],
     reports: [],
     auditor_days_off: [],
+    demandas: [],
+    demanda_comentarios: [],
+    demanda_anexos: [],
     push_subscriptions: [],
     notifications_log: [],
   };

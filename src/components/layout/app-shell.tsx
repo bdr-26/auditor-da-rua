@@ -75,7 +75,10 @@ export function AppShell({ profile, children }: { profile: SessionProfile; child
       </aside>
 
       <div className="flex min-h-dvh flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-ink px-4 py-3 text-white lg:hidden">
+        <header
+          className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-ink px-4 pb-3 text-white lg:hidden"
+          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
+        >
           <Link href="/" className="flex items-center gap-2">
             <Image src="/icons/icon-192.png" alt="" width={28} height={28} className="h-7 w-7 rounded-lg" />
             <span className="text-sm font-semibold">{APP_NAME}</span>

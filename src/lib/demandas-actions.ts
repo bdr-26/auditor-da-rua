@@ -45,27 +45,40 @@ export interface DemandaInput {
   responsavelId?: string;
 }
 
-/** Proprietário cria uma demanda para o gerente (responsável padrão: primeiro auditor_geral ativo). */
+/** Demanda "pessoal": criada pelo próprio responsável para se organizar (não envolve os proprietários nas notificações). */
+const isPessoal = (d: Pick<Demanda, "criado_por" | "responsavel_id">) => d.criado_por === d.responsavel_id;
+
+/** Quem pode editar/cancelar/reabrir: proprietário, ou o gerente nas demandas que ele mesmo criou. */
+function canManage(profile: { id: string; role: string }, d: Demanda): boolean {
+  return profile.role === "proprietario" || d.criado_por === profile.id;
+}
+
+/**
+ * Cria uma demanda. Proprietário: para o gerente (responsável padrão: primeiro auditor_geral ativo).
+ * Gerente: para si mesmo (demanda pessoal, para se organizar); o responsável é sempre ele.
+ */
 export async function createDemanda(input: DemandaInput): Promise<ActionResult> {
   try {
-    const profile = await requireProfile(["proprietario"]);
+    const profile = await requireProfile(["proprietario", "auditor_geral"]);
     const titulo = input.titulo.trim();
     if (!titulo) throw new Error("Informe o título.");
     if (input.prazo && !/^\d{4}-\d{2}-\d{2}$/.test(input.prazo)) throw new Error("Prazo inválido.");
-    const supabase = await createClient();
-    let responsavelId = input.responsavelId;
+    const admin = createAdminClient();
+    let responsavelId = profile.role === "auditor_geral" ? profile.id : input.responsavelId;
     if (!responsavelId) {
-      const { data: aud } = await supabase.from("profiles").select("id").eq("role", "auditor_geral").eq("ativo", true).order("created_at").limit(1);
+      const { data: aud } = await admin.from("profiles").select("id").eq("role", "auditor_geral").eq("ativo", true).order("created_at").limit(1);
       responsavelId = aud?.[0]?.id as string | undefined;
     }
     if (!responsavelId) throw new Error("Nenhum gerente ativo para receber a demanda.");
-    const { data, error } = await supabase
+    const { data, error } = await admin
       .from("demandas")
       .insert({ titulo, descricao: input.descricao?.trim() || null, prazo: input.prazo || null, prioridade: input.prioridade ?? "normal", unit_id: input.unitId || null, responsavel_id: responsavelId, criado_por: profile.id })
       .select("id")
       .single();
     if (error) throw error;
-    await notify([responsavelId], "demanda_nova", `demanda:${data.id}:nova`, "Nova demanda", `${titulo}${input.prazo ? ` · prazo ${formatDatePT(input.prazo)}` : ""}`, `/auditor/demandas/${data.id}`);
+    if (responsavelId !== profile.id) {
+      await notify([responsavelId], "demanda_nova", `demanda:${data.id}:nova`, "Nova demanda", `${titulo}${input.prazo ? ` · prazo ${formatDatePT(input.prazo)}` : ""}`, `/auditor/demandas/${data.id}`);
+    }
     revalidate(data.id as string);
     return { ok: true, id: data.id as string };
   } catch (e) {
@@ -73,16 +86,17 @@ export async function createDemanda(input: DemandaInput): Promise<ActionResult> 
   }
 }
 
-/** Proprietário edita título/descrição/prazo/prioridade/unidade de uma demanda ainda aberta. */
+/** Edita título/descrição/prazo/prioridade/unidade de uma demanda ainda aberta (proprietário, ou gerente na demanda que criou). */
 export async function updateDemanda(id: string, input: DemandaInput): Promise<ActionResult> {
   try {
-    await requireProfile(["proprietario"]);
+    const profile = await requireProfile(["proprietario", "auditor_geral"]);
     const d = await loadDemanda(id);
+    if (!canManage(profile, d)) throw new Error("Sem permissão.");
     if (d.status === "concluida" || d.status === "cancelada") throw new Error("Demanda encerrada não pode ser editada.");
     const titulo = input.titulo.trim();
     if (!titulo) throw new Error("Informe o título.");
-    const supabase = await createClient();
-    const { error } = await supabase
+    const admin = createAdminClient();
+    const { error } = await admin
       .from("demandas")
       .update({ titulo, descricao: input.descricao?.trim() || null, prazo: input.prazo || null, prioridade: input.prioridade ?? d.prioridade, unit_id: input.unitId || null })
       .eq("id", id);
@@ -124,9 +138,9 @@ export async function addDemandaComment(id: string, texto: string): Promise<Acti
     const admin = createAdminClient();
     const { data, error } = await admin.from("demanda_comentarios").insert({ demanda_id: id, user_id: profile.id, texto: t }).select("id").single();
     if (error) throw error;
-    const targets = profile.role === "proprietario" ? [d.responsavel_id] : await ownerIds(admin);
+    const targets = (profile.role === "proprietario" ? [d.responsavel_id] : isPessoal(d) ? [] : await ownerIds(admin)).filter((u) => u !== profile.id);
     const url = profile.role === "proprietario" ? `/auditor/demandas/${id}` : `/dashboard/demandas/${id}`;
-    await notify(targets, "demanda_comentario", `demanda:${id}:c:${data.id}`, `Comentário em "${d.titulo}"`, `${profile.nome}: ${t.slice(0, 120)}`, url);
+    if (targets.length) await notify(targets, "demanda_comentario", `demanda:${id}:c:${data.id}`, `Comentário em "${d.titulo}"`, `${profile.nome}: ${t.slice(0, 120)}`, url);
     revalidate(id);
     return { ok: true };
   } catch (e) {
@@ -149,7 +163,7 @@ export async function concludeDemanda(id: string, conclusao: string): Promise<Ac
     const { error } = await admin.from("demandas").update({ status: "concluida", conclusao_texto: texto, concluida_em: now, concluida_por: profile.id }).eq("id", id);
     if (error) throw error;
     await admin.from("demanda_comentarios").insert({ demanda_id: id, user_id: profile.id, texto: `Concluída: ${texto}`, status_novo: "concluida" });
-    await notify(await ownerIds(admin), "demanda_concluida", `demanda:${id}:concluida`, `Demanda concluída: ${d.titulo}`, `${profile.nome}: ${texto.slice(0, 120)}`, `/dashboard/demandas/${id}`);
+    if (!isPessoal(d)) await notify(await ownerIds(admin), "demanda_concluida", `demanda:${id}:concluida`, `Demanda concluída: ${d.titulo}`, `${profile.nome}: ${texto.slice(0, 120)}`, `/dashboard/demandas/${id}`);
     revalidate(id);
     return { ok: true };
   } catch (e) {
@@ -157,16 +171,19 @@ export async function concludeDemanda(id: string, conclusao: string): Promise<Ac
   }
 }
 
-/** Proprietário cancela (com motivo) ou reabre uma demanda. */
+/** Cancela (com motivo) uma demanda: proprietário, ou o gerente na demanda que ele mesmo criou. */
 export async function cancelDemanda(id: string, motivo: string): Promise<ActionResult> {
   try {
-    const profile = await requireProfile(["proprietario"]);
+    const profile = await requireProfile(["proprietario", "auditor_geral"]);
     const d = await loadDemanda(id);
+    if (!canManage(profile, d)) throw new Error("Sem permissão.");
     const admin = createAdminClient();
     const { error } = await admin.from("demandas").update({ status: "cancelada" }).eq("id", id);
     if (error) throw error;
     await admin.from("demanda_comentarios").insert({ demanda_id: id, user_id: profile.id, texto: `Cancelada: ${motivo.trim() || "sem motivo informado"}`, status_novo: "cancelada" });
-    await notify([d.responsavel_id], "demanda_cancelada", `demanda:${id}:cancelada`, `Demanda cancelada: ${d.titulo}`, motivo.trim() || "Cancelada pelo proprietário.", `/auditor/demandas/${id}`);
+    if (d.responsavel_id !== profile.id) {
+      await notify([d.responsavel_id], "demanda_cancelada", `demanda:${id}:cancelada`, `Demanda cancelada: ${d.titulo}`, motivo.trim() || "Cancelada pelo proprietário.", `/auditor/demandas/${id}`);
+    }
     revalidate(id);
     return { ok: true };
   } catch (e) {
@@ -174,13 +191,16 @@ export async function cancelDemanda(id: string, motivo: string): Promise<ActionR
   }
 }
 
+/** Reabre uma demanda encerrada: proprietário, ou o gerente na demanda que ele mesmo criou. */
 export async function reopenDemanda(id: string): Promise<ActionResult> {
   try {
-    const profile = await requireProfile(["proprietario"]);
+    const profile = await requireProfile(["proprietario", "auditor_geral"]);
+    const d = await loadDemanda(id);
+    if (!canManage(profile, d)) throw new Error("Sem permissão.");
     const admin = createAdminClient();
     const { error } = await admin.from("demandas").update({ status: "aberta", conclusao_texto: null, concluida_em: null, concluida_por: null }).eq("id", id);
     if (error) throw error;
-    await admin.from("demanda_comentarios").insert({ demanda_id: id, user_id: profile.id, texto: "Demanda reaberta pelo proprietário.", status_novo: "aberta" });
+    await admin.from("demanda_comentarios").insert({ demanda_id: id, user_id: profile.id, texto: profile.role === "proprietario" ? "Demanda reaberta pelo proprietário." : "Demanda reaberta.", status_novo: "aberta" });
     revalidate(id);
     return { ok: true };
   } catch (e) {
@@ -221,9 +241,12 @@ export async function removeDemandaAttachment(anexoId: string): Promise<ActionRe
   }
 }
 
-/** Formulário de criação (proprietário) com redirect para a demanda criada. */
+/** Formulário de criação com redirect para a demanda criada (no painel de quem criou). */
 export async function createDemandaAndGo(input: DemandaInput): Promise<ActionResult> {
   const r = await createDemanda(input);
-  if (r.ok && r.id) redirect(`/dashboard/demandas/${r.id}`);
+  if (r.ok && r.id) {
+    const profile = await requireProfile(["proprietario", "auditor_geral"]);
+    redirect(profile.role === "auditor_geral" ? `/auditor/demandas/${r.id}` : `/dashboard/demandas/${r.id}`);
+  }
   return r;
 }

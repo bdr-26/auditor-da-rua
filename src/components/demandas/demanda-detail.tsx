@@ -13,6 +13,8 @@ export function DemandaDetailView({ detail, viewerRole, viewerId }: { detail: De
   const isOwner = viewerRole === "proprietario";
   const encerrada = d.status === "concluida" || d.status === "cancelada";
   const canEdit = isOwner || d.responsavel_id === viewerId;
+  const pessoal = d.criado_por === d.responsavel_id;
+  const canManage = isOwner || d.criado_por === viewerId;
 
   return (
     <div className="space-y-4">
@@ -20,6 +22,7 @@ export function DemandaDetailView({ detail, viewerRole, viewerId }: { detail: De
         <div className="flex flex-wrap items-center gap-2">
           <DemandaStatusBadge d={d} />
           {d.prioridade === "alta" && <Badge tone="red">prioridade alta</Badge>}
+          {pessoal && <Badge tone="gray">pessoal</Badge>}
         </div>
         <h2 className="mt-2 text-xl font-bold leading-tight">{d.titulo}</h2>
         {d.descricao && <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">{d.descricao}</p>}
@@ -92,7 +95,7 @@ export function DemandaDetailView({ detail, viewerRole, viewerId }: { detail: De
       </Card>
 
       {!isOwner && <ConcludeForm d={d} />}
-      {isOwner && (
+      {canManage && (
         <div className="flex justify-end">
           <OwnerActions d={d} />
         </div>
