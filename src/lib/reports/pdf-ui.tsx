@@ -212,7 +212,7 @@ export function BrandHeader({ title, subtitle, right, meta }: { title: string; s
             // eslint-disable-next-line jsx-a11y/alt-text -- Image do react-pdf não tem alt
             <Image src={BRAND_ICON} style={{ width: 18, height: 18, borderRadius: 4 }} />
           ) : null}
-          <Text style={styles.brandText}>AUDITOR DA RUA  ·  BURGER DA RUA</Text>
+          <Text style={styles.brandText}>ROTA  ·  BURGER DA RUA</Text>
         </View>
         <Text style={styles.brandRight}>{right}</Text>
       </View>

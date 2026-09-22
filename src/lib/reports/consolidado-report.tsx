@@ -38,10 +38,10 @@ export function ConsolidadoReportDocument({ data }: { data: ConsolidadoReportDat
         ? `empate: prêmio de ${fmtBRL(d.premio_valor)} dividido`
         : `prêmio de ${fmtBRL(d.premio_valor)} ao supervisor${d.premiadas[0].supervisor_nome ? ` (${d.premiadas[0].supervisor_nome})` : ""}`;
   const totalFalhas = d.ranking.reduce((s, r) => s + r.falhas_graves, 0) + (d.producao?.falhas_graves ?? 0);
-  const footer = `Auditor da Rua · Consolidado do grupo · ${d.mesLabel}${d.oficial ? "" : " · PRÉVIA"}`;
+  const footer = `ROTA · Consolidado do grupo · ${d.mesLabel}${d.oficial ? "" : " · PRÉVIA"}`;
 
   return (
-    <Document title={`Consolidado do grupo — ${d.mesLabel}`} author="Auditor da Rua" language="pt-BR">
+    <Document title={`Consolidado do grupo — ${d.mesLabel}`} author="ROTA" language="pt-BR">
       <Page size="A4" style={styles.page}>
         <BrandHeader
           title="Consolidado do grupo"

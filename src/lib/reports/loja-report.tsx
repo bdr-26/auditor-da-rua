@@ -84,10 +84,10 @@ export function LojaReportDocument({ data }: { data: LojaReportData }) {
   if (d.amostra_reduzida) selos.push({ label: "Amostra reduzida", tone: "yellow" });
   if (d.premiada) selos.push({ label: "Loja premiada", tone: "green" });
 
-  const footer = `Auditor da Rua · Relatório mensal · ${d.unidade.nome} · ${d.mesLabel}${d.oficial ? "" : " · PRÉVIA"}`;
+  const footer = `ROTA · Relatório mensal · ${d.unidade.nome} · ${d.mesLabel}${d.oficial ? "" : " · PRÉVIA"}`;
 
   return (
-    <Document title={`Relatório mensal — ${d.unidade.nome} — ${d.mesLabel}`} author="Auditor da Rua" language="pt-BR">
+    <Document title={`Relatório mensal — ${d.unidade.nome} — ${d.mesLabel}`} author="ROTA" language="pt-BR">
       <Page size="A4" style={styles.page}>
         <BrandHeader
           title={d.unidade.nome}

@@ -1,6 +1,6 @@
 import type { AuditType, Score, UserRole } from "./types";
 
-export const APP_NAME = "Auditor da Rua";
+export const APP_NAME = "ROTA";
 export const TIMEZONE = "America/Sao_Paulo";
 export const BRAND_YELLOW = "#D59203";
 
