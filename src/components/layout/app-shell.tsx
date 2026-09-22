@@ -47,7 +47,7 @@ export function AppShell({ profile, children }: { profile: SessionProfile; child
   const nav = navFor(profile.role);
   return (
     <div className="min-h-dvh lg:flex">
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-line bg-white lg:flex">
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-gray-300 bg-gray-200 lg:flex">
         <div className="flex items-center gap-3 px-5 py-5">
           <Image src="/brand/darua-food-inc.png" alt="Da Rua Food Inc" width={88} height={47} priority className="h-11 w-auto" />
           <div>
@@ -60,13 +60,13 @@ export function AppShell({ profile, children }: { profile: SessionProfile; child
             <NavLink key={item.href} href={item.href} label={item.label} icon={item.icon} variant="side" />
           ))}
         </nav>
-        <div className="border-t border-line px-5 py-4">
+        <div className="border-t border-gray-300 px-5 py-4">
           <div className="truncate text-sm font-medium">{profile.nome}</div>
           <div className="text-xs text-gray-500">{ROLE_LABELS[profile.role]}</div>
           <div className="mt-3 flex items-center gap-2">
             <PushOptIn compact />
             <form action={signOut}>
-              <button type="submit" className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-gray-600 hover:bg-surface-muted">
+              <button type="submit" className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-gray-600 hover:bg-white">
                 <LogOut className="h-3.5 w-3.5" /> Sair
               </button>
             </form>
@@ -99,7 +99,7 @@ export function AppShell({ profile, children }: { profile: SessionProfile; child
         <InstallBanner />
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-24 pt-5 sm:px-6 lg:pb-8">{children}</main>
 
-        <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-line bg-white lg:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-gray-300 bg-gray-200 lg:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
           {nav.slice(0, 5).map((item) => (
             <NavLink key={item.href} href={item.href} label={item.label} icon={item.icon} variant="bottom" />
           ))}
