@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { LogOut } from "lucide-react";
 import type { SessionProfile } from "@/lib/auth";
@@ -45,7 +46,7 @@ export function AppShell({ profile, children }: { profile: SessionProfile; child
     <div className="min-h-dvh lg:flex">
       <aside className="hidden w-64 shrink-0 flex-col border-r border-line bg-white lg:flex">
         <div className="flex items-center gap-3 px-5 py-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand font-black text-ink">A</div>
+          <Image src="/icons/icon-192.png" alt="" width={36} height={36} className="h-9 w-9 rounded-xl" />
           <div>
             <div className="text-sm font-bold leading-tight">{APP_NAME}</div>
             <div className="text-xs text-gray-500">Burger da Rua</div>
@@ -73,7 +74,7 @@ export function AppShell({ profile, children }: { profile: SessionProfile; child
       <div className="flex min-h-dvh flex-1 flex-col">
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-ink px-4 py-3 text-white lg:hidden">
           <Link href="/" className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand text-sm font-black text-ink">A</span>
+            <Image src="/icons/icon-192.png" alt="" width={28} height={28} className="h-7 w-7 rounded-lg" />
             <span className="text-sm font-semibold">{APP_NAME}</span>
           </Link>
           <div className="flex items-center gap-1">
