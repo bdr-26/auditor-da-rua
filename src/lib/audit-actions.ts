@@ -20,6 +20,11 @@ export type ActionResult = { error?: string };
 
 const MANAGER_TYPES: AuditType[] = ["completa", "simplificada", "producao"];
 const YMD = /^\d{4}-\d{2}-\d{2}$/;
+/** Quem preenche auditorias do gerente: o próprio gerente e os proprietários (auditoria surpresa). */
+const FILL_ROLES = ["auditor_geral", "proprietario"] as const;
+
+/** Página inicial de cada perfil após descartar/errar. */
+const homeFor = (role: string) => (role === "proprietario" ? "/dashboard" : "/auditor");
 
 function revalidateAuditorRoutes(auditId?: string) {
   revalidatePath("/auditor");
@@ -27,6 +32,7 @@ function revalidateAuditorRoutes(auditId?: string) {
   revalidatePath("/auditor/historico");
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendario");
+  revalidatePath("/dashboard/surpresa");
   if (auditId) {
     revalidatePath(`/auditorias/${auditId}`);
     revalidatePath(`/auditorias/${auditId}/revisao`);
@@ -38,9 +44,13 @@ function revalidateAuditorRoutes(auditId?: string) {
  * Inicia (ou retoma) a auditoria de uma unidade/tipo/data. Cria o rascunho, carrega as
  * pendências abertas da unidade como avaliações e vincula a linha da agenda. Redireciona
  * para o preenchimento.
+ *
+ * Proprietário: "auditoria surpresa" — mesmo fluxo e mesma nota, mas não mexe na agenda do
+ * gerente (a rotina dele continua devida) e pode coexistir com a auditoria dele no mesmo dia.
  */
 export async function startAudit(input: { unitId: string; tipo: AuditType; data?: string }): Promise<ActionResult> {
-  const profile = await requireProfile(["auditor_geral"]);
+  const profile = await requireProfile([...FILL_ROLES]);
+  const surpresa = profile.role === "proprietario";
   const tipo = input.tipo;
   const data = input.data && YMD.test(input.data) ? input.data : todaySP();
   if (!MANAGER_TYPES.includes(tipo)) return { error: "Tipo de auditoria inválido." };
@@ -52,14 +62,13 @@ export async function startAudit(input: { unitId: string; tipo: AuditType; data?
   if (tipo === "producao" && unit.tipo !== "producao") return { error: "A auditoria de produção só se aplica à cozinha central." };
   if (tipo !== "producao" && unit.tipo !== "loja") return { error: "Na cozinha central só é possível fazer a auditoria de produção." };
 
-  const existing = await findAudit(admin, unit.id, tipo, data);
+  const existing = await findAudit(admin, unit.id, tipo, data, profile.id);
   let auditId: string;
 
   if (existing) {
     if (existing.status === "concluida") {
-      return { error: `Já existe auditoria ${AUDIT_TYPE_SHORT[tipo].toLowerCase()} concluída em ${unit.nome} nesta data.` };
+      return { error: `Você já concluiu uma auditoria ${AUDIT_TYPE_SHORT[tipo].toLowerCase()} em ${unit.nome} nesta data.` };
     }
-    if (existing.auditor_id !== profile.id) return { error: "Já existe um rascunho desta auditoria iniciado por outro auditor." };
     auditId = existing.id;
   } else {
     const template = await getActiveTemplate(admin, tipo);
@@ -72,8 +81,8 @@ export async function startAudit(input: { unitId: string; tipo: AuditType; data?
       .single();
     if (error || !created) {
       // corrida: outra aba criou a mesma auditoria
-      const again = await findAudit(admin, unit.id, tipo, data);
-      if (again && again.status === "rascunho" && again.auditor_id === profile.id) {
+      const again = await findAudit(admin, unit.id, tipo, data, profile.id);
+      if (again && again.status === "rascunho") {
         auditId = again.id;
       } else {
         return { error: "Não foi possível criar a auditoria. Tente novamente." };
@@ -93,11 +102,13 @@ export async function startAudit(input: { unitId: string; tipo: AuditType; data?
     }
   }
 
-  // vincula a linha da agenda do dia, se a unidade/tipo baterem
-  const { data: days } = await admin.from("schedule_days").select("id, unit_id, tipo, auditor_id, audit_id").eq("data", data);
-  const day = (days ?? []).find((d) => d.unit_id === unit.id && d.tipo === tipo && (d.auditor_id == null || d.auditor_id === profile.id));
-  if (day && day.audit_id !== auditId) {
-    await admin.from("schedule_days").update({ audit_id: auditId, auditor_id: profile.id }).eq("id", day.id);
+  // vincula a linha da agenda do dia, se a unidade/tipo baterem (a surpresa do proprietário não substitui a rotina)
+  if (!surpresa) {
+    const { data: days } = await admin.from("schedule_days").select("id, unit_id, tipo, auditor_id, audit_id").eq("data", data);
+    const day = (days ?? []).find((d) => d.unit_id === unit.id && d.tipo === tipo && (d.auditor_id == null || d.auditor_id === profile.id));
+    if (day && day.audit_id !== auditId) {
+      await admin.from("schedule_days").update({ audit_id: auditId, auditor_id: profile.id }).eq("id", day.id);
+    }
   }
 
   revalidateAuditorRoutes(auditId);
@@ -111,7 +122,10 @@ export async function startAuditForm(formData: FormData): Promise<void> {
     tipo: String(formData.get("tipo") ?? "") as AuditType,
     data: formData.get("data") ? String(formData.get("data")) : undefined,
   });
-  if (res?.error) redirect(`/auditor/nova?erro=${encodeURIComponent(res.error)}`);
+  if (res?.error) {
+    const profile = await requireProfile([...FILL_ROLES]);
+    redirect(`${profile.role === "proprietario" ? "/dashboard/surpresa" : "/auditor/nova"}?erro=${encodeURIComponent(res.error)}`);
+  }
 }
 
 /**
@@ -120,7 +134,7 @@ export async function startAuditForm(formData: FormData): Promise<void> {
  * os proprietários. Concluída, a auditoria fica imutável.
  */
 export async function concludeAudit(auditId: string): Promise<ActionResult> {
-  const profile = await requireProfile(["auditor_geral"]);
+  const profile = await requireProfile([...FILL_ROLES]);
   const supabase = await createClient();
 
   const { data: a } = await supabase.from("audits").select("*").eq("id", auditId).maybeSingle();
@@ -234,14 +248,16 @@ export async function concludeAudit(auditId: string): Promise<ActionResult> {
     }
   }
 
-  // ---- agenda ----
-  await admin.from("schedule_days").update({ status: "concluida", audit_id: auditId }).eq("data", audit.data).eq("unit_id", unit.id).eq("tipo", audit.tipo);
+  // ---- agenda (só a auditoria do gerente cumpre a rotina; a surpresa do proprietário não) ----
+  if (profile.role !== "proprietario") {
+    await admin.from("schedule_days").update({ status: "concluida", audit_id: auditId }).eq("data", audit.data).eq("unit_id", unit.id).eq("tipo", audit.tipo);
+  }
 
   // ---- push aos proprietários ----
   try {
     const nota = Math.round(result.nota_final);
-    await sendPushToUsers(admin, owners, "auditoria_concluida", auditId, {
-      titulo: `${profile.nome} concluiu ${AUDIT_TYPE_SHORT[audit.tipo]} em ${unit.nome}`,
+    await sendPushToUsers(admin, owners.filter((o) => o !== profile.id), "auditoria_concluida", auditId, {
+      titulo: `${profile.nome} concluiu ${AUDIT_TYPE_SHORT[audit.tipo]}${profile.role === "proprietario" ? " (surpresa)" : ""} em ${unit.nome}`,
       corpo: `Nota ${nota}%${result.falha_grave ? " · ⚠ falha grave" : ""}`,
       url: appUrl(`/auditorias/${auditId}/resumo`),
     });
@@ -257,7 +273,7 @@ export async function concludeAudit(auditId: string): Promise<ActionResult> {
 
 /** Descarta um rascunho próprio (respostas, fotos e avaliações de pendências vão junto). */
 export async function deleteDraft(auditId: string): Promise<ActionResult> {
-  const profile = await requireProfile(["auditor_geral"]);
+  const profile = await requireProfile([...FILL_ROLES]);
   const admin = createAdminClient();
   const { data: a } = await admin.from("audits").select("id, auditor_id, status").eq("id", auditId).maybeSingle();
   if (!a) return { error: "Auditoria não encontrada." };
@@ -277,5 +293,5 @@ export async function deleteDraft(auditId: string): Promise<ActionResult> {
   if (error) return { error: "Não foi possível descartar o rascunho." };
 
   revalidateAuditorRoutes(auditId);
-  redirect("/auditor");
+  redirect(homeFor(profile.role));
 }

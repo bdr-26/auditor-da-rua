@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Revisão" };
 
 export default async function RevisaoPage({ params }: { params: Promise<{ id: string }> }) {
-  const profile = await requireProfile(["auditor_geral"]);
+  const profile = await requireProfile(["auditor_geral", "proprietario"]);
   const { id } = await params;
   const supabase = await createClient();
   const data = await getAuditFillData(supabase, id);

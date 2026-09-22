@@ -49,14 +49,16 @@ begin
   insert into auth.users (email, raw_user_meta_data) values ('antonio@teste.com', '{"nome":"Antonio","role":"proprietario"}') returning id into u2;
   select count(*) into n from profiles where role = 'auditor_geral'; if n <> 1 then raise exception 'perfil do auditor não criado'; end if;
 
-  -- 1 auditoria por unidade/tipo/dia
+  -- 1 auditoria por unidade/tipo/dia/auditor (gerente e proprietário podem auditar a mesma unidade no mesmo dia)
   select id into a from units where slug = 'mooca';
   insert into audits (unit_id, auditor_id, tipo, data) values (a, u1, 'completa', '2026-09-25');
   begin
     insert into audits (unit_id, auditor_id, tipo, data) values (a, u1, 'completa', '2026-09-25');
-    raise exception 'constraint unique(unit,tipo,data) não bloqueou';
+    raise exception 'constraint unique(unit,tipo,data,auditor) não bloqueou';
   exception when unique_violation then null;
   end;
+  insert into audits (unit_id, auditor_id, tipo, data) values (a, u2, 'completa', '2026-09-25'); -- auditoria surpresa do proprietário
+  delete from audits where unit_id = a and auditor_id = u2 and data = '2026-09-25';
 
   -- imutabilidade após conclusão (sem JWT de service_role)
   select id into a from audits limit 1;

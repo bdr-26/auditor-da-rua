@@ -14,7 +14,7 @@ import { requireProfile } from "@/lib/auth";
 import { AUDIT_TYPE_SHORT } from "@/lib/constants";
 import { getMonthOverview, parseMesParam } from "@/lib/data/dashboard";
 import { getDemandas, isAtrasada } from "@/lib/data/demandas";
-import { ClipboardCheck, Plus } from "lucide-react";
+import { ClipboardCheck, ClipboardPen, Play, Plus } from "lucide-react";
 import { formatDateShortPT, formatMonthPT } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
 import { cn, fmtBRL, fmtPct } from "@/lib/utils";
@@ -22,7 +22,7 @@ import { cn, fmtBRL, fmtPct } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ mes?: string }> }) {
-  await requireProfile(["proprietario"]);
+  const profile = await requireProfile(["proprietario"]);
   const { mes: mesParam } = await searchParams;
   const mes = parseMesParam(mesParam);
   const supabase = await createClient();
@@ -39,7 +39,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     );
   }
 
-  const demandas = await getDemandas(supabase, { status: "abertas" });
+  const [demandas, { data: meusRascunhos }] = await Promise.all([
+    getDemandas(supabase, { status: "abertas" }),
+    supabase.from("audits").select("id").eq("auditor_id", profile.id).eq("status", "rascunho"),
+  ]);
+  const rascunhosSurpresa = (meusRascunhos ?? []).length;
   const demandasAtrasadas = demandas.filter((d) => isAtrasada(d)).length;
 
   const hasAudits = ov.ranking.length > 0 || (ov.production?.summary.n_auditorias ?? 0) > 0;
@@ -113,8 +117,20 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         />
       </section>
 
-      {/* Demandas para o gerente */}
-      <section className="mt-3">
+      {/* Ações dos proprietários: demandas para o gerente e auditoria surpresa */}
+      <section className="mt-3 grid gap-3 lg:grid-cols-2">
+        <div className={cn("flex items-center gap-3 rounded-2xl border px-4 py-3", rascunhosSurpresa > 0 ? "border-yellow-300 bg-yellow-50" : "border-line bg-white")}>
+          <ClipboardPen className="h-5 w-5 shrink-0 text-brand-dark" />
+          <Link href="/dashboard/surpresa" className="min-w-0 flex-1">
+            <div className="text-sm font-semibold">Auditoria surpresa</div>
+            <div className="text-xs text-gray-600">
+              {rascunhosSurpresa > 0 ? `${rascunhosSurpresa} em andamento · toque para continuar` : "Visitou uma unidade? Faça a auditoria agora; vale como qualquer outra."}
+            </div>
+          </Link>
+          <Link href="/dashboard/surpresa" className="flex min-h-[40px] shrink-0 items-center gap-1 rounded-xl bg-brand px-3 text-sm font-semibold text-ink">
+            <Play className="h-4 w-4" /> {rascunhosSurpresa > 0 ? "Continuar" : "Iniciar"}
+          </Link>
+        </div>
         <div className={cn("flex items-center gap-3 rounded-2xl border px-4 py-3", demandasAtrasadas > 0 ? "border-red-200 bg-red-50" : "border-line bg-white")}>
           <ClipboardCheck className={cn("h-5 w-5 shrink-0", demandasAtrasadas > 0 ? "text-red-700" : "text-brand-dark")} />
           <Link href="/dashboard/demandas" className="min-w-0 flex-1">

@@ -52,6 +52,7 @@ Next.js 15 (App Router, TypeScript, Tailwind v4) + Supabase (Auth, Postgres, Sto
 | `/dashboard/pendencias` | proprietário | pendências em aberto na rede |
 | `/dashboard/fechamento`, `/dashboard/fechamento/[mes]` | proprietário | ajustes com trilha, 99Food, "Fechar mês", relatórios |
 | `/dashboard/demandas`, `/nova`, `/[id]` | proprietário | demandas para o gerente (título, descrição, prazo, anexos, comentários, cancelar/reabrir) |
+| `/dashboard/surpresa` | proprietário | auditoria surpresa: escolhe unidade e tipo e preenche o mesmo fluxo do gerente (`/auditorias/[id]`); vale como qualquer outra, sem mexer na agenda do gerente |
 | `/auditor/demandas`, `/[id]` | gerente | demandas recebidas: status, comentários, anexos, concluir com relato obrigatório |
 | `/admin/unidades`, `/admin/configuracoes` | proprietário | CRUD de unidades, parâmetros |
 | `/api/cron/daily-reminder`, `/api/cron/end-of-day` | `CRON_SECRET` | pushes agendados (alternativa às Edge Functions) |

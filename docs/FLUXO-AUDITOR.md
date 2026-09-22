@@ -51,3 +51,11 @@ Tudo que o auditor toca é gravado na hora pelo cliente do navegador (`lib/supab
 - Todo item respondido (nota ou N/A); nota 1–2 com ≥ 1 foto e observação; toda pendência avaliada; pelo menos um item aplicável.
 - Falha grave (item ⚠ com nota 1) zera o bloco (completa) ou zera os itens ⚠ (simplificada/produção) e limita a nota a 50%; a revisão e o resumo mostram a "nota sem teto" para transparência.
 - Concluída é imutável (trigger no banco); ajustes só via `owner_adjustments`.
+
+## Auditoria surpresa (proprietários)
+
+Os proprietários podem iniciar, em `/dashboard/surpresa` (ou pelo atalho na página da unidade), uma auditoria completa/simplificada/produção a qualquer momento. É o mesmo fluxo de preenchimento, revisão e conclusão do gerente (`startAudit`, `concludeAudit`, `deleteDraft` aceitam `proprietario`), com a mesma nota e as mesmas pendências. Diferenças:
+
+- Não vincula nem conclui a linha da agenda do gerente: a rotina dele continua devida.
+- Pode coexistir com a auditoria do gerente na mesma unidade/tipo/dia (a unicidade em `audits` passou a ser `(unit_id, tipo, data, auditor_id)` na migration 0008).
+- Entra normalmente na nota mensal, no ranking e nos relatórios (as agregações filtram por unidade/tipo/status, não por auditor). O push de conclusão avisa os outros proprietários com o sufixo "(surpresa)".

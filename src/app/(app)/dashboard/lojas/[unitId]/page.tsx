@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AlertTriangle, Lock } from "lucide-react";
+import { AlertTriangle, ChevronRight, ClipboardPen, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MonthlyReportLinks } from "@/components/nutri/monthly-report-links";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -58,6 +58,15 @@ export default async function UnitPage({ params, searchParams }: { params: Promi
         }
         actions={<MonthPicker mes={mes} basePath={`/dashboard/lojas/${unitId}`} />}
       />
+
+      <Link href={`/dashboard/surpresa?unit=${unitId}`} className="mb-4 flex items-center gap-3 rounded-2xl border border-line bg-white px-4 py-3 text-sm active:scale-[0.99]">
+        <ClipboardPen className="h-5 w-5 shrink-0 text-brand-dark" />
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold">Auditoria surpresa nesta unidade</span>
+          <span className="block text-xs text-gray-600">Está visitando {d.unit.nome}? Faça a auditoria agora; ela entra na nota do mês.</span>
+        </span>
+        <ChevronRight className="h-4 w-4 shrink-0 text-gray-400" />
+      </Link>
 
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
         <Card className="flex flex-col justify-between">
