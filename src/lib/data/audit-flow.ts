@@ -43,10 +43,16 @@ export async function getAuditsInRange(supabase: AnyClient, from: string, to: st
   return (data ?? []).map(normalizeAudit);
 }
 
-/** Auditoria existente para (unidade, tipo, data), se houver. */
-export async function findAudit(supabase: AnyClient, unitId: string, tipo: AuditType, data: string): Promise<Audit | null> {
-  const { data: row } = await supabase.from("audits").select("*").eq("unit_id", unitId).eq("tipo", tipo).eq("data", data).maybeSingle();
-  return row ? normalizeAudit(row) : null;
+/**
+ * Auditoria existente para (unidade, tipo, data), se houver. Como o gerente e um proprietário
+ * (auditoria surpresa) podem auditar a mesma unidade no mesmo dia, prefere a do auditor informado.
+ */
+export async function findAudit(supabase: AnyClient, unitId: string, tipo: AuditType, data: string, auditorId?: string): Promise<Audit | null> {
+  let q = supabase.from("audits").select("*").eq("unit_id", unitId).eq("tipo", tipo).eq("data", data);
+  if (auditorId) q = q.eq("auditor_id", auditorId);
+  const { data: rows } = await q.order("created_at");
+  const list = (rows ?? []).map(normalizeAudit);
+  return list[0] ?? null;
 }
 
 /** Auditorias de um auditor, mais recentes primeiro. */

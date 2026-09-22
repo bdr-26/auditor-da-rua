@@ -10,9 +10,21 @@ import type { AuditType, Unit } from "@/lib/types";
 
 type Tipo = Exclude<AuditType, "nutricional">;
 
-/** Formulário "auditoria fora da agenda": unidade + tipo (+ data, hoje por padrão). */
-export function StartAuditForm({ units, today, initialError }: { units: Pick<Unit, "id" | "nome" | "tipo">[]; today: string; initialError?: string }) {
-  const [unitId, setUnitId] = useState(units[0]?.id ?? "");
+/** Formulário "auditoria fora da agenda" / "auditoria surpresa": unidade + tipo (+ data, hoje por padrão). */
+export function StartAuditForm({
+  units,
+  today,
+  initialError,
+  initialUnitId,
+  submitLabel = "Iniciar auditoria",
+}: {
+  units: Pick<Unit, "id" | "nome" | "tipo">[];
+  today: string;
+  initialError?: string;
+  initialUnitId?: string;
+  submitLabel?: string;
+}) {
+  const [unitId, setUnitId] = useState(units.some((u) => u.id === initialUnitId) ? (initialUnitId as string) : (units[0]?.id ?? ""));
   const [tipo, setTipo] = useState<Tipo>("simplificada");
   const [data, setData] = useState(today);
   const [error, setError] = useState<string | null>(initialError ?? null);
@@ -61,7 +73,7 @@ export function StartAuditForm({ units, today, initialError }: { units: Pick<Uni
       )}
       <Button type="submit" size="lg" full disabled={pending || !unitId}>
         {pending ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
-        {pending ? "Abrindo…" : "Iniciar auditoria"}
+        {pending ? "Abrindo…" : submitLabel}
       </Button>
     </form>
   );
