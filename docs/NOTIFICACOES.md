@@ -54,3 +54,11 @@ Para reenviar um aviso já registrado, apague a linha correspondente em `notific
 - iPhone: iOS 16.4+ e app **instalado na tela de início** (Safari comum não recebe push).
 - Android/Chrome: funciona no navegador e no app instalado.
 - Sem `NEXT_PUBLIC_VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` o servidor registra o aviso no log e não envia (`pulados`).
+
+## Demandas (proprietário → gerente)
+| Tipo | Quando | Destino | Deep link |
+|---|---|---|---|
+| `demanda_nova` | proprietário cria a demanda | responsável | `/auditor/demandas/[id]` |
+| `demanda_comentario` | comentário de uma das partes | a outra parte | página da demanda de quem recebe |
+| `demanda_concluida` | gerente conclui (relato obrigatório) | proprietários | `/dashboard/demandas/[id]` |
+| `demanda_cancelada` | proprietário cancela | responsável | `/auditor/demandas/[id]` |

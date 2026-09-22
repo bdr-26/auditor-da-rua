@@ -11,6 +11,8 @@ import { AUDIT_TYPE_LABELS, AUDIT_TYPE_SHORT } from "@/lib/constants";
 import { findAudit, getAuditsByIds, getRecentScheduleDays, getScheduleDay, getScheduleRange } from "@/lib/data/audit-flow";
 import { getUnits } from "@/lib/data/units";
 import { getDaysOff, isDayOff } from "@/lib/data/days-off";
+import { getDemandas, isAtrasada } from "@/lib/data/demandas";
+import { ClipboardList } from "lucide-react";
 import { formatDayLabelPT, formatWeekdayPT, todaySP, weekday } from "@/lib/dates";
 import { workWeekRange } from "@/lib/domain/schedule";
 import { ensureSchedule } from "@/lib/schedule-sync";
@@ -42,6 +44,8 @@ export default async function AuditorHomePage() {
     getDaysOff(supabase, week.start, week.end, profile.id),
   ]);
   const todayOff = isDayOff(daysOff, today);
+  const demandas = await getDemandas(supabase, { responsavelId: profile.id, status: "abertas" });
+  const demandasAtrasadas = demandas.filter((d) => isAtrasada(d, today)).length;
   const unitsById = new Map(units.map((u) => [u.id, u]));
 
   const audits = await getAuditsByIds(
@@ -79,6 +83,17 @@ export default async function AuditorHomePage() {
             </p>
           </div>
         </Card>
+      )}
+
+      {demandas.length > 0 && (
+        <Link href="/auditor/demandas" className={cn("flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-medium", demandasAtrasadas > 0 ? "border-red-200 bg-red-50" : "border-line bg-white")}>
+          <ClipboardList className={cn("h-5 w-5", demandasAtrasadas > 0 ? "text-red-700" : "text-brand-dark")} />
+          <span className="flex-1">
+            {demandas.length} demanda{demandas.length === 1 ? "" : "s"} aberta{demandas.length === 1 ? "" : "s"}
+            {demandasAtrasadas > 0 && <span className="text-red-700"> · {demandasAtrasadas} atrasada{demandasAtrasadas === 1 ? "" : "s"}</span>}
+          </span>
+          <ChevronRight className="h-4 w-4 text-gray-400" />
+        </Link>
       )}
 
       <Link href="/auditor/nova" className="flex items-center justify-between rounded-2xl border border-line bg-white px-4 py-3 text-sm font-medium hover:bg-surface-muted">

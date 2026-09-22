@@ -78,3 +78,10 @@ export const ROTATION_DAYS: { weekday: number; tipo: Exclude<AuditType, "nutrici
   { weekday: 6, tipo: "completa", label: "Sábado" },
   { weekday: 0, tipo: "completa", label: "Domingo" },
 ];
+
+export const DEMANDA_STATUS_LABELS: Record<import("./types").DemandaStatus, string> = {
+  aberta: "Aberta",
+  em_andamento: "Em andamento",
+  concluida: "Concluída",
+  cancelada: "Cancelada",
+};

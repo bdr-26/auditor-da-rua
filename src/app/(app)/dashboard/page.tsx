@@ -45,6 +45,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     { href: `/dashboard/auditores?mes=${mes}`, label: "Perfil dos auditores", icon: Users },
     { href: `/dashboard/calendario?mes=${mes}`, label: "Calendário da rotina", icon: CalendarDays },
     { href: `/dashboard/fechamento/${mes}`, label: "Fechamento", icon: ClipboardList },
+    { href: "/dashboard/demandas", label: "Demandas para o gerente", icon: ListChecks },
   ];
 
   return (
