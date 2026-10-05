@@ -136,6 +136,25 @@ export function RoutineCalendar({ mes, today, days, units, daysOff = [] }: { mes
   );
 }
 
+
+/** Painel do dia: folha inferior por cima da barra de navegação no celular; painel lateral no desktop. */
+function Sheet({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+  return (
+    <>
+      <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={onClose} aria-hidden="true" />
+      <aside
+        className="card fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-b-none rounded-t-2xl shadow-2xl lg:static lg:inset-auto lg:z-auto lg:max-h-none lg:rounded-2xl lg:shadow-sm"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1.25rem)" }}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-gray-300 lg:hidden" />
+        {children}
+      </aside>
+    </>
+  );
+}
+
 /** Dia sem rotina (folga de domingo ou visita removida): devolver à rotação. */
 function OffPanel({ off, onClose }: { off: AuditorDayOff; onClose: () => void }) {
   const router = useRouter();
@@ -143,7 +162,7 @@ function OffPanel({ off, onClose }: { off: AuditorDayOff; onClose: () => void })
   const [pending, start] = useTransition();
   const semVisita = off.motivo !== "Folga de domingo";
   return (
-    <aside className="card fixed inset-x-3 bottom-20 z-40 max-h-[70vh] overflow-y-auto shadow-xl lg:static lg:inset-auto lg:max-h-none lg:shadow-sm">
+    <Sheet onClose={onClose}>
       <div className="mb-2 flex items-start justify-between gap-2">
         <div>
           <div className="text-sm font-semibold capitalize">{formatDayLabelPT(off.data)}</div>
@@ -177,7 +196,7 @@ function OffPanel({ off, onClose }: { off: AuditorDayOff; onClose: () => void })
         </Button>
         {msg && <p className={cn("mt-2 text-xs", msg.ok ? "text-green-700" : "text-red-700")}>{msg.text}</p>}
       </div>
-    </aside>
+    </Sheet>
   );
 }
 
@@ -201,7 +220,7 @@ function DayPanel({ day, today, units, onClose }: { day: CalendarDay | null; tod
   const compatible = units.filter((u) => (day.day.tipo === "producao" ? u.tipo === "producao" : u.tipo === "loja") && u.id !== day.day.unit_id);
 
   return (
-    <aside className="card fixed inset-x-3 bottom-20 z-40 max-h-[70vh] overflow-y-auto shadow-xl lg:static lg:inset-auto lg:max-h-none lg:shadow-sm">
+    <Sheet onClose={onClose}>
       <div className="mb-2 flex items-start justify-between gap-2">
         <div>
           <div className="text-sm font-semibold capitalize">{formatDayLabelPT(day.day.data)}</div>
@@ -252,6 +271,7 @@ function DayPanel({ day, today, units, onClose }: { day: CalendarDay | null; tod
           }}
         >
           <div className="text-sm font-semibold">Trocar a loja deste dia</div>
+          {msg && <p className={cn("rounded-lg px-3 py-2 text-xs", msg.ok ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700")}>{msg.text}</p>}
           <Field label="Nova loja">
             <Select value={unitId} onChange={(e) => setUnitId(e.target.value)} required>
               <option value="">Selecione…</option>
@@ -312,6 +332,6 @@ function DayPanel({ day, today, units, onClose }: { day: CalendarDay | null; tod
           {day.day.status === "prevista" ? "Dias passados não podem ser trocados." : "Só dias ainda previstos podem ser trocados."}
         </p>
       )}
-    </aside>
+    </Sheet>
   );
 }
