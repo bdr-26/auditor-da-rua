@@ -5,11 +5,10 @@
 -- relatórios gerados; demandas (comentários e anexos); log de notificações.
 -- Mantém: unidades, usuários, templates, banco e composição nutricional, configurações,
 -- folgas e as ativações de push dos celulares.
--- Rode no SQL Editor do Supabase. Depois, esvazie os buckets audit-photos, reports e demandas
--- em Storage (os arquivos não são apagados por SQL).
+-- Rode no SQL Editor do Supabase. Depois, se quiser liberar espaço, esvazie os buckets
+-- audit-photos, reports e demandas pelo painel Storage (o Supabase bloqueia DELETE em
+-- storage.objects via SQL; os arquivos órfãos não aparecem no app).
 -- =====================================================================
-
-begin;
 
 truncate table
   owner_adjustments,
@@ -27,11 +26,6 @@ truncate table
   demandas,
   audits
 restart identity cascade;
-
--- registros de arquivos nos buckets (os objetos em si: esvazie pelo painel Storage)
-delete from storage.objects where bucket_id in ('audit-photos', 'reports', 'demandas');
-
-commit;
 
 select
   (select count(*) from audits) as auditorias,
