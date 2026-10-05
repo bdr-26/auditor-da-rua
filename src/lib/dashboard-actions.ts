@@ -107,6 +107,36 @@ export async function setSundayOff(data: string): Promise<ActionResult> {
   }
 }
 
+const SEM_VISITA = "Removido da rotina";
+
+/**
+ * Remove a visita prevista de um dia: registra o dia em auditor_days_off (motivo informado) para a
+ * agenda não o regerar e apaga a linha prevista. Só dias previstos, de hoje em diante, sem auditoria.
+ * Para devolver o dia à rotação, use removeDayOff(data).
+ */
+export async function removeScheduleDay(input: { scheduleDayId: string; motivo?: string }): Promise<ActionResult> {
+  try {
+    const profile = await requireProfile(["proprietario"]);
+    const admin = createAdminClient();
+    const { data: day } = await admin.from("schedule_days").select("*").eq("id", input.scheduleDayId).maybeSingle();
+    if (!day) return { ok: false, error: "Dia da agenda não encontrado." };
+    if (day.status !== "prevista") return { ok: false, error: "Só é possível remover dias ainda previstos." };
+    if (day.data < todaySP()) return { ok: false, error: "Não é possível remover um dia que já passou." };
+    if (day.audit_id) return { ok: false, error: "Já existe auditoria iniciada nesse dia." };
+    const motivo = input.motivo?.trim() || SEM_VISITA;
+    await admin.from("auditor_days_off").delete().eq("data", day.data);
+    const { error: offErr } = await admin.from("auditor_days_off").insert({ data: day.data, auditor_id: null, motivo, criado_por: profile.id });
+    if (offErr) throw offErr;
+    const { error } = await admin.from("schedule_days").delete().eq("id", day.id);
+    if (error) throw error;
+    revalidateDashboard();
+    revalidatePath("/auditor", "layout");
+    return { ok: true, message: `Visita de ${day.data} removida. O dia fica sem rotina até ser devolvido.` };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
 /** Remove uma folga registrada e devolve o dia à rotação. */
 export async function removeDayOff(data: string): Promise<ActionResult> {
   try {
