@@ -148,3 +148,7 @@ Não rode Vercel Cron e pg_cron ao mesmo tempo — funciona (há dedup por `noti
 - [ ] `curl` nos dois crons responde `{"ok":true,…}`
 - [ ] foto de uma auditoria aparece em `audit-photos` e no resumo
 - [ ] fechamento de um mês de teste gera os PDFs
+
+## Zerar lançamentos antes de começar a operar
+
+`supabase/scripts/zerar-lancamentos.sql` (SQL Editor): apaga auditorias, respostas, fotos, pendências, agenda, fechamentos, indicadores, relatórios, demandas e log de notificações; mantém unidades, usuários, templates, banco nutricional, configurações, folgas e ativações de push. Depois, esvazie os buckets `audit-photos`, `reports` e `demandas` em Storage. A agenda é regerada automaticamente na próxima abertura do app.
