@@ -30,6 +30,8 @@ export interface Unit {
   endereco: string | null;
   supervisor_nome: string | null;
   nutri_checklist_em_revisao: boolean;
+  /** Loja em abertura: fica na rotação como "visita de abertura" (checklist via demandas), sem auditoria. */
+  em_abertura: boolean;
   created_at: string;
 }
 
@@ -166,6 +168,7 @@ export interface ScheduleDay {
 
 export type DemandaStatus = "aberta" | "em_andamento" | "concluida" | "cancelada";
 export type DemandaPrioridade = "normal" | "alta";
+export type DemandaCategoria = "geral" | "checklist_abertura";
 
 export interface Demanda {
   id: string;
@@ -173,6 +176,7 @@ export interface Demanda {
   descricao: string | null;
   prazo: string | null;
   prioridade: DemandaPrioridade;
+  categoria: DemandaCategoria;
   status: DemandaStatus;
   unit_id: string | null;
   responsavel_id: string;

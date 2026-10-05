@@ -154,7 +154,7 @@ export async function getMonthOverview(supabase: AnyClient, mesInput: string): P
     getMonthAudits(supabase, mes),
     getClosings(supabase, mes),
     getClosings(supabase, prevMes),
-    supabase.from("schedule_days").select("data, status").gte("data", mes).lte("data", monthEnd(mes)),
+    supabase.from("schedule_days").select("data, status, unit_id").gte("data", mes).lte("data", monthEnd(mes)),
     supabase.from("pending_issues").select("id, reincidente").eq("status", "aberta"),
     supabase.from("profiles").select("nome").eq("role", "auditor_nutricao").eq("ativo", true).order("created_at").limit(1),
   ]);
@@ -243,7 +243,8 @@ export async function getMonthOverview(supabase: AnyClient, mesInput: string): P
     ? mean(prevClosings.filter((c) => c.posicao_ranking != null && c.nota_operacional != null).map((c) => c.nota_operacional!))
     : mean(lojas.filter((u) => u.entra_no_ranking).map((u) => prevByUnit.get(u.id)).filter((n): n is number => n != null));
 
-  const schedule = (scheduleRes.data ?? []) as { data: string; status: string }[];
+  const emAbertura = new Set(units.filter((u) => u.em_abertura).map((u) => u.id));
+  const schedule = ((scheduleRes.data ?? []) as { data: string; status: string; unit_id: string }[]).filter((d) => !emAbertura.has(d.unit_id));
   const considered = schedule.filter((d) => d.data < today || d.status !== "prevista");
   const done = considered.filter((d) => d.status === "concluida").length;
 
@@ -586,7 +587,7 @@ export async function getAuditorProfile(supabase: AnyClient, mesInput: string): 
 // Calendário da rotina
 // ---------------------------------------------------------------------------
 
-export type DayState = "feito" | "pendente" | "hoje" | "nao_cumprida";
+export type DayState = "feito" | "pendente" | "hoje" | "nao_cumprida" | "abertura";
 
 export interface CalendarDay {
   day: ScheduleDay;
@@ -628,6 +629,7 @@ export async function getRoutineCalendar(supabase: AnyClient, mesInput: string):
   const out: CalendarDay[] = days.map((day) => {
     let state: DayState;
     if (day.status === "concluida") state = "feito";
+    else if (unitMap.get(day.unit_id)?.em_abertura) state = "abertura";
     else if (day.status === "nao_cumprida") state = "nao_cumprida";
     else if (day.data === today) state = "hoje";
     else if (day.data < today) state = "nao_cumprida";
@@ -641,7 +643,7 @@ export async function getRoutineCalendar(supabase: AnyClient, mesInput: string):
       state,
     };
   });
-  const considered = out.filter((d) => d.day.data < today || d.day.status !== "prevista");
+  const considered = out.filter((d) => d.state !== "abertura" && (d.day.data < today || d.day.status !== "prevista"));
   return {
     mes,
     today,

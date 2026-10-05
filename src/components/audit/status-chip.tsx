@@ -1,11 +1,12 @@
 import { Badge, type Tone } from "@/components/ui/badge";
-import type { Audit, ScheduleDay } from "@/lib/types";
+import type { Audit, ScheduleDay, Unit } from "@/lib/types";
 
-export type DayState = "feito" | "hoje" | "rascunho" | "pendente" | "nao_cumprida";
+export type DayState = "feito" | "hoje" | "rascunho" | "pendente" | "nao_cumprida" | "abertura";
 
 /** Estado visual de um dia da agenda, combinando a linha da agenda e a auditoria vinculada. */
-export function dayState(day: ScheduleDay, audit: Audit | null | undefined, today: string): DayState {
+export function dayState(day: ScheduleDay, audit: Audit | null | undefined, today: string, unit?: Pick<Unit, "em_abertura"> | null): DayState {
   if (day.status === "concluida" || audit?.status === "concluida") return "feito";
+  if (unit?.em_abertura) return "abertura";
   if (audit?.status === "rascunho") return "rascunho";
   if (day.status === "nao_cumprida") return "nao_cumprida";
   if (day.data === today) return "hoje";
@@ -19,6 +20,7 @@ const LABELS: Record<DayState, { label: string; tone: Tone }> = {
   rascunho: { label: "rascunho", tone: "yellow" },
   pendente: { label: "pendente", tone: "gray" },
   nao_cumprida: { label: "não cumprida", tone: "red" },
+  abertura: { label: "visita de abertura", tone: "brand" },
 };
 
 export function DayStateChip({ state }: { state: DayState }) {

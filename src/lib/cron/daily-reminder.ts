@@ -42,14 +42,17 @@ export async function runDailyReminder(admin: AdminClient, opts: { data?: string
   }
 
   const unitIds = Array.from(new Set(previstas.map((r) => r.unit_id)));
-  const { data: units } = await admin.from("units").select("id, nome, endereco").in("id", unitIds);
+  const { data: units } = await admin.from("units").select("id, nome, endereco, em_abertura").in("id", unitIds);
+  const emAbertura = new Set((units ?? []).filter((u) => u.em_abertura).map((u) => u.id as string));
   const unitName = new Map((units ?? []).map((u) => [u.id as string, u.nome as string]));
   const unitAddr = new Map((units ?? []).map((u) => [u.id as string, (u.endereco as string | null) ?? null]));
 
   // demandas abertas por responsável (entram no corpo do lembrete)
-  const { data: abertas } = await admin.from("demandas").select("responsavel_id, prazo").in("status", ["aberta", "em_andamento"]);
+  const { data: abertas } = await admin.from("demandas").select("responsavel_id, prazo, unit_id, categoria").in("status", ["aberta", "em_andamento"]);
   const demandasPor = new Map<string, { total: number; atrasadas: number }>();
-  for (const d of (abertas ?? []) as { responsavel_id: string; prazo: string | null }[]) {
+  const checklistPorUnidade = new Map<string, number>();
+  for (const d of (abertas ?? []) as { responsavel_id: string; prazo: string | null; unit_id: string | null; categoria: string }[]) {
+    if (d.categoria === "checklist_abertura" && d.unit_id) checklistPorUnidade.set(d.unit_id, (checklistPorUnidade.get(d.unit_id) ?? 0) + 1);
     const cur = demandasPor.get(d.responsavel_id) ?? { total: 0, atrasadas: 0 };
     cur.total++;
     if (d.prazo && d.prazo < data) cur.atrasadas++;
@@ -71,14 +74,16 @@ export async function runDailyReminder(admin: AdminClient, opts: { data?: string
       destinatarios = auditoresGerais;
     }
     const nome = unitName.get(row.unit_id) ?? "unidade";
-    const titulo = `Hoje: ${AUDIT_TYPE_LABELS[row.tipo]} — ${nome}`;
+    const abertura = emAbertura.has(row.unit_id);
+    const titulo = abertura ? `Hoje: visita de abertura — ${nome}` : `Hoje: ${AUDIT_TYPE_LABELS[row.tipo]} — ${nome}`;
+    const itensChecklist = checklistPorUnidade.get(row.unit_id) ?? 0;
     let enviados = 0;
     let pulados = 0;
     for (const userId of destinatarios) {
       const r = await sendPushToUsers(admin, [userId], "lembrete_8h", `lembrete:${data}`, {
         titulo,
-        corpo: corpoPara(userId, unitAddr.get(row.unit_id) ?? null),
-        url: appUrl(`/auditor?data=${data}`),
+        corpo: abertura ? `Checklist de abertura: ${itensChecklist} item${itensChecklist === 1 ? "" : "ns"} em aberto${unitAddr.get(row.unit_id) ? ` · ${unitAddr.get(row.unit_id)}` : ""}` : corpoPara(userId, unitAddr.get(row.unit_id) ?? null),
+        url: appUrl(abertura ? `/auditor/demandas?loja=${row.unit_id}` : `/auditor?data=${data}`),
         tag: `lembrete-${data}`,
       });
       enviados += r.enviados;

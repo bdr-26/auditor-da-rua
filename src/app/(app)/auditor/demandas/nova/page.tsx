@@ -8,14 +8,15 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Nova demanda" };
 
 /** O gerente cria uma demanda para si mesmo (organização própria); entra na agenda junto com as dos proprietários. */
-export default async function NovaDemandaAuditorPage() {
+export default async function NovaDemandaAuditorPage({ searchParams }: { searchParams: Promise<{ loja?: string; tipo?: string }> }) {
   await requireProfile(["auditor_geral"]);
+  const { loja, tipo } = await searchParams;
   const supabase = await createClient();
   const units = await getUnits(supabase);
   return (
     <div className="mx-auto max-w-2xl">
       <PageHeader title="Nova demanda" subtitle="Para você se organizar; aparece na sua agenda" back="/auditor/demandas" />
-      <DemandaForm units={units} mode="self" />
+      <DemandaForm units={units} mode="self" initialUnitId={loja} initialCategoria={tipo === "checklist" ? "checklist_abertura" : undefined} />
     </div>
   );
 }

@@ -59,6 +59,7 @@ export async function startAudit(input: { unitId: string; tipo: AuditType; data?
   const admin = createAdminClient();
   const unit = await getUnit(admin, input.unitId);
   if (!unit || !unit.ativa) return { error: "Unidade não encontrada ou inativa." };
+  if (unit.em_abertura) return { error: `${unit.nome} está em abertura: cumpra o checklist de abertura nas Demandas. As auditorias começam quando a loja for marcada como ativa em Unidades.` };
   if (tipo === "producao" && unit.tipo !== "producao") return { error: "A auditoria de produção só se aplica à cozinha central." };
   if (tipo !== "producao" && unit.tipo !== "loja") return { error: "Na cozinha central só é possível fazer a auditoria de produção." };
 
