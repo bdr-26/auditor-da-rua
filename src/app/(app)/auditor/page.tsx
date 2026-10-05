@@ -68,7 +68,7 @@ export default async function AuditorHomePage() {
 
       {/* auditoria de hoje */}
       {todayRow && todayUnit ? (
-        <TodayCard row={todayRow} unit={todayUnit} audit={todayAudit} today={today} />
+        <TodayCard row={todayRow} unit={todayUnit} audit={todayAudit} today={today} checklistAbertos={demandas.filter((d) => d.categoria === "checklist_abertura" && d.unit_id === todayUnit.id).length} />
       ) : (
         <Card className="flex items-center gap-4 py-6">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-light text-brand-dark">
@@ -146,7 +146,30 @@ export default async function AuditorHomePage() {
   );
 }
 
-function TodayCard({ row, unit, audit, today }: { row: ScheduleDay; unit: Unit; audit: Audit | null; today: string }) {
+function TodayCard({ row, unit, audit, today, checklistAbertos = 0 }: { row: ScheduleDay; unit: Unit; audit: Audit | null; today: string; checklistAbertos?: number }) {
+  if (unit.em_abertura && audit?.status !== "concluida") {
+    return (
+      <Card className="relative overflow-hidden border-blue-200 p-5">
+        <div className="absolute inset-x-0 top-0 h-1.5 bg-blue-600" />
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Visita de hoje</p>
+          <Badge tone="brand">loja em abertura</Badge>
+        </div>
+        <h2 className="mt-1 text-2xl font-bold leading-tight">
+          Visita de abertura <span className="text-gray-400">—</span> {unit.nome}
+        </h2>
+        {unit.endereco && <p className="mt-1 text-sm text-gray-500">{unit.endereco}</p>}
+        <p className="mt-2 text-sm text-gray-600">
+          {checklistAbertos > 0 ? `${checklistAbertos} item${checklistAbertos === 1 ? "" : "ns"} do checklist de abertura em aberto.` : "Nenhum item do checklist de abertura em aberto."} Sem auditoria até a loja ser marcada como ativa.
+        </p>
+        <div className="mt-5">
+          <ButtonLink href={`/auditor/demandas?loja=${unit.id}`} size="lg" full>
+            Abrir checklist de abertura <ChevronRight className="h-5 w-5" />
+          </ButtonLink>
+        </div>
+      </Card>
+    );
+  }
   const late = row.status === "nao_cumprida" && !audit;
   const done = audit?.status === "concluida" || row.status === "concluida";
   const draft = audit?.status === "rascunho";
@@ -192,8 +215,8 @@ function TodayCard({ row, unit, audit, today }: { row: ScheduleDay; unit: Unit; 
 }
 
 function DayRow({ row, unit, audit, today }: { row: ScheduleDay; unit: Unit | undefined; audit: Audit | undefined; today: string }) {
-  const state = dayState(row, audit, today);
-  const href = audit ? (audit.status === "concluida" ? `/auditorias/${audit.id}/resumo` : `/auditorias/${audit.id}`) : row.data === today ? "/auditor" : null;
+  const state = dayState(row, audit, today, unit);
+  const href = state === "abertura" ? `/auditor/demandas?loja=${row.unit_id}` : audit ? (audit.status === "concluida" ? `/auditorias/${audit.id}/resumo` : `/auditorias/${audit.id}`) : row.data === today ? "/auditor" : null;
   const inner = (
     <div className={cn("flex items-center gap-3 px-4 py-3", row.data === today && "bg-brand-light/40")}>
       <div className="w-14 shrink-0">
@@ -202,7 +225,7 @@ function DayRow({ row, unit, audit, today }: { row: ScheduleDay; unit: Unit | un
       </div>
       <div className="min-w-0 flex-1">
         <div className="truncate font-medium">{unit?.nome ?? "Unidade"}</div>
-        <div className="text-xs text-gray-500">{AUDIT_TYPE_SHORT[row.tipo]}</div>
+        <div className="text-xs text-gray-500">{state === "abertura" ? "Visita de abertura" : AUDIT_TYPE_SHORT[row.tipo]}</div>
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {audit?.status === "concluida" && <PctBadge value={audit.nota_final} size="sm" />}

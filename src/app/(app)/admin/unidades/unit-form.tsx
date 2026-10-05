@@ -16,6 +16,7 @@ export function UnitForm({ unit, onClose }: { unit?: Unit | null; onClose: () =>
     tipo: unit?.tipo ?? "loja",
     ativa: unit?.ativa ?? true,
     entra_no_ranking: unit?.entra_no_ranking ?? true,
+    em_abertura: unit?.em_abertura ?? false,
     ordem_rotacao: unit?.ordem_rotacao ?? null,
     supervisor_nome: unit?.supervisor_nome ?? "",
     endereco: unit?.endereco ?? "",
@@ -68,7 +69,15 @@ export function UnitForm({ unit, onClose }: { unit?: Unit | null; onClose: () =>
         <label className={cn("flex items-center gap-2", form.tipo === "producao" && "opacity-50")}>
           <input type="checkbox" checked={form.tipo === "producao" ? false : form.entra_no_ranking} disabled={form.tipo === "producao"} onChange={(e) => set("entra_no_ranking", e.target.checked)} className="h-5 w-5 accent-brand" /> Entra no ranking e na rotação
         </label>
+        <label className={cn("flex items-center gap-2", form.tipo === "producao" && "opacity-50")}>
+          <input type="checkbox" checked={form.tipo === "producao" ? false : form.em_abertura} disabled={form.tipo === "producao"} onChange={(e) => set("em_abertura", e.target.checked)} className="h-5 w-5 accent-brand" /> Em abertura (visita vira checklist, sem auditoria)
+        </label>
       </div>
+      {form.em_abertura && form.tipo !== "producao" && (
+        <p className="rounded-lg bg-blue-50 p-3 text-xs text-blue-900">
+          A loja continua na rotação do gerente, mas o dia dela é uma “visita de abertura”: ele cumpre as demandas do tipo “Checklist de abertura de nova loja” dessa loja. Desmarque quando a loja estiver operando para as auditorias passarem a valer.
+        </p>
+      )}
       {!unit && (
         <p className="rounded-lg bg-surface-muted p-3 text-xs text-gray-600">
           A nova loja entra automaticamente na rotação nos dias ainda não gerados da agenda e recebe uma cópia do checklist nutricional de Imigrantes, marcado como “em revisão”. Para incluí-la já nos dias futuros previstos, use “Regenerar dias futuros”.

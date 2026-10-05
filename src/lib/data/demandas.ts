@@ -1,12 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { todaySP } from "../dates";
-import type { Demanda, DemandaAnexo, DemandaComentario, DemandaStatus, Profile, Unit } from "../types";
+import type { Demanda, DemandaAnexo, DemandaCategoria, DemandaComentario, DemandaStatus, Profile, Unit } from "../types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyClient = SupabaseClient<any, any, any>;
 
 export interface DemandaListFilter {
   responsavelId?: string;
+  unitId?: string;
+  categoria?: DemandaCategoria;
   status?: DemandaStatus[] | "abertas" | "encerradas";
   limit?: number;
 }
@@ -15,6 +17,8 @@ export interface DemandaListFilter {
 export async function getDemandas(supabase: AnyClient, f: DemandaListFilter = {}): Promise<Demanda[]> {
   let q = supabase.from("demandas").select("*").order("prazo", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false });
   if (f.responsavelId) q = q.eq("responsavel_id", f.responsavelId);
+  if (f.unitId) q = q.eq("unit_id", f.unitId);
+  if (f.categoria) q = q.eq("categoria", f.categoria);
   if (f.status === "abertas") q = q.in("status", ["aberta", "em_andamento"]);
   else if (f.status === "encerradas") q = q.in("status", ["concluida", "cancelada"]);
   else if (Array.isArray(f.status)) q = q.in("status", f.status);

@@ -28,6 +28,7 @@ export interface UnitInput {
   tipo: UnitKind;
   ativa: boolean;
   entra_no_ranking: boolean;
+  em_abertura: boolean;
   ordem_rotacao: number | null;
   supervisor_nome: string | null;
   endereco: string | null;
@@ -45,6 +46,7 @@ export async function saveUnit(input: UnitInput): Promise<AdminResult> {
       tipo: input.tipo,
       ativa: input.ativa,
       entra_no_ranking: input.tipo === "producao" ? false : input.entra_no_ranking,
+      em_abertura: input.tipo === "producao" ? false : input.em_abertura,
       supervisor_nome: input.supervisor_nome?.trim() || null,
       endereco: input.endereco?.trim() || null,
     };
@@ -95,6 +97,20 @@ export async function saveUnit(input: UnitInput): Promise<AdminResult> {
       id: newId,
       message: `Unidade criada (ordem de rotação ${ordem}). Ela entra na rotação nos dias ainda não gerados${clonados ? ` e recebeu ${clonados} itens do checklist nutricional (em revisão)` : ""}.`,
     };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+/** Loja em abertura ⇄ loja ativa (auditorias passam a valer a partir da próxima visita prevista). */
+export async function setUnitOpening(id: string, emAbertura: boolean): Promise<AdminResult> {
+  try {
+    await requireProfile(["proprietario"]);
+    const admin = createAdminClient();
+    const { error } = await admin.from("units").update({ em_abertura: emAbertura }).eq("id", id);
+    if (error) throw error;
+    revalidateAll();
+    return { ok: true, message: emAbertura ? "Loja marcada como em abertura: visitas viram checklist, sem auditoria." : "Loja ativa: as auditorias passam a valer na próxima visita da rotina." };
   } catch (e) {
     return fail(e);
   }

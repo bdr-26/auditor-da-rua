@@ -63,3 +63,9 @@ Os proprietários podem iniciar, em `/dashboard/surpresa` (ou pelo atalho na pá
 ## Orientações por item ("O que conferir")
 
 Cada item das auditorias completa, simplificada e de produção tem um texto de orientação em `src/lib/audit-guidance.ts`, indexado pela `chave` do item do template (a mesma chave vale nos três templates, ex.: `temperaturas`). O cartão de pontuação (`ScoreItem`) mostra um botão "O que conferir" que abre a lista do que verificar e a régua de notas 5 / 3 / 1. Para alterar um texto, edite o arquivo; itens novos sem entrada no mapa simplesmente não mostram o botão.
+
+## Lojas em abertura (visita de abertura)
+
+`units.em_abertura = true` (Unidades → editar, ou botão "Marcar como ativa" para encerrar) mantém a loja na rotação, mas o dia dela vira **visita de abertura**: sem auditoria (`startAudit` recusa), sem "não cumprida" às 23h (`end-of-day` pula) e fora do indicador de rotina do dashboard. Na agenda e na home o dia aparece em azul ("visita de abertura") e leva para `/auditor/demandas?loja=<id>`, onde ficam as demandas da categoria **Checklist de abertura de nova loja** daquela loja (criadas pelos proprietários ou pelo gerente). O lembrete das 8h vira "Hoje: visita de abertura — Mooca · Checklist de abertura: N itens em aberto". Ao marcar a loja como ativa, a próxima visita prevista já é auditoria normal e passa a valer no ranking.
+
+Demandas têm `categoria` (`geral` | `checklist_abertura`); a segunda exige `unit_id` (constraint na migration 0009).

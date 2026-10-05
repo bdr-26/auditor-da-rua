@@ -22,6 +22,7 @@ export interface EndOfDayResult {
   data: string;
   concluidas: { schedule_id: string; unidade: string; tipo: AuditType; audit_id: string }[];
   nao_cumpridas: { schedule_id: string; unidade: string; tipo: AuditType; enviados: number; pulados: number }[];
+  abertura: { schedule_id: string; unidade: string }[];
   motivo?: string;
 }
 
@@ -32,7 +33,7 @@ export interface EndOfDayResult {
  */
 export async function runEndOfDay(admin: AdminClient, opts: { data?: string } = {}): Promise<EndOfDayResult> {
   const data = opts.data ?? endOfDayTargetDate();
-  const result: EndOfDayResult = { data, concluidas: [], nao_cumpridas: [] };
+  const result: EndOfDayResult = { data, concluidas: [], nao_cumpridas: [], abertura: [] };
 
   const { data: rows, error } = await admin.from("schedule_days").select("*").eq("data", data).eq("status", "prevista");
   if (error) throw error;
@@ -44,17 +45,23 @@ export async function runEndOfDay(admin: AdminClient, opts: { data?: string } = 
 
   const unitIds = Array.from(new Set(previstas.map((r) => r.unit_id)));
   const [{ data: units }, { data: audits }, owners] = await Promise.all([
-    admin.from("units").select("id, nome").in("id", unitIds),
+    admin.from("units").select("id, nome, em_abertura").in("id", unitIds),
     admin.from("audits").select("id, unit_id, tipo").eq("data", data).eq("status", "concluida").in("unit_id", unitIds),
     ownerIds(admin),
   ]);
   const unitName = new Map((units ?? []).map((u) => [u.id as string, u.nome as string]));
+  const emAbertura = new Set((units ?? []).filter((u) => u.em_abertura).map((u) => u.id as string));
   const concludedKey = new Map((audits ?? []).map((a) => [`${a.unit_id}:${a.tipo}`, a.id as string]));
   const mes = monthStart(data);
 
   let auditoresGerais: string[] | null = null;
   for (const row of previstas) {
     const nome = unitName.get(row.unit_id) ?? "unidade";
+    if (emAbertura.has(row.unit_id)) {
+      // visita de abertura (checklist via demandas): não há auditoria a cobrar
+      result.abertura.push({ schedule_id: row.id, unidade: nome });
+      continue;
+    }
     const auditId = concludedKey.get(`${row.unit_id}:${row.tipo}`);
     if (auditId) {
       await admin.from("schedule_days").update({ status: "concluida", audit_id: auditId }).eq("id", row.id);

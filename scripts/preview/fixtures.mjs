@@ -128,7 +128,7 @@ export const PRIMARY_KEY = { app_settings: "chave" };
 
 /** Defaults aplicados em INSERT (além de id/created_at/updated_at). */
 export const TABLE_DEFAULTS = {
-  units: { tipo: "loja", ativa: true, entra_no_ranking: true, ordem_rotacao: 0, endereco: null, supervisor_nome: null, nutri_checklist_em_revisao: false },
+  units: { tipo: "loja", ativa: true, entra_no_ranking: true, ordem_rotacao: 0, endereco: null, supervisor_nome: null, nutri_checklist_em_revisao: false, em_abertura: false },
   audit_templates: { versao: 1, ativo: true },
   template_blocks: { peso: 1 },
   template_items: { falha_grave: false, produto_vencido: false, pendencias: false, bloco_ref: null, ativo: true },
@@ -178,7 +178,7 @@ export const TABLE_DEFAULTS = {
   external_indicators: { nota_99food: null, cancelamentos: null, tempo_medio_entrega: null, lancado_por: null },
   reports: { unit_id: null, gerado_por: null },
   auditor_days_off: { auditor_id: null, motivo: "Folga de domingo", criado_por: null },
-  demandas: { descricao: null, prazo: null, prioridade: "normal", status: "aberta", unit_id: null, conclusao_texto: null, concluida_em: null, concluida_por: null },
+  demandas: { descricao: null, prazo: null, prioridade: "normal", categoria: "geral", status: "aberta", unit_id: null, conclusao_texto: null, concluida_em: null, concluida_por: null },
   demanda_comentarios: { status_novo: null },
   demanda_anexos: { mime: null, tamanho: null },
   notifications_log: { user_id: null, chave_dedup: null, url: null },
@@ -786,6 +786,7 @@ export function buildFixtures(today = todaySP()) {
       endereco: u.endereco,
       supervisor_nome: u.supervisor_nome,
       nutri_checklist_em_revisao: u.slug === "imigrantes",
+      em_abertura: u.slug === "bela-vista",
       created_at: baseCreated,
     });
   }

@@ -88,7 +88,7 @@ export function RankingTable({ ranking, semAuditorias, mes, closed }: { ranking:
                 </Link>
               </td>
               <td className="py-3 pr-2 text-xs" colSpan={5}>
-                sem auditorias neste mês
+                {um.unit.em_abertura ? <Badge tone="brand">em abertura · checklist, sem auditoria</Badge> : "sem auditorias neste mês"}
               </td>
               <td className="py-3">
                 {um.nutri.nota != null ? <Badge tone={nutriBandTone(um.nutri.classificacao)}>{fmtPct(um.nutri.nota)}</Badge> : <span className="text-xs">—</span>}

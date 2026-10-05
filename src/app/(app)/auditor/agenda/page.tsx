@@ -34,6 +34,7 @@ const CELL_TONE: Record<DayState, string> = {
   rascunho: "bg-yellow-100 text-yellow-900 border-yellow-200",
   pendente: "bg-gray-100 text-gray-700 border-gray-200",
   nao_cumprida: "bg-red-100 text-red-900 border-red-200",
+  abertura: "bg-blue-50 text-blue-900 border-blue-200",
 };
 
 export default async function AgendaPage({ searchParams }: { searchParams: Promise<{ mes?: string; semana?: string; ver?: string }> }) {
@@ -66,6 +67,9 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
     verMes ? Promise.resolve([]) : getDemandas(supabase, { responsavelId: profile.id, status: "abertas" }),
   ]);
   const demandasAtrasadas = demandas.filter((d) => isAtrasada(d, today)).length;
+  // itens de checklist de abertura em aberto, por loja (visitas de abertura)
+  const checklistPorLoja = new Map<string, number>();
+  for (const d of demandas) if (d.categoria === "checklist_abertura" && d.unit_id) checklistPorLoja.set(d.unit_id, (checklistPorLoja.get(d.unit_id) ?? 0) + 1);
   const offByDate = new Map(daysOff.map((d) => [d.data, d]));
   const unitsById = new Map(units.map((u) => [u.id, u]));
   const linked = await getAuditsByIds(supabase, rows.map((r) => r.audit_id).filter((id): id is string => !!id));
@@ -195,8 +199,27 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
                 </div>
               );
             }
-            const state = dayState(row, audit, today);
-            const unitName = unitsById.get(row.unit_id)?.nome ?? "Unidade";
+            const unit = unitsById.get(row.unit_id);
+            const state = dayState(row, audit, today, unit);
+            const unitName = unit?.nome ?? "Unidade";
+            if (state === "abertura") {
+              const itens = checklistPorLoja.get(row.unit_id) ?? 0;
+              return (
+                <Link key={d} href={`/auditor/demandas?loja=${row.unit_id}`} className="block active:scale-[0.99]">
+                  <div className={cn("flex items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50/60 px-3 py-3", isToday && "ring-2 ring-brand/50")}>
+                    {dateCol}
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-semibold">{unitName}</div>
+                      <div className="text-xs text-blue-900">Visita de abertura · checklist{itens > 0 ? ` · ${itens} item${itens === 1 ? "" : "ns"} em aberto` : " em dia"}</div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <DayStateChip state="abertura" />
+                      <ChevronRight className="h-4 w-4 text-gray-400" />
+                    </div>
+                  </div>
+                </Link>
+              );
+            }
             const href = audit ? (audit.status === "concluida" ? `/auditorias/${audit.id}/resumo` : `/auditorias/${audit.id}`) : null;
             const inner = (
               <div className={cn("flex items-center gap-3 rounded-2xl border bg-white px-3 py-3", isToday ? "border-brand ring-2 ring-brand/50" : "border-line", state === "nao_cumprida" && "border-red-200 bg-red-50/40")}>
@@ -289,7 +312,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
                   folga
                 </div>
               )}
-              {row && <DayCell row={row} audit={audit ?? null} today={today} unitName={unitsById.get(row.unit_id)?.nome ?? "—"} />}
+              {row && <DayCell row={row} audit={audit ?? null} today={today} unitName={unitsById.get(row.unit_id)?.nome ?? "—"} abertura={!!unitsById.get(row.unit_id)?.em_abertura} />}
               {extras.map((a) => (
                 <Link
                   key={a.id}
@@ -306,9 +329,9 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2 text-[11px]">
-        {(["feito", "hoje", "rascunho", "pendente", "nao_cumprida"] as DayState[]).map((s) => (
+        {(["feito", "hoje", "rascunho", "pendente", "nao_cumprida", "abertura"] as DayState[]).map((s) => (
           <span key={s} className={cn("rounded-full border px-2 py-0.5 font-medium", CELL_TONE[s])}>
-            {s === "feito" ? "concluída" : s === "nao_cumprida" ? "não cumprida" : s === "pendente" ? "prevista" : s}
+            {s === "feito" ? "concluída" : s === "nao_cumprida" ? "não cumprida" : s === "pendente" ? "prevista" : s === "abertura" ? "visita de abertura" : s}
           </span>
         ))}
       </div>
@@ -316,18 +339,25 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
   );
 }
 
-function DayCell({ row, audit, today, unitName }: { row: ScheduleDay; audit: Audit | null; today: string; unitName: string }) {
-  const state = dayState(row, audit, today);
+function DayCell({ row, audit, today, unitName, abertura }: { row: ScheduleDay; audit: Audit | null; today: string; unitName: string; abertura?: boolean }) {
+  const state = dayState(row, audit, today, { em_abertura: !!abertura });
   const content = (
     <>
       <span className="block truncate">{shortUnitName(unitName)}</span>
       <span className="flex items-center gap-1 opacity-80">
-        {TIPO_ABBR[row.tipo]}
+        {state === "abertura" ? "ABERT." : TIPO_ABBR[row.tipo]}
         {state === "hoje" && !audit && <Play className="h-2.5 w-2.5" />}
       </span>
     </>
   );
   const cls = cn("block w-full rounded-lg border px-1 py-1 text-left text-[10px] font-medium leading-tight", CELL_TONE[state]);
+  if (state === "abertura") {
+    return (
+      <Link href={`/auditor/demandas?loja=${row.unit_id}`} className={cls}>
+        {content}
+      </Link>
+    );
+  }
   if (audit) {
     return (
       <Link href={audit.status === "concluida" ? `/auditorias/${audit.id}/resumo` : `/auditorias/${audit.id}`} className={cls}>

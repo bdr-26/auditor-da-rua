@@ -6,7 +6,7 @@ import { Pencil, Plus, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { regenerateFutureSchedule, toggleUnitActive } from "@/lib/admin-actions";
+import { regenerateFutureSchedule, setUnitOpening, toggleUnitActive } from "@/lib/admin-actions";
 import type { Unit } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { UnitForm } from "./unit-form";
@@ -79,6 +79,7 @@ export function UnitsManager({ units }: { units: Unit[] }) {
                     <span className="flex flex-wrap gap-1">
                       <Badge tone={u.ativa ? "green" : "gray"}>{u.ativa ? "ativa" : "inativa"}</Badge>
                       {u.entra_no_ranking && u.tipo === "loja" && <Badge tone="brand">ranking</Badge>}
+                      {u.em_abertura && <Badge tone="brand">em abertura</Badge>}
                       {u.nutri_checklist_em_revisao && <Badge tone="yellow">nutri em revisão</Badge>}
                     </span>
                   </td>
@@ -87,6 +88,11 @@ export function UnitsManager({ units }: { units: Unit[] }) {
                       <button type="button" aria-label="Editar" onClick={() => setEditing(u)} className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-surface-muted">
                         <Pencil className="h-4 w-4" />
                       </button>
+                      {u.em_abertura && u.ativa && (
+                        <Button type="button" size="sm" variant="secondary" disabled={pending} onClick={() => run(() => setUnitOpening(u.id, false))}>
+                          Marcar como ativa
+                        </Button>
+                      )}
                       <Button type="button" size="sm" variant="ghost" disabled={pending} onClick={() => run(() => toggleUnitActive(u.id, !u.ativa))}>
                         {u.ativa ? "Desativar" : "Reativar"}
                       </Button>

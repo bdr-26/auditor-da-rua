@@ -44,6 +44,7 @@ export function DemandaCard({ d, href, unitName, anexos = 0 }: { d: Demanda; hre
               </Badge>
             )}
             <span className="font-semibold leading-tight">{d.titulo}</span>
+            {d.categoria === "checklist_abertura" && <Badge tone="brand">abertura</Badge>}
             {d.criado_por === d.responsavel_id && <Badge tone="gray">pessoal</Badge>}
           </div>
           {d.descricao && <p className="mt-0.5 line-clamp-2 text-sm text-gray-600">{d.descricao}</p>}

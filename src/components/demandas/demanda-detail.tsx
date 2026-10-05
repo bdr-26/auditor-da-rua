@@ -22,6 +22,7 @@ export function DemandaDetailView({ detail, viewerRole, viewerId }: { detail: De
         <div className="flex flex-wrap items-center gap-2">
           <DemandaStatusBadge d={d} />
           {d.prioridade === "alta" && <Badge tone="red">prioridade alta</Badge>}
+          {d.categoria === "checklist_abertura" && <Badge tone="brand">checklist de abertura</Badge>}
           {pessoal && <Badge tone="gray">pessoal</Badge>}
         </div>
         <h2 className="mt-2 text-xl font-bold leading-tight">{d.titulo}</h2>

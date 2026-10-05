@@ -17,8 +17,9 @@ const STATE_CLASS: Record<DayState, string> = {
   pendente: "bg-gray-100 text-gray-700 border-gray-200",
   hoje: "bg-brand-light text-brand-dark border-brand",
   nao_cumprida: "bg-red-100 text-red-900 border-red-200",
+  abertura: "bg-blue-50 text-blue-900 border-blue-200",
 };
-const STATE_LABEL: Record<DayState, string> = { feito: "feito", pendente: "pendente", hoje: "hoje", nao_cumprida: "não cumprida" };
+const STATE_LABEL: Record<DayState, string> = { feito: "feito", pendente: "pendente", hoje: "hoje", nao_cumprida: "não cumprida", abertura: "visita de abertura" };
 const WEEK = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"];
 
 function shortName(nome: string): string {
@@ -89,7 +90,7 @@ export function RoutineCalendar({ mes, today, days, units, daysOff = [] }: { mes
                   {cd.day.unit_original_id && <ArrowLeftRight className="h-3 w-3 opacity-70" aria-label="trocado" />}
                 </span>
                 <span className="mt-auto line-clamp-2 text-[10px] font-semibold leading-tight sm:text-xs">{cd.unit ? shortName(cd.unit.nome) : "—"}</span>
-                <span className="text-[9px] uppercase opacity-70 sm:text-[10px]">{AUDIT_TYPE_SHORT[cd.day.tipo]}</span>
+                <span className="text-[9px] uppercase opacity-70 sm:text-[10px]">{cd.state === "abertura" ? "abertura" : AUDIT_TYPE_SHORT[cd.day.tipo]}</span>
               </button>
             );
           })}

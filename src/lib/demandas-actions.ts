@@ -7,7 +7,7 @@ import { formatDatePT } from "./dates";
 import { appUrl, ownerIds, sendPushToUsers } from "./push";
 import { createAdminClient } from "./supabase/admin";
 import { createClient } from "./supabase/server";
-import type { Demanda, DemandaStatus } from "./types";
+import type { Demanda, DemandaCategoria, DemandaStatus } from "./types";
 
 export type ActionResult = { ok: true; message?: string; id?: string } | { ok: false; error: string };
 const fail = (e: unknown): ActionResult => ({ ok: false, error: e instanceof Error ? e.message : String(e) });
@@ -41,6 +41,7 @@ export interface DemandaInput {
   descricao?: string;
   prazo?: string | null;
   prioridade?: "normal" | "alta";
+  categoria?: DemandaCategoria;
   unitId?: string | null;
   responsavelId?: string;
 }
@@ -63,6 +64,8 @@ export async function createDemanda(input: DemandaInput): Promise<ActionResult> 
     const titulo = input.titulo.trim();
     if (!titulo) throw new Error("Informe o título.");
     if (input.prazo && !/^\d{4}-\d{2}-\d{2}$/.test(input.prazo)) throw new Error("Prazo inválido.");
+    const categoria: DemandaCategoria = input.categoria ?? "geral";
+    if (categoria === "checklist_abertura" && !input.unitId) throw new Error("Escolha a loja do checklist de abertura.");
     const admin = createAdminClient();
     let responsavelId = profile.role === "auditor_geral" ? profile.id : input.responsavelId;
     if (!responsavelId) {
@@ -72,12 +75,12 @@ export async function createDemanda(input: DemandaInput): Promise<ActionResult> 
     if (!responsavelId) throw new Error("Nenhum gerente ativo para receber a demanda.");
     const { data, error } = await admin
       .from("demandas")
-      .insert({ titulo, descricao: input.descricao?.trim() || null, prazo: input.prazo || null, prioridade: input.prioridade ?? "normal", unit_id: input.unitId || null, responsavel_id: responsavelId, criado_por: profile.id })
+      .insert({ titulo, descricao: input.descricao?.trim() || null, prazo: input.prazo || null, prioridade: input.prioridade ?? "normal", categoria, unit_id: input.unitId || null, responsavel_id: responsavelId, criado_por: profile.id })
       .select("id")
       .single();
     if (error) throw error;
     if (responsavelId !== profile.id) {
-      await notify([responsavelId], "demanda_nova", `demanda:${data.id}:nova`, "Nova demanda", `${titulo}${input.prazo ? ` · prazo ${formatDatePT(input.prazo)}` : ""}`, `/auditor/demandas/${data.id}`);
+      await notify([responsavelId], "demanda_nova", `demanda:${data.id}:nova`, categoria === "checklist_abertura" ? "Checklist de abertura" : "Nova demanda", `${titulo}${input.prazo ? ` · prazo ${formatDatePT(input.prazo)}` : ""}`, `/auditor/demandas/${data.id}`);
     }
     revalidate(data.id as string);
     return { ok: true, id: data.id as string };
@@ -95,10 +98,12 @@ export async function updateDemanda(id: string, input: DemandaInput): Promise<Ac
     if (d.status === "concluida" || d.status === "cancelada") throw new Error("Demanda encerrada não pode ser editada.");
     const titulo = input.titulo.trim();
     if (!titulo) throw new Error("Informe o título.");
+    const categoria: DemandaCategoria = input.categoria ?? d.categoria ?? "geral";
+    if (categoria === "checklist_abertura" && !input.unitId) throw new Error("Escolha a loja do checklist de abertura.");
     const admin = createAdminClient();
     const { error } = await admin
       .from("demandas")
-      .update({ titulo, descricao: input.descricao?.trim() || null, prazo: input.prazo || null, prioridade: input.prioridade ?? d.prioridade, unit_id: input.unitId || null })
+      .update({ titulo, descricao: input.descricao?.trim() || null, prazo: input.prazo || null, prioridade: input.prioridade ?? d.prioridade, categoria, unit_id: input.unitId || null })
       .eq("id", id);
     if (error) throw error;
     revalidate(id);
