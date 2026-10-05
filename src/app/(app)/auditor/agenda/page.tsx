@@ -186,8 +186,8 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
                 <div key={d} className={cn("flex items-center gap-3 rounded-2xl border border-dashed border-line bg-white px-3 py-3 text-gray-500", isToday && "ring-2 ring-brand")}>
                   {dateCol}
                   <Coffee className="h-5 w-5 text-gray-400" />
-                  <div className="flex-1 text-sm font-medium">Folga</div>
-                  <span className="text-xs text-gray-400">{off?.motivo ?? "segunda"}</span>
+                  <div className="flex-1 text-sm font-medium">{off && off.motivo !== "Folga de domingo" ? "Sem visita" : "Folga"}</div>
+                  <span className="max-w-[45%] truncate text-xs text-gray-400">{off?.motivo ?? "segunda"}</span>
                 </div>
               );
             }
@@ -309,7 +309,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
               <div className={cn("text-right text-xs font-semibold tabular-nums", isToday ? "text-brand-dark" : "text-gray-500")}>{d.slice(8, 10)}</div>
               {!row && (offByDate.has(d) || weekday(d) === 1) && (
                 <div className="rounded-lg border border-dashed border-line px-1 py-0.5 text-center text-[10px] font-semibold uppercase tracking-wide text-gray-400" title={offByDate.get(d)?.motivo ?? "Segunda: folga fixa"}>
-                  folga
+                  {offByDate.get(d) && offByDate.get(d)!.motivo !== "Folga de domingo" ? "sem visita" : "folga"}
                 </div>
               )}
               {row && <DayCell row={row} audit={audit ?? null} today={today} unitName={unitsById.get(row.unit_id)?.nome ?? "—"} abertura={!!unitsById.get(row.unit_id)?.em_abertura} />}

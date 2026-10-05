@@ -75,9 +75,9 @@ export default async function AuditorHomePage() {
             <Coffee className="h-6 w-6" />
           </div>
           <div>
-            <p className="text-lg font-semibold">{isMonday ? "Segunda é folga" : todayOff ? "Hoje é sua folga" : "Nada agendado para hoje"}</p>
+            <p className="text-lg font-semibold">{isMonday ? "Segunda é folga" : todayOff ? (daysOff.find((d) => d.data === today)?.motivo === "Folga de domingo" ? "Hoje é sua folga" : "Hoje não há visita prevista") : "Nada agendado para hoje"}</p>
             <p className="text-sm text-gray-500">
-              {isMonday ? "Bom descanso. A semana começa na terça com a produção." : todayOff ? "Domingo de folga do mês. Bom descanso." : "Se houver visita combinada, inicie uma auditoria fora da agenda."}
+              {isMonday ? "Bom descanso. A semana começa na terça com a produção." : todayOff ? (daysOff.find((d) => d.data === today)?.motivo === "Folga de domingo" ? "Domingo de folga do mês. Bom descanso." : `Dia removido da rotina${daysOff.find((d) => d.data === today)?.motivo && daysOff.find((d) => d.data === today)?.motivo !== "Removido da rotina" ? `: ${daysOff.find((d) => d.data === today)?.motivo}` : "."}`) : "Se houver visita combinada, inicie uma auditoria fora da agenda."}
             </p>
           </div>
         </Card>
@@ -123,10 +123,10 @@ export default async function AuditorHomePage() {
                   <div className="text-base font-bold tabular-nums">{d.data.slice(8, 10)}/{d.data.slice(5, 7)}</div>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium">Folga</div>
-                  <div className="text-xs text-gray-500">{d.motivo}</div>
+                  <div className="truncate font-medium">{d.motivo !== "Folga de domingo" ? "Sem visita" : "Folga"}</div>
+                  <div className="truncate text-xs text-gray-500">{d.motivo}</div>
                 </div>
-                <Badge tone="gray">folga</Badge>
+                <Badge tone="gray">{d.motivo !== "Folga de domingo" ? "sem visita" : "folga"}</Badge>
               </div>
             ))}
         </Card>
