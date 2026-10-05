@@ -45,3 +45,19 @@ Depois de fechado, dashboard e loja mostram a nota fechada, a posição e "Loja 
 
 - **Unidades** — criar/editar/ativar. Nova unidade: slug de `slugify(nome)` (sufixo numérico se repetido), `ordem_rotacao = máx + 1`, `nutri_checklist_em_revisao = true` e cópia da composição `unit_nutri_checklist` da unidade `imigrantes`. Entra na rotação nos dias ainda não gerados; "Regenerar dias futuros previstos" apaga `schedule_days` `prevista` com data > hoje e roda `ensureSchedule` (trocas manuais futuras são perdidas).
 - **Configurações** — upsert de todas as chaves de `app_settings`. `nutri_compoe_ranking`/`food99_compoe_ranking` e pesos são armazenados, mas o ranking da v1 ignora (aviso na tela).
+
+## Calendário da rotina: edição
+
+`RoutineCalendar` (cliente) + ações em `src/lib/dashboard-actions.ts`:
+
+| Ação | Regra |
+|---|---|
+| `swapScheduleDay` (trocar a loja do dia) | dia previsto, de hoje em diante, sem auditoria; motivo obrigatório; grava `unit_original_id`, `trocado_por`, `motivo_troca` |
+| `swapScheduleUnits` (trocar com outro dia; arrastar e soltar) | os dois dias previstos, futuros, sem auditoria; produção só com produção |
+| `moveScheduleDay` (mover para dia vazio/sem visita) | destino sem linha; tipo recalculado pelo dia da semana; origem vira "sem visita" (`auditor_days_off`, motivo "Movida para …") |
+| `addScheduleDay` (incluir visita) | data futura sem linha; remove folga/"sem visita" da data; `auditor_id` = gerente ativo |
+| `removeScheduleDay` (remover visita) | qualquer dia sem auditoria registrada, inclusive passados "não cumpridos"; registra `auditor_days_off` (motivo) para a agenda não regerar |
+| `clearMissedDays` (banner "Remover da rotina") | todos os dias passados do mês sem auditoria |
+| `removeDayOff` (devolver à rotação) | apaga a folga/"sem visita" e regera o dia |
+
+No celular o painel do dia é uma folha inferior acima da barra de navegação (área segura); no desktop, painel lateral com arrastar e soltar entre células.

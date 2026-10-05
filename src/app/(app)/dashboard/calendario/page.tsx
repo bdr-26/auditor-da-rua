@@ -48,7 +48,7 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
           </div>
         ) : (
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
-            <span>Toque em um dia para trocar a loja ou remover a visita (somente dias previstos, de hoje em diante). Dias “sem visita” podem ser devolvidos à rotação.</span>
+            <span>Toque em um dia para trocar a loja, trocar com outro dia, mover, remover ou incluir uma visita. Dias passados sem auditoria podem ser removidos da rotina.</span>
             <GenerateScheduleButton mes={mes} />
           </div>
         )}
