@@ -2,19 +2,8 @@
 // Atenção: Helvetica usa codificação WinAnsi; evite símbolos fora dela (Δ, ≥, ⚠, setas).
 import { Font, Image, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type { ReactNode } from "react";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { BRAND_YELLOW } from "../constants";
-
-/** Logo DA RUA FOOD INC embutido como data URI (lido do disco no servidor; vazio se indisponível). */
-const BRAND_LOGO: string = (() => {
-  try {
-    return "data:image/png;base64," + readFileSync(join(process.cwd(), "public", "brand", "darua-food-inc.png")).toString("base64");
-  } catch {
-    return "";
-  }
-})();
-const BRAND_LOGO_RATIO = 1858 / 986;
+import { BRAND_LOGO_DATA_URI as BRAND_LOGO, BRAND_LOGO_RATIO } from "./brand-logo";
 
 // Sem hifenização automática (regras em inglês quebram palavras em português).
 Font.registerHyphenationCallback((word) => [word]);

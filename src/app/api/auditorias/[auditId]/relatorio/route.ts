@@ -26,16 +26,22 @@ async function authorize(auditId: string) {
 /** PDF da auditoria do gerente (inline para ver/imprimir; `?download=1` baixa). */
 export async function GET(req: Request, { params }: { params: Promise<{ auditId: string }> }) {
   const { auditId } = await params;
-  const auth = await authorize(auditId);
-  if ("error" in auth) return auth.error;
-  const data = await buildGerenteAuditReport(auth.admin, auditId);
-  if (!data) return NextResponse.json({ error: "auditoria não encontrada" }, { status: 404 });
-  const pdf = await renderGerenteAuditReport(data);
-  const name = gerenteAuditFileName(auth.slug, auth.audit.tipo, auth.audit.data);
-  const download = new URL(req.url).searchParams.get("download") === "1";
-  return new NextResponse(new Uint8Array(pdf), {
-    headers: { "Content-Type": "application/pdf", "Content-Disposition": `${download ? "attachment" : "inline"}; filename="${name}"`, "Cache-Control": "private, no-store" },
-  });
+  try {
+    const auth = await authorize(auditId);
+    if ("error" in auth) return auth.error;
+    const data = await buildGerenteAuditReport(auth.admin, auditId);
+    if (!data) return NextResponse.json({ error: "auditoria não encontrada" }, { status: 404 });
+    const pdf = await renderGerenteAuditReport(data);
+    const name = gerenteAuditFileName(auth.slug, auth.audit.tipo, auth.audit.data);
+    const download = new URL(req.url).searchParams.get("download") === "1";
+    return new NextResponse(new Uint8Array(pdf), {
+      headers: { "Content-Type": "application/pdf", "Content-Disposition": `${download ? "attachment" : "inline"}; filename="${name}"`, "Cache-Control": "private, no-store" },
+    });
+  } catch (e) {
+    console.error("[relatorio] falha ao gerar PDF", e);
+    const msg = e instanceof Error ? e.message : String(e);
+    return new NextResponse(`<!doctype html><meta charset="utf-8"><title>Falha ao gerar o PDF</title><body style="font-family:system-ui;padding:24px"><h1 style="font-size:18px">Não foi possível gerar o PDF</h1><p>${msg.replace(/</g, "&lt;")}</p><p style="color:#666;font-size:13px">Envie esta mensagem para o suporte.</p></body>`, { status: 500, headers: { "Content-Type": "text/html; charset=utf-8" } });
+  }
 }
 
 /** Guarda o PDF no Storage e devolve link assinado (7 dias) para compartilhar. */
@@ -45,7 +51,13 @@ export async function POST(_req: Request, { params }: { params: Promise<{ auditI
   if ("error" in auth) return auth.error;
   const data = await buildGerenteAuditReport(auth.admin, auditId);
   if (!data) return NextResponse.json({ error: "auditoria não encontrada" }, { status: 404 });
-  const pdf = await renderGerenteAuditReport(data);
+  let pdf: Buffer;
+  try {
+    pdf = await renderGerenteAuditReport(data);
+  } catch (e) {
+    console.error("[relatorio] falha ao gerar PDF", e);
+    return NextResponse.json({ error: `falha ao gerar o PDF: ${e instanceof Error ? e.message : String(e)}` }, { status: 500 });
+  }
   const name = gerenteAuditFileName(auth.slug, auth.audit.tipo, auth.audit.data);
   const path = `gerente/auditorias/${auditId}.pdf`;
   const { error: upErr } = await auth.admin.storage.from(REPORTS_BUCKET).upload(path, pdf, { contentType: "application/pdf", upsert: true });
