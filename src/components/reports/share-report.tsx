@@ -20,7 +20,10 @@ export function ShareReport({ pdfUrl, fileName, title, text, compact }: { pdfUrl
       if (typeof navigator !== "undefined" && "share" in navigator) {
         try {
           const res = await fetch(pdfUrl, { cache: "no-store" });
-          if (!res.ok) throw new Error("falha ao gerar o PDF");
+          if (!res.ok) {
+            const txt = (await res.text().catch(() => "")).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+            throw new Error(`Falha ao gerar o PDF (HTTP ${res.status})${txt ? `: ${txt.slice(0, 200)}` : ""}`);
+          }
           const blob = await res.blob();
           const file = new File([blob], fileName, { type: "application/pdf" });
           const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
@@ -30,12 +33,13 @@ export function ShareReport({ pdfUrl, fileName, title, text, compact }: { pdfUrl
           }
         } catch (e) {
           if ((e as { name?: string }).name === "AbortError") return; // usuário cancelou
+          if (e instanceof Error && e.message.startsWith("Falha ao gerar o PDF")) throw e; // o servidor falhou: não adianta tentar o link
         }
       }
       // 2) link assinado (7 dias) direto no WhatsApp
       const res = await fetch(pdfUrl, { method: "POST" });
-      const json = (await res.json()) as { url?: string; error?: string };
-      if (!res.ok || !json.url) throw new Error(json.error ?? "falha ao gerar o link");
+      const json = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+      if (!res.ok || !json.url) throw new Error(json.error ?? `Falha ao gerar o link (HTTP ${res.status})`);
       const wa = `https://wa.me/?text=${encodeURIComponent(`${text}\n${json.url}`)}`;
       window.open(wa, "_blank", "noopener");
       setMsg("Link válido por 7 dias aberto no WhatsApp.");
@@ -60,7 +64,7 @@ export function ShareReport({ pdfUrl, fileName, title, text, compact }: { pdfUrl
           <FileText className="h-4 w-4" />
         </a>
       </div>
-      {msg && <p className="mt-2 text-xs text-gray-600">{msg}</p>}
+      {msg && <p className={cn("mt-2 rounded-lg px-3 py-2 text-xs", msg.startsWith("Falha") ? "bg-red-50 text-red-700" : "text-gray-600")}>{msg}</p>}
       {!compact && <p className="mt-2 text-xs text-gray-500">PDF padronizado com cabeçalho, nota, áreas, apontamentos e fotos. “Compartilhar” abre a folha do celular com o arquivo anexado (WhatsApp, e-mail…).</p>}
     </div>
   );

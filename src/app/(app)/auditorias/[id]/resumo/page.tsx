@@ -5,6 +5,7 @@ import { PhotoGallery } from "@/components/nutri/photo-gallery";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
+import { ErrorPanel } from "@/components/ui/error-panel";
 import { PageHeader } from "@/components/ui/page-header";
 import { ShareReport } from "@/components/reports/share-report";
 import { PctBadge, ProgressBar, ScoreBar } from "@/components/ui/score";
@@ -37,12 +38,20 @@ export default async function ResumoPage({ params }: { params: Promise<{ id: str
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: head } = await supabase.from("audits").select("id, tipo").eq("id", id).maybeSingle();
+  const { data: head, error: headErr } = await supabase.from("audits").select("id, tipo").eq("id", id).maybeSingle();
+  if (headErr) return <ErrorPanel title="Não foi possível carregar a auditoria" error={headErr} />;
   if (!head) notFound();
   if (head.tipo === "nutricional") redirect(`/nutri/auditorias/${id}/resumo`);
 
-  const data = await getAuditFillData(supabase, id);
-  if (!data) notFound();
+  let data: Awaited<ReturnType<typeof getAuditFillData>>;
+  try {
+    data = await getAuditFillData(supabase, id);
+  } catch (e) {
+    return <ErrorPanel title="Não foi possível carregar o resumo" error={e} />;
+  }
+  if (!data) {
+    return <ErrorPanel title="Resumo indisponível" error={new Error("A auditoria existe, mas a unidade ou o template dela não foram encontrados. Envie este aviso ao suporte com o link desta tela.")} />;
+  }
   const { audit, unit, blocks, answers, pendings, auditorNome } = data;
   const isDraft = audit.status === "rascunho";
   const mine = audit.auditor_id === profile.id;
