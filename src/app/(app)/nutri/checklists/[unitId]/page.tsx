@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { CompositionEditor } from "@/components/nutri/composition-editor";
 import { PageHeader } from "@/components/ui/page-header";
-import { requireProfile } from "@/lib/auth";
+import { isNutriChefe, requireProfile } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { getNutriBank, getUnitComposition } from "@/lib/data/nutri";
 import { getUnit, getUnits } from "@/lib/data/units";
 import { createClient } from "@/lib/supabase/server";
@@ -10,7 +11,8 @@ export const dynamic = "force-dynamic";
 
 export default async function UnitChecklistPage({ params }: { params: Promise<{ unitId: string }> }) {
   const { unitId } = await params;
-  await requireProfile(["auditor_nutricao", "proprietario"]);
+  const profile = await requireProfile(["auditor_nutricao", "proprietario"]);
+  if (profile.role === "auditor_nutricao" && !isNutriChefe(profile)) redirect("/nutri");
   const supabase = await createClient();
   const [unit, areas, bank, units] = await Promise.all([getUnit(supabase, unitId), getUnitComposition(supabase, unitId), getNutriBank(supabase), getUnits(supabase, { ativas: false })]);
   if (!unit) notFound();

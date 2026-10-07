@@ -14,7 +14,7 @@ interface NavItem {
   icon: NavIconName;
 }
 
-function navFor(role: SessionProfile["role"]): NavItem[] {
+function navFor(role: SessionProfile["role"], nutriNivel: SessionProfile["nutri_nivel"] = null): NavItem[] {
   switch (role) {
     case "auditor_geral":
       return [
@@ -30,7 +30,8 @@ function navFor(role: SessionProfile["role"]): NavItem[] {
         { href: "/nutri/agenda", label: "Agenda", icon: "calendar" },
         { href: "/nutri/controles", label: "Controles", icon: "controls" },
         { href: "/nutri/historico", label: "Histórico", icon: "history" },
-        { href: "/nutri/checklists", label: "Checklists", icon: "checklist" },
+        // checklist é tarefa da chefe; estagiárias ganham o arquivo de registros no lugar
+        nutriNivel === "estagiaria" ? { href: "/nutri/arquivo", label: "Arquivo", icon: "archive" } : { href: "/nutri/checklists", label: "Checklists", icon: "checklist" },
       ];
     case "proprietario":
       return [
@@ -48,7 +49,7 @@ function navFor(role: SessionProfile["role"]): NavItem[] {
 
 /** Layout com navegação: barra inferior no celular, lateral no desktop. */
 export function AppShell({ profile, badges = {}, children }: { profile: SessionProfile; badges?: Record<string, number>; children: React.ReactNode }) {
-  const nav = navFor(profile.role);
+  const nav = navFor(profile.role, profile.nutri_nivel);
   return (
     <div className="min-h-dvh lg:flex">
       <aside className="hidden w-64 shrink-0 flex-col border-r border-gray-300 bg-gray-200 lg:flex">

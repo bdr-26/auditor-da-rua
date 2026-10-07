@@ -2,7 +2,8 @@ import Link from "next/link";
 import { ChevronRight, Database } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
-import { requireProfile } from "@/lib/auth";
+import { isNutriChefe, requireProfile } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { getCompositionStats } from "@/lib/data/nutri";
 import { getUnits } from "@/lib/data/units";
 import { createClient } from "@/lib/supabase/server";
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ChecklistsPage() {
   const profile = await requireProfile(["auditor_nutricao", "proprietario"]);
+  if (profile.role === "auditor_nutricao" && !isNutriChefe(profile)) redirect("/nutri");
   const supabase = await createClient();
   const [units, stats] = await Promise.all([getUnits(supabase), getCompositionStats(supabase)]);
 
