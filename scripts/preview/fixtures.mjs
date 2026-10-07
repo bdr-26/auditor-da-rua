@@ -110,7 +110,8 @@ export const FK = {
   demandas: { unit_id: "units", responsavel_id: "profiles", criado_por: "profiles", concluida_por: "profiles" },
   demanda_comentarios: { demanda_id: "demandas", user_id: "profiles" },
   demanda_anexos: { demanda_id: "demandas", user_id: "profiles" },
-  nutri_agenda: { responsavel_id: "profiles", unit_id: "units", audit_id: "audits", criado_por: "profiles" },
+  nutri_agenda: { responsavel_id: "profiles", unit_id: "units", audit_id: "audits", criado_por: "profiles", rotina_id: "nutri_rotinas" },
+  nutri_rotinas: { unit_id: "units", responsavel_id: "profiles", criado_por: "profiles" },
   nutri_controles: { unit_id: "units", responsavel_id: "profiles", finalizado_por: "profiles" },
 };
 
@@ -130,7 +131,7 @@ export const PRIMARY_KEY = { app_settings: "chave" };
 
 /** Defaults aplicados em INSERT (além de id/created_at/updated_at). */
 export const TABLE_DEFAULTS = {
-  units: { tipo: "loja", ativa: true, entra_no_ranking: true, ordem_rotacao: 0, endereco: null, supervisor_nome: null, nutri_checklist_em_revisao: false, em_abertura: false },
+  units: { tipo: "loja", ativa: true, entra_no_ranking: true, ordem_rotacao: 0, endereco: null, supervisor_nome: null, nutri_checklist_em_revisao: false, em_abertura: false, somente_nutri: false },
   audit_templates: { versao: 1, ativo: true },
   template_blocks: { peso: 1 },
   template_items: { falha_grave: false, produto_vencido: false, pendencias: false, bloco_ref: null, ativo: true },
@@ -153,6 +154,11 @@ export const TABLE_DEFAULTS = {
     assinatura_path: null,
     assinada_em: null,
     assinatura_registrada_por: null,
+    assinatura_auditor_nome: null,
+    assinatura_auditor_cpf: null,
+    assinatura_auditor_cargo: null,
+    assinatura_auditor_path: null,
+    assinada_auditor_em: null,
   },
   audit_answers: {
     item_id: null,
@@ -166,6 +172,8 @@ export const TABLE_DEFAULTS = {
     na: false,
     produto_vencido: false,
     observacao: null,
+    corrigido_na_hora: false,
+    orientacao: null,
   },
   pending_issues: {
     item_id: null,
@@ -189,7 +197,8 @@ export const TABLE_DEFAULTS = {
   demandas: { descricao: null, prazo: null, prioridade: "normal", categoria: "geral", status: "aberta", unit_id: null, conclusao_texto: null, concluida_em: null, concluida_por: null },
   demanda_comentarios: { status_novo: null },
   demanda_anexos: { mime: null, tamanho: null },
-  nutri_agenda: { unit_id: null, tipo: "auditoria", descricao: null, status: "prevista", concluida_em: null, audit_id: null, criado_por: null },
+  nutri_agenda: { unit_id: null, tipo: "auditoria", descricao: null, status: "prevista", concluida_em: null, audit_id: null, criado_por: null, rotina_id: null },
+  nutri_rotinas: { tipo: "auditoria", frequencia: "semanal", dias_semana: [], dia_mes: null, descricao: null, ativa: true, criado_por: null },
   nutri_controles: { status: "rascunho", dados: {}, observacoes: null, finalizado_em: null, finalizado_por: null },
   notifications_log: { user_id: null, chave_dedup: null, url: null },
   push_subscriptions: { user_agent: null },
@@ -221,6 +230,7 @@ export const TIMESTAMP_COLS = {
   demanda_comentarios: ["created_at"],
   demanda_anexos: ["created_at"],
   nutri_agenda: ["created_at", "updated_at"],
+  nutri_rotinas: ["created_at", "updated_at"],
   nutri_controles: ["created_at", "updated_at"],
   app_settings: ["updated_at"],
 };
@@ -247,6 +257,7 @@ const UNIT_DEFS = [
   { slug: "bela-vista", nome: "Bela Vista", tipo: "loja", ordem_rotacao: 4, endereco: "R. Treze de Maio, 1045 – Bela Vista", supervisor_nome: "Rafael Nogueira", quality: 0.66 },
   { slug: "mooca", nome: "Mooca", tipo: "loja", ordem_rotacao: 5, endereco: "R. da Mooca, 2560 – Mooca", supervisor_nome: "Patrícia Lima", quality: 0.55 },
   { slug: "moema-producao", nome: "Moema Produção", tipo: "producao", ordem_rotacao: 0, endereco: "R. Gaivota, 810 – Moema (cozinha central)", supervisor_nome: "Marcos Tavares", quality: 0.8, entra_no_ranking: false },
+  { slug: "cafe-da-rua", nome: "Café da Rua", tipo: "loja", ordem_rotacao: 0, endereco: "Quiosque – Moema", supervisor_nome: "Dani Castro", quality: 0.78, entra_no_ranking: false, somente_nutri: true },
 ];
 export const UNIT_IDS = Object.fromEntries(UNIT_DEFS.map((u) => [u.slug, uuid(`unit:${u.slug}`)]));
 
@@ -771,6 +782,7 @@ export function buildFixtures(today = todaySP()) {
     demanda_comentarios: [],
     demanda_anexos: [],
     nutri_agenda: [],
+    nutri_rotinas: [],
     nutri_controles: [],
     push_subscriptions: [],
     notifications_log: [],
@@ -803,6 +815,7 @@ export function buildFixtures(today = todaySP()) {
       supervisor_nome: u.supervisor_nome,
       nutri_checklist_em_revisao: u.slug === "imigrantes",
       em_abertura: u.slug === "bela-vista",
+      somente_nutri: u.somente_nutri ?? false,
       created_at: baseCreated,
     });
   }
@@ -873,6 +886,7 @@ export function buildFixtures(today = todaySP()) {
   }
   compose("moema-salao", ANEXO_A);
   compose("imigrantes", ANEXO_C);
+  compose("cafe-da-rua", [...ANEXO_C, [9, "Produções recebidas de Moema", ["Produções recebidas da cozinha central (Moema) sem etiqueta ou com etiqueta incompleta/incorreta (nome, data de produção, validade, responsável)"]]]);
   const versionOf = (bankId) => t.nutri_item_versions.find((v) => v.bank_item_id === bankId && v.versao === 1).id;
 
   // ----- agenda: mês anterior + atual + próximo -----
@@ -894,7 +908,17 @@ export function buildFixtures(today = todaySP()) {
     { k: "a5", data: addDays(today, 3), resp: USERS.dani, unit: null, tipo: "outro", descricao: "Revisar checklist da Bela Vista" },
   ];
   for (const a of agendaSeed) {
-    t.nutri_agenda.push({ id: uuid(`nagenda:${a.k}`), data: a.data, responsavel_id: a.resp.id, unit_id: a.unit ? UNIT_IDS[a.unit] : null, tipo: a.tipo, descricao: a.descricao, status: "prevista", concluida_em: null, audit_id: null, criado_por: USERS.dani.id, created_at: atSP(today, "08:00"), updated_at: atSP(today, "08:00") });
+    t.nutri_agenda.push({ id: uuid(`nagenda:${a.k}`), data: a.data, responsavel_id: a.resp.id, unit_id: a.unit ? UNIT_IDS[a.unit] : null, tipo: a.tipo, descricao: a.descricao, status: "prevista", concluida_em: null, audit_id: null, criado_por: USERS.dani.id, rotina_id: null, created_at: atSP(today, "08:00"), updated_at: atSP(today, "08:00") });
+  }
+  // rotina padrão (áudios da Dani): Laís em Moema todo dia; Letícia em Imigrantes às quartas; Dani no Café dia 10
+  const rotinaSeed = [
+    { k: "r1", unit: "moema-salao", resp: USERS.lais, frequencia: "semanal", dias_semana: [2, 3, 4, 5, 6, 0], descricao: "Auditoria diária + planilhas + amostras" },
+    { k: "r2", unit: "moema-delivery", resp: USERS.lais, frequencia: "semanal", dias_semana: [2, 3, 4, 5, 6, 0], descricao: "Recebimento + planilhas" },
+    { k: "r3", unit: "imigrantes", resp: USERS.leticia, frequencia: "semanal", dias_semana: [3], descricao: "Visita semanal: planilhas, pasta e auditoria" },
+    { k: "r4", unit: "cafe-da-rua", resp: USERS.dani, frequencia: "mensal", dia_mes: 10, descricao: "Visita mensal: etiquetas das produções de Moema" },
+  ];
+  for (const r of rotinaSeed) {
+    t.nutri_rotinas.push({ id: uuid(`nrotina:${r.k}`), unit_id: UNIT_IDS[r.unit], responsavel_id: r.resp.id, tipo: "auditoria", frequencia: r.frequencia, dias_semana: r.dias_semana ?? [], dia_mes: r.dia_mes ?? null, descricao: r.descricao, ativa: true, criado_por: USERS.dani.id, created_at: atSP(today, "08:00"), updated_at: atSP(today, "08:00") });
   }
   t.nutri_controles.push({
     id: uuid("nctrl:1"), tipo: "temperatura_equipamentos", unit_id: UNIT_IDS["moema-salao"], data: addDays(today, -1), responsavel_id: USERS.lais.id, status: "finalizado",

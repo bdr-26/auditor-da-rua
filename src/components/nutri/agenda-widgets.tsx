@@ -110,6 +110,7 @@ export function AgendaItemRow({ item, unitName, responsavelNome, isChefe, isMine
           <span className="font-semibold">{unitName ?? NUTRI_AGENDA_TIPO_LABELS[item.tipo]}</span>
           {unitName && <span className="text-xs text-gray-500">{NUTRI_AGENDA_TIPO_LABELS[item.tipo]}</span>}
           {atrasada ? <Badge tone="red">atrasada</Badge> : item.status === "concluida" ? <Badge tone="green">concluída</Badge> : item.status === "cancelada" ? <Badge tone="gray">cancelada</Badge> : null}
+          {item.rotina_id && <span className="text-[10px] uppercase tracking-wide text-gray-400">rotina</span>}
         </div>
         {item.descricao && <p className="mt-0.5 text-sm text-gray-700">{item.descricao}</p>}
         {responsavelNome && <p className="mt-0.5 text-xs text-gray-500">{responsavelNome}</p>}

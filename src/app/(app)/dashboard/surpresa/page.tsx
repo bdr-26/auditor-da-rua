@@ -23,7 +23,7 @@ export default async function AuditoriaSurpresaPage({ searchParams }: { searchPa
   const profile = await requireProfile(["proprietario"]);
   const { erro, unit } = await searchParams;
   const supabase = await createClient();
-  const [units, minhas] = await Promise.all([getUnits(supabase), getAuditorAudits(supabase, profile.id, 12)]);
+  const [units, minhas] = await Promise.all([getUnits(supabase, { ativas: true, gerente: true }), getAuditorAudits(supabase, profile.id, 12)]);
   const unitName = new Map(units.map((u) => [u.id, u.nome]));
   const rascunhos = minhas.filter((a) => a.status === "rascunho");
   const concluidas = minhas.filter((a) => a.status === "concluida").slice(0, 6);

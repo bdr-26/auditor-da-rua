@@ -7,7 +7,9 @@ do $$
 declare n int; v int; u1 uuid; u2 uuid; a uuid; ans uuid; bank uuid;
 begin
   -- unidades
-  select count(*) into n from units; if n <> 6 then raise exception 'esperava 6 unidades, achou %', n; end if;
+  select count(*) into n from units; if n <> 7 then raise exception 'esperava 7 unidades, achou %', n; end if;
+  select count(*) into n from units where somente_nutri and not entra_no_ranking and slug = 'cafe-da-rua'; if n <> 1 then raise exception 'Café da Rua deveria ser somente nutri e fora do ranking'; end if;
+  select count(*) into n from unit_nutri_checklist c join units u on u.id = c.unit_id where u.slug = 'cafe-da-rua'; if n < 10 then raise exception 'Café da Rua sem checklist nutri (%)', n; end if;
   select count(*) into n from units where entra_no_ranking; if n <> 5 then raise exception 'esperava 5 lojas no ranking'; end if;
   select count(*) into n from units where tipo = 'producao' and not entra_no_ranking; if n <> 1 then raise exception 'produção fora do ranking'; end if;
 
@@ -31,7 +33,7 @@ begin
   if n <> 43 then raise exception 'Anexo C: 43 itens, achou %', n; end if;
   select count(*) into n from unit_nutri_checklist c join units u on u.id = c.unit_id where u.slug in ('bela-vista', 'mooca');
   if n <> 86 then raise exception 'clones BV+Mooca: 86 itens, achou %', n; end if;
-  select count(*) into n from units where nutri_checklist_em_revisao; if n <> 3 then raise exception '3 unidades em revisão'; end if;
+  select count(*) into n from units where nutri_checklist_em_revisao; if n <> 4 then raise exception '4 unidades em revisão, achou %', n; end if;
   select count(*) into n from nutri_item_versions; select count(*) into v from nutri_item_bank;
   if n <> v then raise exception 'cada item do banco deve ter 1 versão inicial (% vs %)', n, v; end if;
   select count(*) into n from nutri_item_bank where descricao = 'Etiquetas (rasurada, vencida, mais de uma, errada, apagada, incompleta, informações incorretas, sem etiqueta)';
@@ -90,7 +92,7 @@ select set_config('request.jwt.claims', json_build_object('sub', (select id from
 select set_config('request.jwt.claim.sub', (select id::text from profiles where role = 'auditor_geral'), true);
 set local role authenticated;
 select case when count(*) = 1 then 'rls auditor vê própria auditoria: OK' else 'FALHA rls auditor' end from audits;
-select case when count(*) = 6 then 'rls auditor lê unidades: OK' else 'FALHA rls unidades' end from units;
+select case when count(*) = 7 then 'rls auditor lê unidades: OK' else 'FALHA rls unidades' end from units;
 select case when count(*) = 0 then 'rls auditor não vê relatórios: OK' else 'FALHA rls reports' end from reports;
 reset role;
 select set_config('request.jwt.claim.sub', (select id::text from profiles where role = 'proprietario'), true);
@@ -98,6 +100,6 @@ set local role authenticated;
 select case when count(*) = 1 then 'rls proprietário vê auditorias: OK' else 'FALHA rls proprietário' end from audits;
 select case when is_owner() then 'is_owner(): OK' else 'FALHA is_owner' end;
 insert into units (nome, slug) values ('Loja Nova', 'loja-nova');
-select case when count(*) = 7 then 'rls proprietário cria unidade: OK' else 'FALHA criar unidade' end from units;
+select case when count(*) = 8 then 'rls proprietário cria unidade: OK' else 'FALHA criar unidade' end from units;
 reset role;
 rollback;

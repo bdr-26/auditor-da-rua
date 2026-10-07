@@ -25,7 +25,7 @@ export default async function FechamentoMesPage({ params }: { params: Promise<{ 
   const wb = await getClosingWorkbench(supabase, mes);
   const ov = wb.overview;
   const closed = ov.closed;
-  const lojas = wb.units.filter((u) => u.tipo === "loja");
+  const lojas = wb.units.filter((u) => u.tipo === "loja" && !u.somente_nutri);
   const blocker = closed ? null : closingBlocker(mes);
   const hasPontualidade = Array.from(wb.pontualidade.values()).some((rows) => rows.length > 0);
 

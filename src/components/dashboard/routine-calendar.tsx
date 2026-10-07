@@ -380,7 +380,7 @@ function DayPanel({ cd, today, units, pending, onClose, onSwapMode, run }: { cd:
   const editable = canEdit(cd, today);
   const removable = canRemove(cd);
   const isProd = cd.day.tipo === "producao";
-  const compatible = units.filter((u) => u.ativa && (isProd ? u.tipo === "producao" : u.tipo === "loja") && u.id !== cd.day.unit_id);
+  const compatible = units.filter((u) => u.ativa && !u.somente_nutri && (isProd ? u.tipo === "producao" : u.tipo === "loja") && u.id !== cd.day.unit_id);
 
   return (
     <Sheet title={formatDayLabelPT(cd.day.data)} subtitle={cd.state === "abertura" ? "Visita de abertura" : AUDIT_TYPE_SHORT[cd.day.tipo]} onClose={onClose}>

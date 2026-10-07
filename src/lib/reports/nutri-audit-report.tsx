@@ -13,10 +13,19 @@ export function ApontamentoNutri({ a, showDate }: { a: NutriReportApontamento; s
           {showDate && a.data ? `${a.data} · ` : ""}
           {a.area}
         </Text>
-        <Chip label="NÃO CONFORME" tone="red" />
+        <View style={[styles.row, { gap: 4 }]}>
+          {a.corrigidoNaHora ? <Chip label="CORRIGIDO NA HORA" tone="green" /> : null}
+          <Chip label="NÃO CONFORME" tone="red" />
+        </View>
       </View>
       <Text style={[styles.bold, { marginTop: 3 }]}>{a.descricao}</Text>
       {a.observacao ? <Text style={{ marginTop: 2, color: COLORS.graphite }}>{a.observacao}</Text> : <Text style={styles.empty}>Sem apontamento escrito.</Text>}
+      {a.orientacao ? (
+        <Text style={{ marginTop: 2, color: COLORS.graphite }}>
+          <Text style={styles.bold}>Orientação: </Text>
+          {a.orientacao}
+        </Text>
+      ) : null}
       {a.fotos.length > 0 ? (
         <View style={styles.photoRow}>
           {a.fotos.map((f) => (
@@ -46,27 +55,36 @@ export function AreasTable({ rows, colNc = "Não conf." }: { rows: NutriReportAr
   );
 }
 
+/** Caixa de assinatura registrada no app: PNG, nome, cargo, CPF e data. */
+function AssinaturaBox({ a, verbo }: { a: ReportAssinatura; verbo: string }) {
+  return (
+    <View style={{ flex: 1 }}>
+      {a.dataUri ? (
+        // eslint-disable-next-line jsx-a11y/alt-text -- Image do react-pdf não tem alt
+        <Image src={a.dataUri} style={{ height: 40, width: 120, objectFit: "contain", alignSelf: "flex-start", marginBottom: 2 }} />
+      ) : null}
+      <View style={{ borderTopWidth: 1, borderTopColor: COLORS.ink, paddingTop: 4 }}>
+        <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold" }}>{a.nome}</Text>
+        <Text style={{ fontSize: 8, color: COLORS.muted }}>
+          {a.cargo}
+          {a.cpf ? ` · CPF ${a.cpf}` : ""} · {verbo} em {a.data}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 /**
- * Rodapé de assinaturas. Com `assinatura` registrada no app, a caixa da direita mostra o PNG da
- * assinatura, nome, cargo, CPF e data; sem ela, fica a linha para assinar à mão.
+ * Rodapé de assinaturas. Com `assinatura` (supervisor) registrada no app, a caixa da direita mostra o PNG,
+ * nome, cargo, CPF e data; com `assinaturaEsquerda` (equipe de qualidade), idem à esquerda.
+ * Sem registro, fica a linha para assinar à mão.
  */
-export function Assinaturas({ esquerda, direita, assinatura }: { esquerda: string; direita: string; assinatura?: ReportAssinatura | null }) {
+export function Assinaturas({ esquerda, direita, assinatura, assinaturaEsquerda }: { esquerda: string; direita: string; assinatura?: ReportAssinatura | null; assinaturaEsquerda?: ReportAssinatura | null }) {
   return (
     <View style={styles.signature} wrap={false}>
-      <Text style={styles.signatureBox}>{esquerda}</Text>
+      {assinaturaEsquerda ? <AssinaturaBox a={assinaturaEsquerda} verbo="assinado" /> : <Text style={styles.signatureBox}>{esquerda}</Text>}
       {assinatura ? (
-        <View style={{ flex: 1 }}>
-          {assinatura.dataUri ? (
-            // eslint-disable-next-line jsx-a11y/alt-text -- Image do react-pdf não tem alt
-            <Image src={assinatura.dataUri} style={{ height: 40, width: 120, objectFit: "contain", alignSelf: "flex-start", marginBottom: 2 }} />
-          ) : null}
-          <View style={{ borderTopWidth: 1, borderTopColor: COLORS.ink, paddingTop: 4 }}>
-            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold" }}>{assinatura.nome}</Text>
-            <Text style={{ fontSize: 8, color: COLORS.muted }}>
-              {assinatura.cargo} · CPF {assinatura.cpf} · aprovado em {assinatura.data}
-            </Text>
-          </View>
-        </View>
+        <AssinaturaBox a={assinatura} verbo="aprovado" />
       ) : (
         <Text style={styles.signatureBox}>{direita}</Text>
       )}
@@ -96,7 +114,7 @@ export function NutriAuditReportDocument({ data }: { data: NutriAuditReportData 
           <Stat label="Nota da auditoria" value={fmtPct(d.nota, 1)} tone={tone} hint={d.classificacao ?? "sem classificação"} />
           <Stat label="Itens avaliados" value={String(d.totais.avaliados)} hint={`${d.totais.na} não se aplicam`} />
           <Stat label="Conformes" value={String(d.totais.conformes)} tone="green" hint="problema não encontrado" />
-          <Stat label="Não conformes" value={String(d.totais.nao_conformes)} tone={d.totais.nao_conformes > 0 ? "red" : "green"} hint="apontamentos" />
+          <Stat label="Não conformes" value={String(d.totais.nao_conformes)} tone={d.totais.nao_conformes > 0 ? "red" : "green"} hint={d.totais.corrigidos > 0 ? `${d.totais.corrigidos} corrigido(s) na hora` : "apontamentos"} />
         </View>
         <View style={[styles.row, { gap: 4, marginTop: 8, alignItems: "center" }]}>
           <Chip label={d.classificacao ?? "—"} tone={tone} />
@@ -107,7 +125,7 @@ export function NutriAuditReportDocument({ data }: { data: NutriAuditReportData 
           <AreasTable rows={d.areas} />
         </Section>
 
-        <Section title="Apontamentos (não conformidades)" hint="Itens em que o problema foi encontrado, com a descrição da nutricionista e as fotos registradas.">
+        <Section title="Apontamentos (não conformidades)" hint="Itens em que o problema foi encontrado, o que foi corrigido na hora, a orientação dada à equipe e as fotos registradas.">
           {d.apontamentos.length === 0 ? (
             <Empty text="Nenhuma não conformidade encontrada nesta auditoria." />
           ) : (
@@ -129,7 +147,7 @@ export function NutriAuditReportDocument({ data }: { data: NutriAuditReportData 
           </Section>
         ) : null}
 
-        <Assinaturas esquerda={`Nutricionista: ${d.nutricionista}`} direita={`Responsável da unidade: ${d.unidade.supervisor_nome ?? "____________________"}`} assinatura={d.assinatura} />
+        <Assinaturas esquerda={`Equipe de qualidade: ${d.nutricionista}`} direita={`Responsável da unidade: ${d.unidade.supervisor_nome ?? "____________________"}`} assinatura={d.assinatura} assinaturaEsquerda={d.assinaturaAuditor} />
         <PageFooter left={footer} />
       </Page>
     </Document>

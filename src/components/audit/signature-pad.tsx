@@ -6,7 +6,7 @@ import { CheckCircle2, Eraser, PenLine, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/form";
-import { signAudit } from "@/lib/signature-actions";
+import { signAudit, type SignaturePapel } from "@/lib/signature-actions";
 import { formatDateTimePT } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
@@ -23,16 +23,34 @@ function maskCpf(v: string): string {
   return d.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
 }
 
+const TEXTOS: Record<SignaturePapel, { titulo: string; vazio: string; instrucao: string; cargo: string }> = {
+  supervisor: {
+    titulo: "Aprovação do supervisor da unidade",
+    vazio: "Ainda sem assinatura do supervisor.",
+    instrucao: "Entregue o celular ao supervisor da unidade: ele confere o resultado, preenche os dados e assina no quadro.",
+    cargo: "Supervisor(a)",
+  },
+  auditor: {
+    titulo: "Assinatura da equipe de qualidade",
+    vazio: "Ainda sem assinatura da equipe de qualidade.",
+    instrucao: "Confira o relatório e assine no quadro. O CPF é opcional.",
+    cargo: "Nutricionista",
+  },
+};
+
 /**
- * Aprovação do supervisor da unidade: nome, CPF, cargo e assinatura desenhada no quadro (dedo ou caneta).
+ * Assinatura desenhada no quadro (dedo ou caneta) com nome, CPF e cargo.
+ * `papel` "supervisor" (aprovação do responsável da unidade, CPF obrigatório) ou "auditor" (equipe de qualidade).
  * Mostra a assinatura já registrada; `canSign` permite registrar ou refazer.
  */
-export function SignaturePad({ auditId, existing, canSign, supervisorNome }: { auditId: string; existing: SignatureInfo | null; canSign: boolean; supervisorNome?: string | null }) {
+export function SignaturePad({ auditId, existing, canSign, supervisorNome, papel = "supervisor", defaultCargo }: { auditId: string; existing: SignatureInfo | null; canSign: boolean; supervisorNome?: string | null; papel?: SignaturePapel; defaultCargo?: string }) {
   const router = useRouter();
+  const t = TEXTOS[papel];
+  const cpfObrigatorio = papel === "supervisor";
   const [editing, setEditing] = useState(!existing);
   const [nome, setNome] = useState(existing?.nome ?? supervisorNome ?? "");
   const [cpf, setCpf] = useState(existing ? maskCpf(existing.cpf) : "");
-  const [cargo, setCargo] = useState(existing?.cargo ?? "Supervisor(a)");
+  const [cargo, setCargo] = useState(existing?.cargo ?? defaultCargo ?? t.cargo);
   const [drawn, setDrawn] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
@@ -100,7 +118,7 @@ export function SignaturePad({ auditId, existing, canSign, supervisorNome }: { a
     setMsg(null);
     const png = c.toDataURL("image/png");
     start(async () => {
-      const r = await signAudit(auditId, { nome, cpf, cargo, pngDataUrl: png });
+      const r = await signAudit(auditId, { nome, cpf, cargo, pngDataUrl: png, papel });
       setMsg(r.ok ? { ok: true, text: r.message ?? "Assinatura registrada." } : { ok: false, text: r.error });
       if (r.ok) {
         setEditing(false);
@@ -113,7 +131,7 @@ export function SignaturePad({ auditId, existing, canSign, supervisorNome }: { a
     <Card>
       <CardTitle>
         <span className="inline-flex items-center gap-1.5">
-          <PenLine className="h-4 w-4" /> Aprovação do supervisor da unidade
+          <PenLine className="h-4 w-4" /> {t.titulo}
         </span>
       </CardTitle>
 
@@ -126,7 +144,7 @@ export function SignaturePad({ auditId, existing, canSign, supervisorNome }: { a
                 {existing.nome} · {existing.cargo}
               </div>
               <div className="text-xs text-green-800">
-                CPF {maskCpf(existing.cpf)} · assinado em {formatDateTimePT(existing.assinadaEm)}
+                {existing.cpf ? `CPF ${maskCpf(existing.cpf)} · ` : ""}assinado em {formatDateTimePT(existing.assinadaEm)}
               </div>
             </div>
           </div>
@@ -144,17 +162,17 @@ export function SignaturePad({ auditId, existing, canSign, supervisorNome }: { a
         </div>
       )}
 
-      {!existing && !canSign && <p className="text-sm text-gray-500">Ainda sem assinatura do supervisor.</p>}
+      {!existing && !canSign && <p className="text-sm text-gray-500">{t.vazio}</p>}
 
       {editing && canSign && (
         <form onSubmit={submit} className="space-y-3">
-          <p className="text-xs text-gray-600">Entregue o celular ao supervisor da unidade: ele confere o resultado, preenche os dados e assina no quadro.</p>
+          <p className="text-xs text-gray-600">{t.instrucao}</p>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Nome" className="col-span-2">
               <Input value={nome} onChange={(e) => setNome(e.target.value)} required placeholder="Nome completo" />
             </Field>
-            <Field label="CPF">
-              <Input value={cpf} onChange={(e) => setCpf(maskCpf(e.target.value))} inputMode="numeric" required placeholder="000.000.000-00" />
+            <Field label={cpfObrigatorio ? "CPF" : "CPF (opcional)"}>
+              <Input value={cpf} onChange={(e) => setCpf(maskCpf(e.target.value))} inputMode="numeric" required={cpfObrigatorio} placeholder="000.000.000-00" />
             </Field>
             <Field label="Cargo">
               <Input value={cargo} onChange={(e) => setCargo(e.target.value)} required />
@@ -185,7 +203,7 @@ export function SignaturePad({ auditId, existing, canSign, supervisorNome }: { a
                 Cancelar
               </Button>
             )}
-            <Button type="submit" className="flex-1" disabled={pending || !nome.trim() || cpf.replace(/\D/g, "").length !== 11}>
+            <Button type="submit" className="flex-1" disabled={pending || !nome.trim() || (cpfObrigatorio ? cpf.replace(/\D/g, "").length !== 11 : cpf.replace(/\D/g, "").length % 11 !== 0)}>
               {pending ? "Registrando…" : "Confirmar assinatura"}
             </Button>
           </div>

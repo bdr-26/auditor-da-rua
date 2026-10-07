@@ -18,7 +18,7 @@ export async function ensureSchedule(admin: SupabaseClient<any, any, any>, from?
   const end = to ?? monthEnd(addMonths(today, 1));
 
   const [{ data: units }, { data: auditors }, settings, daysOff] = await Promise.all([
-    admin.from("units").select("id, nome, tipo, ativa, ordem_rotacao, entra_no_ranking").eq("ativa", true),
+    admin.from("units").select("id, nome, tipo, ativa, ordem_rotacao, entra_no_ranking, somente_nutri").eq("ativa", true),
     admin.from("profiles").select("id").eq("role", "auditor_geral").eq("ativo", true).order("created_at").limit(1),
     getSettings(admin),
     getDaysOff(admin, start, end),
@@ -35,7 +35,7 @@ export async function ensureSchedule(admin: SupabaseClient<any, any, any>, from?
       .is("audit_id", null);
   }
   const auditorId = auditors?.[0]?.id ?? null;
-  const rotation = (units ?? []).filter((u) => u.tipo === "loja" && u.entra_no_ranking);
+  const rotation = (units ?? []).filter((u) => u.tipo === "loja" && u.entra_no_ranking && !u.somente_nutri);
   const production = (units ?? []).find((u) => u.tipo === "producao") ?? null;
 
   const planned = generateSchedule(start, end, rotation, production?.id ?? null, settings.rotacao_semana_base, offDates);

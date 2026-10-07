@@ -22,7 +22,7 @@ const auditoria: NutriAuditReportData = {
   geradoEm: "22/09/2026 15:10",
   nota: 88.1,
   classificacao: "Satisfatório",
-  totais: { conformes: 37, nao_conformes: 5, na: 1, avaliados: 43 },
+  totais: { conformes: 37, nao_conformes: 5, na: 1, avaliados: 43, corrigidos: 3 },
   areas: [
     { area: "Cozinha / Chapa", conformes: 12, nao_conformes: 3, na: 0, aplicaveis: 15, nota: 80 },
     { area: "Área de Lavagem de Louças e Estoque", conformes: 5, nao_conformes: 0, na: 0, aplicaveis: 5, nota: 100 },
@@ -36,11 +36,11 @@ const auditoria: NutriAuditReportData = {
     { area: "Planilhas", conformes: 1, nao_conformes: 0, na: 0, aplicaveis: 1, nota: 100 },
   ],
   apontamentos: [
-    { area: "Cozinha / Chapa", descricao: "Etiquetas (rasurada, vencida, mais de uma, errada, apagada, incompleta, informações incorretas, sem etiqueta)", observacao: "Duas GNs de cebola sem etiqueta na geladeira da chapa; uma etiqueta de maionese com data rasurada.", fotos: [{ id: "f1", dataUri: foto }, { id: "f2", dataUri: foto }] },
-    { area: "Cozinha / Chapa", descricao: "Bisnaga de água não identificada", observacao: "Bisnaga na pista sem identificação.", fotos: [{ id: "f3", dataUri: foto }] },
-    { area: "Cozinha / Chapa", descricao: "GN na pista desprotegidas", observacao: "Pista fria aberta durante o pico sem tampa.", fotos: [] },
-    { area: "Estoque de Produtos de Limpeza e Banheiro de Funcionário", descricao: "Panos dentro do balde com água", observacao: "Balde com panos submersos ao lado do tanque.", fotos: [{ id: "f4", dataUri: foto }] },
-    { area: "Higienização", descricao: "Freezers de todas as áreas com acúmulo de gelo", observacao: "Freezer da chapa com cerca de 1 cm de gelo nas paredes.", fotos: [] },
+    { area: "Cozinha / Chapa", descricao: "Etiquetas (rasurada, vencida, mais de uma, errada, apagada, incompleta, informações incorretas, sem etiqueta)", observacao: "Duas GNs de cebola sem etiqueta na geladeira da chapa; uma etiqueta de maionese com data rasurada.", corrigidoNaHora: true, orientacao: "Orientei o João (chapa) a etiquetar toda GN ao abrir e refazer a etiqueta rasurada.", fotos: [{ id: "f1", dataUri: foto }, { id: "f2", dataUri: foto }] },
+    { area: "Cozinha / Chapa", descricao: "Bisnaga de água não identificada", observacao: "Bisnaga na pista sem identificação.", corrigidoNaHora: true, orientacao: "Identificada na hora com a Maria.", fotos: [{ id: "f3", dataUri: foto }] },
+    { area: "Cozinha / Chapa", descricao: "GN na pista desprotegidas", observacao: "Pista fria aberta durante o pico sem tampa.", corrigidoNaHora: false, orientacao: "Equipe da chapa orientada a fechar a pista entre os pedidos.", fotos: [] },
+    { area: "Estoque de Produtos de Limpeza e Banheiro de Funcionário", descricao: "Panos dentro do balde com água", observacao: "Balde com panos submersos ao lado do tanque.", corrigidoNaHora: true, orientacao: null, fotos: [{ id: "f4", dataUri: foto }] },
+    { area: "Higienização", descricao: "Freezers de todas as áreas com acúmulo de gelo", observacao: "Freezer da chapa com cerca de 1 cm de gelo nas paredes.", corrigidoNaHora: false, orientacao: "Programar degelo com o gerente.", fotos: [] },
   ],
   pendencias: [
     { descricao: "Saleiros sujos", resolvida: true, origem_data: "15/09/2026" },
@@ -48,6 +48,7 @@ const auditoria: NutriAuditReportData = {
   ],
   fotosOmitidas: 0,
   assinatura: { nome: "Camila Ferreira", cpf: "123.456.789-00", cargo: "Supervisora", data: "22/09/2026 15:40", dataUri: BRAND_LOGO_DATA_URI },
+  assinaturaAuditor: { nome: "Daniele Ramos", cpf: "", cargo: "Nutricionista", data: "22/09/2026 15:35", dataUri: BRAND_LOGO_DATA_URI },
 };
 
 const mensal: NutriMonthlyReportData = {

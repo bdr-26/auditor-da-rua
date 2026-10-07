@@ -190,7 +190,7 @@ export async function getMonthOverview(supabase: AnyClient, mesInput: string): P
   }
 
   const closed = closings.length > 0;
-  const lojas = units.filter((u) => u.tipo === "loja");
+  const lojas = units.filter((u) => u.tipo === "loja" && !u.somente_nutri);
   let ranking: RankedUnit[];
   if (closed) {
     ranking = closings
@@ -719,7 +719,7 @@ export interface ClosingWorkbench {
 export async function getClosingWorkbench(supabase: AnyClient, mesInput: string): Promise<ClosingWorkbench> {
   const mes = monthStart(mesInput);
   const [overview, units, monthAudits] = await Promise.all([getMonthOverview(supabase, mes), getUnits(supabase, { ativas: true }), getMonthAudits(supabase, mes)]);
-  const lojas = units.filter((u) => u.tipo === "loja");
+  const lojas = units.filter((u) => u.tipo === "loja" && !u.somente_nutri);
 
   const audits = monthAudits.filter((a) => a.tipo === "completa" || a.tipo === "simplificada");
   const auditIds = audits.map((a) => a.id);

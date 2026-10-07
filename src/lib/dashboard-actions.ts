@@ -43,7 +43,7 @@ export async function swapScheduleDay(input: { scheduleDayId: string; newUnitId:
     if (day.status !== "prevista") return { ok: false, error: "Só é possível trocar dias ainda previstos." };
     if (day.data < todaySP()) return { ok: false, error: "Não é possível trocar um dia que já passou." };
     if (!u.ativa) return { ok: false, error: "A unidade escolhida está inativa." };
-    const compatible = day.tipo === "producao" ? u.tipo === "producao" : u.tipo === "loja";
+    const compatible = !u.somente_nutri && (day.tipo === "producao" ? u.tipo === "producao" : u.tipo === "loja");
     if (!compatible) return { ok: false, error: "Unidade incompatível com o tipo de auditoria do dia." };
     if (day.unit_id === u.id) return { ok: false, error: "A unidade escolhida já é a prevista para o dia." };
 

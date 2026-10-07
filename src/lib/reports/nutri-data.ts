@@ -6,7 +6,7 @@ import { classifyNutri, computeNutriScore } from "../domain/nutri";
 import { computeMonthlyNutri } from "../domain/monthly";
 import { round2 } from "../domain/scoring";
 import type { Audit, Unit } from "../types";
-import { photoDataUri, assinaturaOf } from "./data";
+import { photoDataUri, assinaturaOf, assinaturaAuditorOf } from "./data";
 import type { NutriAuditReportData, NutriMonthlyReportData, NutriReportApontamento, NutriReportArea } from "./nutri-types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -51,7 +51,7 @@ async function apontamentosOf(admin: AdminClient, answers: NutriFillAnswer[], bu
         budget.left--;
       }
     }
-    out.push({ area: a.area, descricao: a.descricao, observacao: a.observacao, fotos, data });
+    out.push({ area: a.area, descricao: a.descricao, observacao: a.observacao, corrigidoNaHora: a.corrigido_na_hora, orientacao: a.orientacao, fotos, data });
   }
   return out;
 }
@@ -76,12 +76,13 @@ export async function buildNutriAuditReport(admin: AdminClient, auditId: string)
     geradoEm: formatDateTimePT(new Date().toISOString()),
     nota: rascunho ? score.nota : audit.nota_final,
     classificacao: rascunho ? score.classificacao : audit.classificacao,
-    totais: { conformes: score.conformes, nao_conformes: score.nao_conformes, na: score.na, avaliados: score.conformes + score.nao_conformes + score.na },
+    totais: { conformes: score.conformes, nao_conformes: score.nao_conformes, na: score.na, avaliados: score.conformes + score.nao_conformes + score.na, corrigidos: answers.filter((a) => a.resposta === "nao_conforme" && a.corrigido_na_hora).length },
     areas: areaStats(answers),
     apontamentos,
     pendencias: pendings.map((p) => ({ descricao: p.descricao, resolvida: p.resolvida, origem_data: p.origem_data ? formatDatePT(p.origem_data) : null })),
     fotosOmitidas: budget.omitted,
     assinatura: await assinaturaOf(admin, audit),
+    assinaturaAuditor: await assinaturaAuditorOf(admin, audit),
   };
 }
 

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Repeat } from "lucide-react";
 import { AgendaItemRow, AgendaNewToggle } from "@/components/nutri/agenda-widgets";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
@@ -45,7 +45,22 @@ export default async function NutriAgendaPage({ searchParams }: { searchParams: 
 
   return (
     <div className="mx-auto max-w-2xl">
-      <PageHeader title="Agenda da nutrição" subtitle={chefe ? "Programe as visitas e tarefas da equipe" : "Suas visitas e tarefas da semana"} back="/nutri" actions={chefe ? <AgendaNewToggle team={team} units={units} today={today} /> : undefined} />
+      <PageHeader
+        title="Agenda da nutrição"
+        subtitle={chefe ? "Programe as visitas e tarefas da equipe" : "Suas visitas e tarefas da semana"}
+        back="/nutri"
+        actions={chefe ? <AgendaNewToggle team={team} units={units} today={today} /> : undefined}
+      />
+      {chefe && (
+        <Link href="/nutri/agenda/rotina" className="mb-4 flex items-center gap-2 rounded-2xl border border-line bg-white px-4 py-3 text-sm hover:bg-surface-muted">
+          <Repeat className="h-4 w-4 text-gray-500" />
+          <span className="flex-1">
+            <span className="font-semibold">Rotina padrão</span>
+            <span className="block text-xs text-gray-500">Quem visita cada unidade e quando; a agenda é gerada sozinha.</span>
+          </span>
+          <ChevronRight className="h-4 w-4 text-gray-400" />
+        </Link>
+      )}
 
       {atrasadas.length > 0 && (
         <section className="mb-4">

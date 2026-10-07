@@ -486,18 +486,30 @@ export async function buildMonthlyReportData(admin: AdminClient, mesInput: strin
   return { mes, oficial: cur.oficial, lojas, consolidado };
 }
 
+async function assinaturaFrom(admin: AdminClient, a: { nome: string | null; cpf: string | null; cargo: string | null; path: string | null; em: string | null }, cargoPadrao: string): Promise<import("./nutri-types").ReportAssinatura | null> {
+  if (!a.nome || !a.em) return null;
+  const cpf = (a.cpf ?? "").replace(/\D/g, "");
+  return {
+    nome: a.nome,
+    cpf: cpf.length === 11 ? cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : a.cpf ?? "",
+    cargo: a.cargo ?? cargoPadrao,
+    data: formatDateTimePT(a.em),
+    dataUri: a.path ? await photoDataUri(admin, a.path) : null,
+  };
+}
+
 /** Assinatura do supervisor registrada na auditoria (nome/CPF/cargo + PNG), para os PDFs. */
-export async function assinaturaOf(
+export function assinaturaOf(
   admin: AdminClient,
   audit: { assinatura_nome: string | null; assinatura_cpf: string | null; assinatura_cargo: string | null; assinatura_path: string | null; assinada_em: string | null },
 ): Promise<import("./nutri-types").ReportAssinatura | null> {
-  if (!audit.assinatura_nome || !audit.assinada_em) return null;
-  const cpf = (audit.assinatura_cpf ?? "").replace(/\D/g, "");
-  return {
-    nome: audit.assinatura_nome,
-    cpf: cpf.length === 11 ? cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : audit.assinatura_cpf ?? "",
-    cargo: audit.assinatura_cargo ?? "Supervisor(a)",
-    data: formatDateTimePT(audit.assinada_em),
-    dataUri: audit.assinatura_path ? await photoDataUri(admin, audit.assinatura_path) : null,
-  };
+  return assinaturaFrom(admin, { nome: audit.assinatura_nome, cpf: audit.assinatura_cpf, cargo: audit.assinatura_cargo, path: audit.assinatura_path, em: audit.assinada_em }, "Supervisor(a)");
+}
+
+/** Assinatura da equipe de qualidade (auditora) registrada na auditoria, para os PDFs. */
+export function assinaturaAuditorOf(
+  admin: AdminClient,
+  audit: { assinatura_auditor_nome: string | null; assinatura_auditor_cpf: string | null; assinatura_auditor_cargo: string | null; assinatura_auditor_path: string | null; assinada_auditor_em: string | null },
+): Promise<import("./nutri-types").ReportAssinatura | null> {
+  return assinaturaFrom(admin, { nome: audit.assinatura_auditor_nome, cpf: audit.assinatura_auditor_cpf, cargo: audit.assinatura_auditor_cargo, path: audit.assinatura_auditor_path, em: audit.assinada_auditor_em }, "Equipe de qualidade");
 }

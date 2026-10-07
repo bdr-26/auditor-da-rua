@@ -12,7 +12,7 @@ export default async function NovaAuditoriaPage({ searchParams }: { searchParams
   await requireProfile(["auditor_geral"]);
   const { erro } = await searchParams;
   const supabase = await createClient();
-  const units = await getUnits(supabase);
+  const units = await getUnits(supabase, { ativas: true, gerente: true });
   return (
     <div className="mx-auto max-w-lg">
       <PageHeader

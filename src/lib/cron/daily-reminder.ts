@@ -1,10 +1,11 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { AUDIT_TYPE_LABELS } from "../constants";
-import { todaySP } from "../dates";
+import { AUDIT_TYPE_LABELS, NUTRI_AGENDA_TIPO_LABELS } from "../constants";
+import { addDays, todaySP } from "../dates";
+import { materializeNutriRotinas } from "../nutri/rotinas-sync";
 import { appUrl, sendPushToUsers } from "../push";
 import { ensureSchedule } from "../schedule-sync";
-import type { AuditType, ScheduleDay } from "../types";
+import type { AuditType, NutriAgendaItem, ScheduleDay } from "../types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AdminClient = SupabaseClient<any, any, any>;
@@ -22,6 +23,8 @@ export interface DailyReminderResult {
     titulo: string;
   }[];
   motivo?: string;
+  /** Rotina padrão da nutrição materializada + lembretes do dia para a equipe nutri. */
+  nutri?: { agenda_criada: number; lembretes: { responsavel_id: string; tarefas: number; enviados: number; pulados: number }[]; erro?: string };
 }
 
 /**
@@ -36,6 +39,7 @@ export async function runDailyReminder(admin: AdminClient, opts: { data?: string
   if (error) throw error;
   const previstas = ((rows ?? []) as ScheduleDay[]).filter((r) => r.status === "prevista");
   const result: DailyReminderResult = { data, agenda_criada: agendaCriada, lembretes: [] };
+  result.nutri = await nutriDailyReminder(admin, data);
   if (previstas.length === 0) {
     result.motivo = (rows ?? []).length === 0 ? "sem auditoria prevista para a data" : "agenda do dia já concluída/encerrada";
     return result;
@@ -92,6 +96,40 @@ export async function runDailyReminder(admin: AdminClient, opts: { data?: string
     result.lembretes.push({ schedule_id: row.id, unidade: nome, tipo: row.tipo, destinatarios: destinatarios.length, enviados, pulados, titulo });
   }
   return result;
+}
+
+/**
+ * Equipe nutri: completa a agenda da rotina padrão (30 dias à frente) e avisa cada responsável
+ * das tarefas previstas para hoje. Dedup por `nutri_lembrete:${data}` por pessoa.
+ */
+async function nutriDailyReminder(admin: AdminClient, data: string): Promise<NonNullable<DailyReminderResult["nutri"]>> {
+  const out: NonNullable<DailyReminderResult["nutri"]> = { agenda_criada: 0, lembretes: [] };
+  try {
+    out.agenda_criada = (await materializeNutriRotinas(admin, data, addDays(data, 30))).criadas;
+    const { data: tarefas } = await admin.from("nutri_agenda").select("*").eq("data", data).eq("status", "prevista");
+    const lista = (tarefas ?? []) as NutriAgendaItem[];
+    if (lista.length === 0) return out;
+    const unitIds = Array.from(new Set(lista.map((t) => t.unit_id).filter((u): u is string => !!u)));
+    const { data: units } = unitIds.length ? await admin.from("units").select("id, nome, endereco").in("id", unitIds) : { data: [] };
+    const unit = new Map((units ?? []).map((u) => [u.id as string, u as { nome: string; endereco: string | null }]));
+    const porResp = new Map<string, NutriAgendaItem[]>();
+    for (const t of lista) porResp.set(t.responsavel_id, [...(porResp.get(t.responsavel_id) ?? []), t]);
+    for (const [responsavelId, ts] of porResp) {
+      const linhas = ts.map((t) => `${t.unit_id ? unit.get(t.unit_id)?.nome ?? "unidade" : NUTRI_AGENDA_TIPO_LABELS[t.tipo]}${t.unit_id ? ` · ${NUTRI_AGENDA_TIPO_LABELS[t.tipo]}` : ""}`);
+      const endereco = ts.length === 1 && ts[0].unit_id ? unit.get(ts[0].unit_id)?.endereco : null;
+      const r = await sendPushToUsers(admin, [responsavelId], "nutri_agenda", `nutri_lembrete:${data}`, {
+        titulo: ts.length === 1 ? `Hoje: ${linhas[0]}` : `Hoje: ${ts.length} visitas/tarefas`,
+        corpo: ts.length === 1 ? (ts[0].descricao ?? endereco ?? "Toque para abrir a agenda") : linhas.join(" · "),
+        url: appUrl("/nutri"),
+        tag: `nutri-lembrete-${data}`,
+      });
+      out.lembretes.push({ responsavel_id: responsavelId, tarefas: ts.length, enviados: r.enviados, pulados: r.pulados });
+    }
+  } catch (e) {
+    console.error("[cron] rotina nutri", e);
+    out.erro = (e as Error).message;
+  }
+  return out;
 }
 
 async function activeGeneralAuditors(admin: AdminClient): Promise<string[]> {

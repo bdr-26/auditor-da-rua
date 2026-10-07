@@ -134,9 +134,10 @@ export function NutriFill({
   }, [flushAll]);
 
   // ---------- respostas ----------
-  const patches = useRef(new Map<string, { resposta?: NutriAnswer | null; observacao?: string | null }>());
+  type AnswerPatch = { resposta?: NutriAnswer | null; observacao?: string | null; corrigido_na_hora?: boolean; orientacao?: string | null };
+  const patches = useRef(new Map<string, AnswerPatch>());
   const saveAnswer = useCallback(
-    (id: string, patch: { resposta?: NutriAnswer | null; observacao?: string | null }, delay = 0) => {
+    (id: string, patch: AnswerPatch, delay = 0) => {
       patches.current.set(id, { ...(patches.current.get(id) ?? {}), ...patch });
       enqueue(
         `ans:${id}`,
@@ -160,6 +161,14 @@ export function NutriFill({
   const setObservacao = (id: string, observacao: string) => {
     setAnswers((prev) => ({ ...prev, [id]: { ...prev[id], observacao } }));
     saveAnswer(id, { observacao }, 600);
+  };
+  const setCorrigido = (id: string, corrigido_na_hora: boolean) => {
+    setAnswers((prev) => ({ ...prev, [id]: { ...prev[id], corrigido_na_hora } }));
+    saveAnswer(id, { corrigido_na_hora });
+  };
+  const setOrientacao = (id: string, orientacao: string) => {
+    setAnswers((prev) => ({ ...prev, [id]: { ...prev[id], orientacao } }));
+    saveAnswer(id, { orientacao: orientacao.trim() ? orientacao : null }, 600);
   };
 
   // ---------- apontamentos da visita anterior ----------
@@ -416,6 +425,8 @@ export function NutriFill({
                 highlight={focusAnswerId === a.id}
                 onResposta={(r) => setResposta(a.id, r)}
                 onObservacao={(t) => setObservacao(a.id, t)}
+                onCorrigido={(v) => setCorrigido(a.id, v)}
+                onOrientacao={(t) => setOrientacao(a.id, t)}
                 onAddPhotos={(files) => void addPhotos(a.id, files)}
                 onRemovePhoto={(photoId, path) => void removePhoto(a.id, photoId, path)}
               />
