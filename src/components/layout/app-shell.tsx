@@ -37,6 +37,7 @@ function navFor(role: SessionProfile["role"]): NavItem[] {
         { href: "/dashboard/demandas", label: "Demandas", icon: "tasks" },
         { href: "/dashboard/fechamento", label: "Fechamento", icon: "closing" },
         { href: "/admin/unidades", label: "Unidades", icon: "store" },
+        { href: "/admin/usuarios", label: "Equipe", icon: "users" },
         { href: "/nutri/checklists", label: "Nutri", icon: "checklist" },
         { href: "/admin/configuracoes", label: "Ajustes", icon: "settings" },
       ];

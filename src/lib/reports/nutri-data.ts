@@ -6,7 +6,7 @@ import { classifyNutri, computeNutriScore } from "../domain/nutri";
 import { computeMonthlyNutri } from "../domain/monthly";
 import { round2 } from "../domain/scoring";
 import type { Audit, Unit } from "../types";
-import { photoDataUri } from "./data";
+import { photoDataUri, assinaturaOf } from "./data";
 import type { NutriAuditReportData, NutriMonthlyReportData, NutriReportApontamento, NutriReportArea } from "./nutri-types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -81,6 +81,7 @@ export async function buildNutriAuditReport(admin: AdminClient, auditId: string)
     apontamentos,
     pendencias: pendings.map((p) => ({ descricao: p.descricao, resolvida: p.resolvida, origem_data: p.origem_data ? formatDatePT(p.origem_data) : null })),
     fotosOmitidas: budget.omitted,
+    assinatura: await assinaturaOf(admin, audit),
   };
 }
 

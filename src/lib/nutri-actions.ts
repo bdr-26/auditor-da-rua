@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireProfile } from "./auth";
+import { isNutriChefe, requireProfile } from "./auth";
 import { todaySP } from "./dates";
 import { computeNutriScore } from "./domain/nutri";
 import { getOpenPendings } from "./data/audits";
@@ -52,7 +52,7 @@ export async function startNutriAudit(input: { unitId: string; data: string }): 
   let auditId: string | null = null;
   if (existing) {
     if (existing.status === "concluida") return fail(`Já existe uma auditoria nutricional concluída em ${unit.nome} nesta data.`);
-    if (existing.auditor_id !== profile.id) return fail("Já existe um rascunho desta auditoria iniciado por outro usuário.");
+    if (existing.auditor_id !== profile.id && !isNutriChefe(profile)) return fail("Já existe um rascunho desta auditoria iniciado por outro usuário.");
     auditId = existing.id;
   } else {
     const entries = await getActiveComposition(admin, unitId);
@@ -109,7 +109,7 @@ export async function concludeNutriAudit(auditId: string): Promise<ActionResult>
   const fill = await getNutriFillData(supabase, auditId);
   if (!fill) return fail("Auditoria não encontrada.");
   const { audit, unit, answers, pendings } = fill;
-  if (audit.auditor_id !== profile.id) return fail("Esta auditoria não é sua.");
+  if (audit.auditor_id !== profile.id && !isNutriChefe(profile)) return fail("Esta auditoria não é sua.");
   if (audit.status !== "rascunho") return fail("Auditoria já concluída.");
 
   const score = computeNutriScore(answers.map((a) => ({ entry_id: a.id, area: a.area, peso: a.peso, resposta: a.resposta })));
@@ -214,7 +214,7 @@ export async function discardNutriDraft(auditId: string): Promise<ActionResult> 
   const admin = createAdminClient();
   const { data: audit } = await admin.from("audits").select("id, auditor_id, status, unit_id").eq("id", auditId).eq("tipo", "nutricional").maybeSingle();
   if (!audit) return fail("Auditoria não encontrada.");
-  if (audit.auditor_id !== profile.id) return fail("Esta auditoria não é sua.");
+  if (audit.auditor_id !== profile.id && !isNutriChefe(profile)) return fail("Esta auditoria não é sua.");
   if (audit.status !== "rascunho") return fail("Auditoria concluída não pode ser descartada.");
 
   const { data: photos } = await admin.from("audit_photos").select("storage_path, audit_answers!inner(audit_id)").eq("audit_answers.audit_id", auditId);

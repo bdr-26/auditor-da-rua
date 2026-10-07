@@ -145,6 +145,12 @@ export const TABLE_DEFAULTS = {
     classificacao: null,
     etapa_atual: 0,
     concluida_em: null,
+    assinatura_nome: null,
+    assinatura_cpf: null,
+    assinatura_cargo: null,
+    assinatura_path: null,
+    assinada_em: null,
+    assinatura_registrada_por: null,
   },
   audit_answers: {
     item_id: null,
@@ -219,7 +225,9 @@ export const TIMESTAMP_COLS = {
 export const USERS = {
   antonio: { id: uuid("profile:antonio"), nome: "Antônio Costa", email: "antonio@bdr-auditor.app", role: "proprietario" },
   rodrigo: { id: uuid("profile:rodrigo"), nome: "Rodrigo Almeida", email: "rodrigo@bdr-auditor.app", role: "auditor_geral" },
-  dani: { id: uuid("profile:dani"), nome: "Daniele Souza", email: "dani@bdr-auditor.app", role: "auditor_nutricao" },
+  dani: { id: uuid("profile:dani"), nome: "Daniele Souza", email: "dani@bdr-auditor.app", role: "auditor_nutricao", nutri_nivel: "chefe" },
+  lais: { id: uuid("profile:lais"), nome: "Laís Moreira", email: "lais@bdr-auditor.app", role: "auditor_nutricao", nutri_nivel: "estagiaria" },
+  leticia: { id: uuid("profile:leticia"), nome: "Letícia Prado", email: "leticia@bdr-auditor.app", role: "auditor_nutricao", nutri_nivel: "estagiaria" },
   victor: { id: uuid("profile:victor"), nome: "Victor Ramos", email: "victor@bdr-auditor.app", role: "proprietario" },
 };
 
@@ -770,7 +778,7 @@ export function buildFixtures(today = todaySP()) {
   const baseCreated = "2026-07-01T12:00:00.000Z";
   let i = 0;
   for (const u of Object.values(USERS)) {
-    t.profiles.push({ id: u.id, nome: u.nome, email: u.email, role: u.role, ativo: true, created_at: addIsoMinutes(baseCreated, i++) });
+    t.profiles.push({ id: u.id, nome: u.nome, email: u.email, role: u.role, ativo: true, nutri_nivel: u.nutri_nivel ?? null, created_at: addIsoMinutes(baseCreated, i++) });
   }
 
   // ----- unidades -----

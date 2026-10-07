@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { NutriFill } from "@/components/nutri/nutri-fill";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { requireProfile } from "@/lib/auth";
+import { isNutriChefe, requireProfile } from "@/lib/auth";
 import { getNutriFillData } from "@/lib/data/nutri";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,7 +14,7 @@ export default async function NutriFillPage({ params, searchParams }: { params: 
   const supabase = await createClient();
   const fill = await getNutriFillData(supabase, id);
   if (!fill) notFound();
-  if (fill.audit.status === "concluida" || fill.audit.auditor_id !== profile.id) redirect(`/nutri/auditorias/${id}/resumo`);
+  if (fill.audit.status === "concluida" || fill.audit.auditor_id !== profile.id && !isNutriChefe(profile)) redirect(`/nutri/auditorias/${id}/resumo`);
   if (profile.role !== "auditor_nutricao") redirect(`/nutri/auditorias/${id}/resumo`);
 
   if (fill.areas.length === 0) {

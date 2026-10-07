@@ -3,12 +3,13 @@ import { notFound } from "next/navigation";
 import { ClassBadge, NotaNutri } from "@/components/nutri/nutri-badges";
 import { PhotoGallery } from "@/components/nutri/photo-gallery";
 import { ShareReport } from "@/components/reports/share-report";
+import { SignaturePad, type SignatureInfo } from "@/components/audit/signature-pad";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { ScoreBar } from "@/components/ui/score";
-import { requireProfile } from "@/lib/auth";
+import { canManageAudit, requireProfile } from "@/lib/auth";
 import { getNutriFillData } from "@/lib/data/nutri";
 import { formatDatePT, formatDateTimePT } from "@/lib/dates";
 import { computeNutriScore } from "@/lib/domain/nutri";
@@ -40,6 +41,11 @@ export default async function NutriResumoPage({ params }: { params: Promise<{ id
   const resolvidas = pendings.filter((p) => p.resolvida === true);
   const mantidas = pendings.filter((p) => p.resolvida === false);
   const backHref = profile.role === "proprietario" ? `/dashboard/lojas/${unit.id}` : "/nutri";
+  let assinatura: SignatureInfo | null = null;
+  if (audit.assinatura_nome && audit.assinada_em) {
+    const { data: s } = audit.assinatura_path ? await supabase.storage.from("audit-photos").createSignedUrl(audit.assinatura_path, 60 * 60) : { data: null };
+    assinatura = { nome: audit.assinatura_nome, cpf: audit.assinatura_cpf ?? "", cargo: audit.assinatura_cargo ?? "Supervisor(a)", assinadaEm: audit.assinada_em, imageUrl: s?.signedUrl ?? null };
+  }
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
@@ -79,6 +85,8 @@ export default async function NutriResumoPage({ params }: { params: Promise<{ id
           </div>
         )}
       </Card>
+
+      {!draft && <SignaturePad auditId={id} existing={assinatura} canSign={canManageAudit(profile, audit)} supervisorNome={unit.supervisor_nome} />}
 
       {!draft && (
         <ShareReport

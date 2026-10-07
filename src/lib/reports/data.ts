@@ -485,3 +485,19 @@ export async function buildMonthlyReportData(admin: AdminClient, mesInput: strin
 
   return { mes, oficial: cur.oficial, lojas, consolidado };
 }
+
+/** Assinatura do supervisor registrada na auditoria (nome/CPF/cargo + PNG), para os PDFs. */
+export async function assinaturaOf(
+  admin: AdminClient,
+  audit: { assinatura_nome: string | null; assinatura_cpf: string | null; assinatura_cargo: string | null; assinatura_path: string | null; assinada_em: string | null },
+): Promise<import("./nutri-types").ReportAssinatura | null> {
+  if (!audit.assinatura_nome || !audit.assinada_em) return null;
+  const cpf = (audit.assinatura_cpf ?? "").replace(/\D/g, "");
+  return {
+    nome: audit.assinatura_nome,
+    cpf: cpf.length === 11 ? cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : audit.assinatura_cpf ?? "",
+    cargo: audit.assinatura_cargo ?? "Supervisor(a)",
+    data: formatDateTimePT(audit.assinada_em),
+    dataUri: audit.assinatura_path ? await photoDataUri(admin, audit.assinatura_path) : null,
+  };
+}

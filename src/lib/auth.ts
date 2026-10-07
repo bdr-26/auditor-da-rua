@@ -25,8 +25,19 @@ export const getSessionProfile = cache(async function getSessionProfile(): Promi
 export async function requireProfile(roles?: UserRole[]): Promise<SessionProfile> {
   const profile = await getSessionProfile();
   if (!profile) redirect("/login");
+  if (!profile.ativo) redirect("/login?inativo=1");
   if (roles && !roles.includes(profile.role)) redirect(homeForRole(profile.role));
   return profile;
+}
+
+/** Nutricionista chefe: vê e edita todo o módulo nutricional (auditorias e controles das estagiárias). */
+export function isNutriChefe(p: Pick<SessionProfile, "role" | "nutri_nivel">): boolean {
+  return p.role === "auditor_nutricao" && p.nutri_nivel === "chefe";
+}
+
+/** Pode conduzir/editar uma auditoria: o próprio auditor, a chefe (nutricionais) ou o proprietário. */
+export function canManageAudit(p: Pick<SessionProfile, "id" | "role" | "nutri_nivel">, audit: { auditor_id: string; tipo: string }): boolean {
+  return audit.auditor_id === p.id || (audit.tipo === "nutricional" && isNutriChefe(p)) || p.role === "proprietario";
 }
 
 export function homeForRole(role: UserRole): string {

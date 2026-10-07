@@ -147,7 +147,7 @@ export function GerenteAuditReportDocument({ data }: { data: GerenteAuditReportD
           </Section>
         ) : null}
 
-        <Assinaturas esquerda={`Auditor: ${d.auditor}`} direita={`Responsável da unidade: ${d.unidade.supervisor_nome ?? "____________________"}`} />
+        <Assinaturas esquerda={`Auditor: ${d.auditor}`} direita={`Responsável da unidade: ${d.unidade.supervisor_nome ?? "____________________"}`} assinatura={d.assinatura} />
         <PageFooter left={footer} />
       </Page>
     </Document>

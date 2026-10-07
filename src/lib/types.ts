@@ -10,12 +10,16 @@ export type NutriAnswer = "conforme" | "nao_conforme" | "na";
 export type NutriItemStatus = "ativo" | "pausado";
 export type Score = 1 | 2 | 3 | 4 | 5;
 
+export type NutriNivel = "chefe" | "estagiaria";
+
 export interface Profile {
   id: string;
   nome: string;
   email: string;
   role: UserRole;
   ativo: boolean;
+  /** Só para auditor_nutricao: chefe (vê e edita tudo do módulo) ou estagiária. */
+  nutri_nivel: NutriNivel | null;
   created_at: string;
 }
 
@@ -95,6 +99,13 @@ export interface Audit {
   etapa_atual: number;
   iniciada_em: string;
   concluida_em: string | null;
+  /** Aprovação do supervisor da unidade (assinatura na tela). */
+  assinatura_nome: string | null;
+  assinatura_cpf: string | null;
+  assinatura_cargo: string | null;
+  assinatura_path: string | null;
+  assinada_em: string | null;
+  assinatura_registrada_por: string | null;
   created_at: string;
   updated_at: string;
 }
