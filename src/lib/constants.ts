@@ -92,3 +92,6 @@ export const DEMANDA_STATUS_LABELS: Record<import("./types").DemandaStatus, stri
   concluida: "Concluída",
   cancelada: "Cancelada",
 };
+
+export const NUTRI_AGENDA_TIPO_LABELS: Record<import("./types").NutriAgendaTipo, string> = { auditoria: "Auditoria (checklist)", controles: "Controles (planilhas)", outro: "Outra tarefa" };
+export const NUTRI_AGENDA_STATUS_LABELS: Record<import("./types").NutriAgendaStatus, string> = { prevista: "Prevista", concluida: "Concluída", cancelada: "Cancelada" };

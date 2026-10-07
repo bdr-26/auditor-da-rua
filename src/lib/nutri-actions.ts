@@ -203,6 +203,16 @@ export async function concludeNutriAudit(auditId: string): Promise<ActionResult>
     console.error("[nutri] push conclusão falhou", e);
   }
 
+  // tarefa programada na agenda nutri para esta visita → concluída
+  await admin
+    .from("nutri_agenda")
+    .update({ status: "concluida", concluida_em: now, audit_id: auditId })
+    .eq("responsavel_id", audit.auditor_id)
+    .eq("unit_id", unit.id)
+    .eq("data", audit.data)
+    .eq("status", "prevista")
+    .in("tipo", ["auditoria", "outro"]);
+
   revalidateNutri(unit.id);
   revalidatePath("/dashboard", "layout");
   redirect(`/nutri/auditorias/${auditId}/resumo`);

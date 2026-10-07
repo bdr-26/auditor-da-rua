@@ -110,6 +110,8 @@ export const FK = {
   demandas: { unit_id: "units", responsavel_id: "profiles", criado_por: "profiles", concluida_por: "profiles" },
   demanda_comentarios: { demanda_id: "demandas", user_id: "profiles" },
   demanda_anexos: { demanda_id: "demandas", user_id: "profiles" },
+  nutri_agenda: { responsavel_id: "profiles", unit_id: "units", audit_id: "audits", criado_por: "profiles" },
+  nutri_controles: { unit_id: "units", responsavel_id: "profiles", finalizado_por: "profiles" },
 };
 
 /** Colunas numeric(…) devolvidas como string pelo PostgREST: nome → casas decimais. */
@@ -187,6 +189,8 @@ export const TABLE_DEFAULTS = {
   demandas: { descricao: null, prazo: null, prioridade: "normal", categoria: "geral", status: "aberta", unit_id: null, conclusao_texto: null, concluida_em: null, concluida_por: null },
   demanda_comentarios: { status_novo: null },
   demanda_anexos: { mime: null, tamanho: null },
+  nutri_agenda: { unit_id: null, tipo: "auditoria", descricao: null, status: "prevista", concluida_em: null, audit_id: null, criado_por: null },
+  nutri_controles: { status: "rascunho", dados: {}, observacoes: null, finalizado_em: null, finalizado_por: null },
   notifications_log: { user_id: null, chave_dedup: null, url: null },
   push_subscriptions: { user_agent: null },
   app_settings: { descricao: null },
@@ -216,6 +220,8 @@ export const TIMESTAMP_COLS = {
   demandas: ["created_at", "updated_at"],
   demanda_comentarios: ["created_at"],
   demanda_anexos: ["created_at"],
+  nutri_agenda: ["created_at", "updated_at"],
+  nutri_controles: ["created_at", "updated_at"],
   app_settings: ["updated_at"],
 };
 
@@ -764,6 +770,8 @@ export function buildFixtures(today = todaySP()) {
     demandas: [],
     demanda_comentarios: [],
     demanda_anexos: [],
+    nutri_agenda: [],
+    nutri_controles: [],
     push_subscriptions: [],
     notifications_log: [],
   };
@@ -876,6 +884,32 @@ export function buildFixtures(today = todaySP()) {
   for (let d = nextStart; d <= nextEnd; d = addDays(d, 1)) if (weekday(d) === 0) sundaysNext.push(d);
   const sundayOff = sundaysNext[1] ?? sundaysNext[0];
   t.auditor_days_off.push({ id: uuid("dayoff:1"), data: sundayOff, auditor_id: null, motivo: "Folga de domingo", criado_por: USERS.antonio.id, created_at: atSP(today, "09:00") });
+
+  // ----- equipe nutri: agenda e controles -----
+  const agendaSeed = [
+    { k: "a1", data: today, resp: USERS.lais, unit: "moema-salao", tipo: "auditoria", descricao: "Auditoria completa + planilhas de temperatura" },
+    { k: "a2", data: today, resp: USERS.leticia, unit: "imigrantes", tipo: "controles", descricao: "Temperatura dos equipamentos e óleo" },
+    { k: "a3", data: addDays(today, -2), resp: USERS.lais, unit: "mooca", tipo: "auditoria", descricao: null },
+    { k: "a4", data: addDays(today, 2), resp: USERS.leticia, unit: "moema-delivery", tipo: "auditoria", descricao: null },
+    { k: "a5", data: addDays(today, 3), resp: USERS.dani, unit: null, tipo: "outro", descricao: "Revisar checklist da Bela Vista" },
+  ];
+  for (const a of agendaSeed) {
+    t.nutri_agenda.push({ id: uuid(`nagenda:${a.k}`), data: a.data, responsavel_id: a.resp.id, unit_id: a.unit ? UNIT_IDS[a.unit] : null, tipo: a.tipo, descricao: a.descricao, status: "prevista", concluida_em: null, audit_id: null, criado_por: USERS.dani.id, created_at: atSP(today, "08:00"), updated_at: atSP(today, "08:00") });
+  }
+  t.nutri_controles.push({
+    id: uuid("nctrl:1"), tipo: "temperatura_equipamentos", unit_id: UNIT_IDS["moema-salao"], data: addDays(today, -1), responsavel_id: USERS.lais.id, status: "finalizado",
+    dados: { cabecalho: { termometro: "Espeto digital 2" }, linhas: [
+      { nome: "Refrigerador 1", tipo_equip: "Refrigerador", local: "Cozinha", temp_manha: 4, temp_tarde: 6.5, acao: "Ajustado termostato" },
+      { nome: "Freezer 1", tipo_equip: "Freezer", local: "Estoque", temp_manha: -16, temp_tarde: -15 },
+      { nome: "Pista fria", tipo_equip: "Pista fria", local: "Linha", temp_manha: 3, temp_tarde: 4 },
+    ] },
+    observacoes: "Refrigerador 1 acima da faixa à tarde; técnico acionado.", finalizado_em: atSP(addDays(today, -1), "17:10"), finalizado_por: USERS.lais.id, created_at: atSP(addDays(today, -1), "15:00"), updated_at: atSP(addDays(today, -1), "17:10"),
+  });
+  t.nutri_controles.push({
+    id: uuid("nctrl:2"), tipo: "oleo", unit_id: UNIT_IDS["imigrantes"], data: today, responsavel_id: USERS.leticia.id, status: "rascunho",
+    dados: { cabecalho: { fritadeira: "Fritadeira 1" }, linhas: [{ nome: "Manhã", temperatura: 175, higienizada: "Sim", trocado: "Não" }, { nome: "Noite" }] },
+    observacoes: null, finalizado_em: null, finalizado_por: null, created_at: atSP(today, "10:00"), updated_at: atSP(today, "10:20"),
+  });
 
   const rotation = t.units.filter((u) => u.tipo === "loja" && u.entra_no_ranking);
   const planned = generateSchedule(prevStart, nextEnd, rotation, UNIT_IDS["moema-producao"], ROTACAO_BASE, [sundayOff]);

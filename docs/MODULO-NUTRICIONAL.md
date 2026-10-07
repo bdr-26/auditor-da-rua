@@ -46,3 +46,15 @@ Replica o Food Checker: checklist por **áreas físicas**, itens **binários** (
 - **Renomear área** (`renameArea`): atualiza todas as entradas da área na unidade.
 - **Copiar composição** (`copyComposition`): adiciona só o que ainda não existe na unidade de destino, mantendo áreas e ordens.
 - **Checklist em revisão** (`setUnitRevisao`): flag `units.nutri_checklist_em_revisao`, visível em `/nutri/nova`; nutri ou proprietário limpa após validar (escrita via service_role porque a RLS de `units` só libera o proprietário).
+
+## Equipe nutri, agenda, controles e assinatura (migrations 0010 e 0011)
+
+**Níveis.** `profiles.nutri_nivel`: `chefe` (Daniele) ou `estagiaria`. A chefe vê e edita tudo do módulo (auditorias das estagiárias, controles, agenda) via `is_nutri_chefe()`/`can_manage_audit()` nas políticas; a estagiária só o que é dela. Logins são criados pelo proprietário em `/admin/usuarios` (`src/lib/users-actions.ts`, `auth.admin.createUser`).
+
+**Início (`/nutri`).** Chefe/proprietário: painel da equipe (auditorias e controles do mês por pessoa, média, última visita, rascunhos e tarefas atrasadas), rascunhos em andamento, conferência dos controles (unidade × tipo, finalizados no mês), agenda de hoje/atrasadas, unidades e últimas auditorias (`src/lib/data/nutri-equipe.ts`). Estagiária: tarefas de hoje com atalhos, rascunhos para continuar, nova auditoria/controle.
+
+**Agenda (`/nutri/agenda`).** `nutri_agenda` (data, responsável, unidade, tipo auditoria/controles/outro, descrição, status). A chefe programa (push "Agenda dd/mm · unidade" para a responsável); a responsável conclui; a chefe cancela/reabre/exclui. Ao concluir uma auditoria nutricional, a tarefa prevista da mesma responsável/unidade/data vira concluída automaticamente.
+
+**Controles (`/nutri/controles`).** Planilhas digitais definidas em código (`src/lib/nutri/controle-tipos.ts`): temperatura de equipamentos, distribuição, óleo, recebimento, transportados, hortifrúti (PPM) e manutenção. Cada tipo tem cabeçalho, linhas fixas/livres e campos com faixa (alerta "fora da faixa"). Registro em `nutri_controles` (`dados` JSONB `{cabecalho, linhas}`), `rascunho` → `finalizado` (obrigatórios preenchidos e ≥ 1 linha); só a chefe edita/reabre um finalizado. PDF por controle (`/api/nutri/controles/[id]/pdf`) e compilação mensal por unidade e tipo (`/api/nutri/controles/relatorio?unit=&tipo=&mes=YYYY-MM`), ambos com link de 7 dias para WhatsApp (POST). Para incluir um novo tipo de planilha, acrescente uma entrada em `CONTROLE_TIPOS`.
+
+**Assinatura do supervisor.** Em auditorias concluídas (gerente e nutri), `SignaturePad` colhe nome, CPF, cargo e a assinatura desenhada (PNG em `audit-photos/assinaturas/<id>.png`, colunas `assinatura_*` em `audits`); o PDF mostra a assinatura no lugar da linha "Responsável da unidade".

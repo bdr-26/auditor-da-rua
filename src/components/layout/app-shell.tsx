@@ -27,6 +27,8 @@ function navFor(role: SessionProfile["role"]): NavItem[] {
     case "auditor_nutricao":
       return [
         { href: "/nutri", label: "Início", icon: "home" },
+        { href: "/nutri/agenda", label: "Agenda", icon: "calendar" },
+        { href: "/nutri/controles", label: "Controles", icon: "controls" },
         { href: "/nutri/historico", label: "Histórico", icon: "history" },
         { href: "/nutri/checklists", label: "Checklists", icon: "checklist" },
       ];
