@@ -4,7 +4,7 @@ import { AUDIT_TYPE_LABELS } from "../constants";
 import { getAuditFillData, toScoringAnswers } from "../data/audit-flow";
 import { formatDatePT, formatDateTimePT } from "../dates";
 import { computeAuditScore } from "../domain/scoring";
-import { photoDataUri } from "./data";
+import { photoDataUri, assinaturaOf } from "./data";
 import type { GerenteAuditReportData, GerenteReportBlock, GerenteReportItem } from "./gerente-types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -72,6 +72,7 @@ export async function buildGerenteAuditReport(admin: AdminClient, auditId: strin
     blocos,
     pendencias: pendings.map((p) => ({ descricao: p.descricao, resolvida: p.resolvida, nota_origem: p.nota_origem, origem_data: p.origem_data ? formatDatePT(p.origem_data) : null })),
     fotosOmitidas: budget.omitted,
+    assinatura: await assinaturaOf(admin, audit),
   };
 }
 

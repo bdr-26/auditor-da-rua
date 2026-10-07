@@ -8,8 +8,9 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { ErrorPanel } from "@/components/ui/error-panel";
 import { PageHeader } from "@/components/ui/page-header";
 import { ShareReport } from "@/components/reports/share-report";
+import { SignaturePad, type SignatureInfo } from "@/components/audit/signature-pad";
 import { PctBadge, ProgressBar, ScoreBar } from "@/components/ui/score";
-import { requireProfile } from "@/lib/auth";
+import { canManageAudit, requireProfile } from "@/lib/auth";
 import { AUDIT_TYPE_LABELS, GRAVE_FAILURE_CAP, SCORE_COLORS, SCORE_LABELS } from "@/lib/constants";
 import { getAuditFillData, toScoringAnswers } from "@/lib/data/audit-flow";
 import { signedPhotoUrl } from "@/lib/data/audits";
@@ -79,6 +80,11 @@ export default async function ResumoPage({ params }: { params: Promise<{ id: str
 
   const resolvidas = pendings.filter((p) => p.resolvida === true);
   const mantidas = pendings.filter((p) => p.resolvida === false);
+  let assinatura: SignatureInfo | null = null;
+  if (audit.assinatura_nome && audit.assinada_em) {
+    const { data: s } = audit.assinatura_path ? await supabase.storage.from("audit-photos").createSignedUrl(audit.assinatura_path, 60 * 60) : { data: null };
+    assinatura = { nome: audit.assinatura_nome, cpf: audit.assinatura_cpf ?? "", cargo: audit.assinatura_cargo ?? "Supervisor(a)", assinadaEm: audit.assinada_em, imageUrl: s?.signedUrl ?? null };
+  }
 
   // distribuição das notas dadas (itens aplicáveis) e N/A
   const scored = answers.filter((a) => !a.na && a.nota != null && itemsById.has(a.item_id));
@@ -155,6 +161,8 @@ export default async function ResumoPage({ params }: { params: Promise<{ id: str
           </div>
         )}
       </Card>
+
+      {!isDraft && <SignaturePad auditId={id} existing={assinatura} canSign={canManageAudit(profile, audit)} supervisorNome={unit.supervisor_nome} />}
 
       {!isDraft && (
         <ShareReport

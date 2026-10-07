@@ -1,7 +1,7 @@
 // Relatório de uma auditoria nutricional (para compartilhar/imprimir). Recebe NutriAuditReportData já montado.
 import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
 import { Bar, BrandHeader, Chip, COLORS, Empty, fmtPct, PageFooter, Section, Stat, styles, Table, toneColors, toneOfNutri, toneOfPct } from "./pdf-ui";
-import type { NutriAuditReportData, NutriReportApontamento, NutriReportArea } from "./nutri-types";
+import type { NutriAuditReportData, NutriReportApontamento, NutriReportArea, ReportAssinatura } from "./nutri-types";
 
 export const FAIXAS = "Faixas: Excelente 91–100% · Satisfatório 80–90% · Insatisfatório 50–79% · Crítico abaixo de 50%. Nota = itens conformes ÷ itens aplicáveis (N/A fora do cálculo).";
 
@@ -46,11 +46,30 @@ export function AreasTable({ rows, colNc = "Não conf." }: { rows: NutriReportAr
   );
 }
 
-export function Assinaturas({ esquerda, direita }: { esquerda: string; direita: string }) {
+/**
+ * Rodapé de assinaturas. Com `assinatura` registrada no app, a caixa da direita mostra o PNG da
+ * assinatura, nome, cargo, CPF e data; sem ela, fica a linha para assinar à mão.
+ */
+export function Assinaturas({ esquerda, direita, assinatura }: { esquerda: string; direita: string; assinatura?: ReportAssinatura | null }) {
   return (
     <View style={styles.signature} wrap={false}>
       <Text style={styles.signatureBox}>{esquerda}</Text>
-      <Text style={styles.signatureBox}>{direita}</Text>
+      {assinatura ? (
+        <View style={{ flex: 1 }}>
+          {assinatura.dataUri ? (
+            // eslint-disable-next-line jsx-a11y/alt-text -- Image do react-pdf não tem alt
+            <Image src={assinatura.dataUri} style={{ height: 40, width: 120, objectFit: "contain", alignSelf: "flex-start", marginBottom: 2 }} />
+          ) : null}
+          <View style={{ borderTopWidth: 1, borderTopColor: COLORS.ink, paddingTop: 4 }}>
+            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold" }}>{assinatura.nome}</Text>
+            <Text style={{ fontSize: 8, color: COLORS.muted }}>
+              {assinatura.cargo} · CPF {assinatura.cpf} · aprovado em {assinatura.data}
+            </Text>
+          </View>
+        </View>
+      ) : (
+        <Text style={styles.signatureBox}>{direita}</Text>
+      )}
     </View>
   );
 }
@@ -110,7 +129,7 @@ export function NutriAuditReportDocument({ data }: { data: NutriAuditReportData 
           </Section>
         ) : null}
 
-        <Assinaturas esquerda={`Nutricionista: ${d.nutricionista}`} direita={`Responsável da unidade: ${d.unidade.supervisor_nome ?? "____________________"}`} />
+        <Assinaturas esquerda={`Nutricionista: ${d.nutricionista}`} direita={`Responsável da unidade: ${d.unidade.supervisor_nome ?? "____________________"}`} assinatura={d.assinatura} />
         <PageFooter left={footer} />
       </Page>
     </Document>

@@ -46,4 +46,5 @@ export interface GerenteAuditReportData {
   blocos: GerenteReportBlock[];
   pendencias: GerenteReportPendencia[];
   fotosOmitidas: number;
+  assinatura: import("./nutri-types").ReportAssinatura | null;
 }

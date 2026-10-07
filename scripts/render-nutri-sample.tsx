@@ -1,6 +1,7 @@
 // Renderiza os dois relatórios nutricionais (por auditoria e mensal) com dados fictícios, para validar o layout.
 // Uso: npx tsx scripts/render-nutri-sample.tsx [pasta-de-saída]   (padrão: /tmp/auditor-reports)
 // Empacota-se com esbuild e roda num node filho (mesmo motivo do render-report-sample.tsx: @react-pdf é ESM puro).
+import { BRAND_LOGO_DATA_URI } from "../src/lib/reports/brand-logo";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -46,6 +47,7 @@ const auditoria: NutriAuditReportData = {
     { descricao: "Panos dentro do balde com água", resolvida: false, origem_data: "15/09/2026" },
   ],
   fotosOmitidas: 0,
+  assinatura: { nome: "Camila Ferreira", cpf: "123.456.789-00", cargo: "Supervisora", data: "22/09/2026 15:40", dataUri: BRAND_LOGO_DATA_URI },
 };
 
 const mensal: NutriMonthlyReportData = {

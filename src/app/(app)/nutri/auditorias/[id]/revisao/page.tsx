@@ -5,7 +5,7 @@ import { ClassBadge, NotaNutri } from "@/components/nutri/nutri-badges";
 import { ReviewActions } from "@/components/nutri/review-actions";
 import { Card, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
-import { requireProfile } from "@/lib/auth";
+import { isNutriChefe, requireProfile } from "@/lib/auth";
 import { getNutriFillData } from "@/lib/data/nutri";
 import { formatDatePT } from "@/lib/dates";
 import { computeNutriScore } from "@/lib/domain/nutri";
@@ -21,7 +21,7 @@ export default async function NutriRevisaoPage({ params }: { params: Promise<{ i
   const fill = await getNutriFillData(supabase, id);
   if (!fill) notFound();
   const { audit, unit, areas, answers, pendings } = fill;
-  if (audit.status === "concluida" || audit.auditor_id !== profile.id) redirect(`/nutri/auditorias/${id}/resumo`);
+  if (audit.status === "concluida" || audit.auditor_id !== profile.id && !isNutriChefe(profile)) redirect(`/nutri/auditorias/${id}/resumo`);
 
   const score = computeNutriScore(answers.map((a) => ({ entry_id: a.id, area: a.area, peso: a.peso, resposta: a.resposta })));
   const stepOffset = pendings.length > 0 ? 1 : 0;

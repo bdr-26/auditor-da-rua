@@ -28,6 +28,15 @@ export interface NutriReportPendencia {
   origem_data: string | null;
 }
 
+/** Aprovação do supervisor da unidade registrada no app (assinatura desenhada). */
+export interface ReportAssinatura {
+  nome: string;
+  cpf: string; // formatado 000.000.000-00
+  cargo: string;
+  data: string; // dd/mm/aaaa hh:mm
+  dataUri: string | null; // PNG da assinatura
+}
+
 export interface NutriAuditReportData {
   auditId: string;
   unidade: { nome: string; endereco: string | null; supervisor_nome: string | null };
@@ -44,6 +53,7 @@ export interface NutriAuditReportData {
   apontamentos: NutriReportApontamento[];
   pendencias: NutriReportPendencia[];
   fotosOmitidas: number;
+  assinatura: ReportAssinatura | null;
 }
 
 export interface NutriMonthlyAuditRow {
