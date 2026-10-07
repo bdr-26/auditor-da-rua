@@ -67,7 +67,7 @@ export default async function NutriAgendaPage({ searchParams }: { searchParams: 
           <h2 className="mb-2 text-sm font-semibold text-red-700">Atrasadas ({atrasadas.length})</h2>
           <div className="space-y-2">
             {atrasadas.map((it) => (
-              <AgendaItemRow key={it.id} item={it} unitName={it.unit_id ? unitName.get(it.unit_id) ?? null : null} responsavelNome={chefe ? nome.get(it.responsavel_id) ?? null : null} isChefe={chefe} isMine={it.responsavel_id === profile.id} today={today} />
+              <AgendaItemRow key={it.id} item={it} unitName={it.unit_id ? unitName.get(it.unit_id) ?? null : null} responsavelNome={chefe ? nome.get(it.responsavel_id) ?? null : null} isChefe={chefe} isMine={it.responsavel_id === profile.id} today={today} atalhos={profile.role === "auditor_nutricao"} />
             ))}
           </div>
         </section>
@@ -104,7 +104,7 @@ export default async function NutriAgendaPage({ searchParams }: { searchParams: 
               </h2>
               <div className="space-y-2">
                 {list.map((it) => (
-                  <AgendaItemRow key={it.id} item={it} unitName={it.unit_id ? unitName.get(it.unit_id) ?? null : null} responsavelNome={chefe ? nome.get(it.responsavel_id) ?? null : null} isChefe={chefe} isMine={it.responsavel_id === profile.id} today={today} />
+                  <AgendaItemRow key={it.id} item={it} unitName={it.unit_id ? unitName.get(it.unit_id) ?? null : null} responsavelNome={chefe ? nome.get(it.responsavel_id) ?? null : null} isChefe={chefe} isMine={it.responsavel_id === profile.id} today={today} atalhos={profile.role === "auditor_nutricao"} />
                 ))}
               </div>
             </section>
