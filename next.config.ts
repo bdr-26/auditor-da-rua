@@ -20,6 +20,13 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_VAPID_PUBLIC_KEY: vapidPublicKey,
   },
   serverExternalPackages: ["@react-pdf/renderer"],
+  // O pdfkit (usado pelo @react-pdf) carrega as fontes padrão por "#standard-fonts/…" (subpath imports),
+  // que o rastreador de arquivos da Vercel não segue: sem isto a função falha com
+  // "Cannot find module …/pdfkit/js/standard-fonts/Helvetica.cjs". Vale para rotas de API e páginas
+  // que geram PDF (relatórios do fechamento via server action).
+  outputFileTracingIncludes: {
+    "/**/*": ["./node_modules/pdfkit/js/standard-fonts/**/*", "./node_modules/pdfkit/js/data/**/*"],
+  },
   images: { remotePatterns: [{ protocol: "https", hostname: "**.supabase.co" }] },
   async headers() {
     return [
