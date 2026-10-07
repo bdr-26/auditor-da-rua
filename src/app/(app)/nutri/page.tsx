@@ -169,6 +169,10 @@ async function ChefeHome({ profile }: { profile: { id: string; nome: string; rol
           <Archive className="h-4 w-4 text-gray-500" /> Arquivo de registros para impressão
           <ChevronRight className="ml-auto h-4 w-4 text-gray-400" />
         </Link>
+        <Link href="/nutri/equipamentos" className="mt-2 flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-sm font-medium hover:bg-surface-muted">
+          <Thermometer className="h-4 w-4 text-gray-500" /> Equipamentos por unidade (planilha de temperatura)
+          <ChevronRight className="ml-auto h-4 w-4 text-gray-400" />
+        </Link>
       </Card>
 
       {/* vencimentos (pasta de documentação, ASO) */}

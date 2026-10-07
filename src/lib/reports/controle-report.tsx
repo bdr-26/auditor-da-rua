@@ -1,6 +1,6 @@
 // PDF dos controles digitais (planilhas): um registro, ou a compilação do mês por unidade e tipo.
 import { Document, Page, Text, View } from "@react-pdf/renderer";
-import { formatCampo, type Campo, type ControleDados, type ControleTipo } from "../nutri/controle-tipos";
+import { formatCampo, linhaPreenchida, type Campo, type ControleDados, type ControleTipo } from "../nutri/controle-tipos";
 import { BrandHeader, Chip, COLORS, Empty, PageFooter, Section, Stat, styles, Table } from "./pdf-ui";
 
 export interface ControleReportRegistro {
@@ -51,7 +51,8 @@ function columnsFor(tipo: ControleTipo) {
 
 export function Registro({ r, tipo, compact }: { r: ControleReportRegistro; tipo: ControleTipo; compact?: boolean }) {
   const cab = cabecalhoRows(tipo, r.dados);
-  const linhas = r.dados.linhas.filter((l) => l.nome || tipo.campos.some((c) => l[c.key] != null && l[c.key] !== ""));
+  const linhas = r.dados.linhas.filter((l) => l.nome || linhaPreenchida(tipo, l));
+  const ficha = tipo.campos.length > 8; // muitos campos: cada linha vira uma ficha (rótulo: valor) em vez de tabela estreita
   return (
     <Section title={compact ? `${r.data} · ${r.responsavel}` : "Registros"} hint={compact ? undefined : tipo.descricao}>
       {cab.length > 0 && (
@@ -64,7 +65,32 @@ export function Registro({ r, tipo, compact }: { r: ControleReportRegistro; tipo
           ))}
         </View>
       )}
-      <Table<ControleDados["linhas"][number]> columns={columnsFor(tipo)} rows={linhas} empty="Nenhuma linha preenchida." />
+      {ficha ? (
+        linhas.length === 0 ? (
+          <Empty text="Nenhuma linha preenchida." />
+        ) : (
+          linhas.map((l, i) => (
+            <View key={i} style={{ borderWidth: 1, borderColor: COLORS.border, borderRadius: 4, padding: 6, marginBottom: 4 }} wrap={false}>
+              <Text style={[styles.bold, { marginBottom: 2 }]}>{l.nome || "—"}</Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                {tipo.campos.map((c) => {
+                  const v = l[c.key];
+                  if (v == null || v === "") return null;
+                  const alerta = c.alerta ? c.alerta(v, l) : null;
+                  return (
+                    <Text key={c.key} style={{ fontSize: 8, width: "31%" }}>
+                      <Text style={{ color: COLORS.muted }}>{c.label}: </Text>
+                      <Text style={alerta ? { color: COLORS.red, fontFamily: "Helvetica-Bold" } : undefined}>{formatCampo(c, v)}</Text>
+                    </Text>
+                  );
+                })}
+              </View>
+            </View>
+          ))
+        )
+      ) : (
+        <Table<ControleDados["linhas"][number]> columns={columnsFor(tipo)} rows={linhas} empty="Nenhuma linha preenchida." />
+      )}
       {r.alertas.length > 0 && (
         <View style={{ marginTop: 4, flexDirection: "row", flexWrap: "wrap", gap: 4 }}>
           {r.alertas.map((a, i) => (
@@ -84,7 +110,7 @@ export function ControleReportDocument({ data }: { data: ControleReportData }) {
   const footer = `ROTA · ${d.tipo.nome} · ${d.unidade.nome}${d.mesLabel ? ` · ${d.mesLabel}` : r0 ? ` · ${r0.data}` : ""}`;
   const meta = unico && r0 ? [`Responsável: ${r0.responsavel}`, r0.status === "finalizado" ? `Finalizado em ${r0.finalizadoEm ?? "—"}` : "RASCUNHO", `Emitido em ${d.geradoEm}`].join("  ·  ") : `Emitido em ${d.geradoEm}`;
   const totalAlertas = d.registros.reduce((n, r) => n + r.alertas.length, 0);
-  const totalLinhas = d.registros.reduce((n, r) => n + r.dados.linhas.filter((l) => d.tipo.campos.some((c) => l[c.key] != null && l[c.key] !== "")).length, 0);
+  const totalLinhas = d.registros.reduce((n, r) => n + r.dados.linhas.filter((l) => linhaPreenchida(d.tipo, l)).length, 0);
   return (
     <Document title={`${d.tipo.nome} - ${d.unidade.nome}`} author="ROTA · Grupo Da Rua">
       <Page size="A4" style={styles.page}>

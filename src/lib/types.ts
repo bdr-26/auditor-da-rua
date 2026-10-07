@@ -377,6 +377,19 @@ export interface NutriRotina {
   updated_at: string;
 }
 
+/** Equipamento de refrigeração/aquecimento cadastrado na unidade (pré-preenche o controle de temperatura). */
+export interface NutriEquipamento {
+  id: string;
+  unit_id: string;
+  nome: string;
+  tipo: string;
+  area: string | null;
+  ordem: number;
+  ativo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export type NutriControleStatus = "rascunho" | "finalizado";
 export interface NutriControle {
   id: string;
