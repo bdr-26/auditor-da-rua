@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, ChevronRight, ClipboardPlus, ListChecks, PlayCircle, Store, Thermometer, Users } from "lucide-react";
+import { CalendarDays, CalendarX2, ChevronRight, ClipboardPlus, ListChecks, PlayCircle, Store, Thermometer, Users } from "lucide-react";
 import { NutriAuditRow } from "@/components/nutri/audit-row";
 import { ControleCard } from "@/components/nutri/controle-card";
 import { AgendaItemRow } from "@/components/nutri/agenda-widgets";
@@ -166,6 +166,34 @@ async function ChefeHome({ profile }: { profile: { id: string; nome: string; rol
         </div>
         <p className="mt-2 text-[11px] text-gray-500">Toque num número para ver os controles daquela unidade e tipo. Zero em cinza = nada preenchido no mês.</p>
       </Card>
+
+      {/* vencimentos (pasta de documentação, ASO) */}
+      {ov.vencimentos.length > 0 && (
+        <Card className={cn(ov.vencimentos.some((v) => v.dias < 0) ? "border-red-200" : "border-orange-200")}>
+          <CardTitle>
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarX2 className="h-4 w-4" /> Vencimentos
+            </span>{" "}
+            <span className="text-sm font-normal text-gray-500">· documentos e exames (30 dias)</span>
+          </CardTitle>
+          <ul className="divide-y divide-line text-sm">
+            {ov.vencimentos.slice(0, 12).map((v, i) => (
+              <li key={i} className="flex items-center gap-2 py-2 first:pt-0 last:pb-0">
+                <Link href={`/nutri/controles/${v.controleId}`} className="min-w-0 flex-1">
+                  <span className="block font-medium">{v.item}</span>
+                  <span className="block text-xs text-gray-500">
+                    {v.unidade} · {v.tipo} · {v.campo} {formatDatePT(v.data)}
+                  </span>
+                </Link>
+                <Badge tone={v.dias < 0 ? "red" : v.dias <= 7 ? "orange" : "yellow"} className="shrink-0">
+                  {v.dias < 0 ? `vencido há ${-v.dias} d` : v.dias === 0 ? "vence hoje" : `${v.dias} d`}
+                </Badge>
+              </li>
+            ))}
+          </ul>
+          {ov.vencimentos.length > 12 && <p className="mt-2 text-xs text-gray-500">+ {ov.vencimentos.length - 12} outros.</p>}
+        </Card>
+      )}
 
       {/* agenda de hoje */}
       {(ov.agendaHoje.length > 0 || ov.agendaAtrasada.length > 0) && (

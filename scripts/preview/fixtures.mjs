@@ -910,6 +910,26 @@ export function buildFixtures(today = todaySP()) {
   for (const a of agendaSeed) {
     t.nutri_agenda.push({ id: uuid(`nagenda:${a.k}`), data: a.data, responsavel_id: a.resp.id, unit_id: a.unit ? UNIT_IDS[a.unit] : null, tipo: a.tipo, descricao: a.descricao, status: "prevista", concluida_em: null, audit_id: null, criado_por: USERS.dani.id, rotina_id: null, created_at: atSP(today, "08:00"), updated_at: atSP(today, "08:00") });
   }
+  // pasta de documentação (Imigrantes) e enxoval de RH (Moema Salão) finalizados: alimentam "Vencimentos"
+  t.nutri_controles.push({
+    id: uuid("nctrl:pasta"), tipo: "pasta_documentacao", unit_id: UNIT_IDS["imigrantes"], data: addDays(today, -3), responsavel_id: USERS.leticia.id, status: "finalizado",
+    dados: { cabecalho: {}, linhas: [
+      { nome: "Alvará de funcionamento", situacao: "Em dia", vencimento: addDays(today, 200) },
+      { nome: "Licença sanitária (CMVS)", situacao: "Vencido", vencimento: addDays(today, -12), obs: "Renovação protocolada" },
+      { nome: "AVCB / CLCB", situacao: "Em dia", vencimento: addDays(today, 9) },
+      { nome: "Controle integrado de pragas (certificado)", situacao: "Em dia", vencimento: addDays(today, 25) },
+      { nome: "Limpeza de caixa d'água / reservatório", situacao: "Em dia", vencimento: addDays(today, 120) },
+    ] },
+    observacoes: null, finalizado_em: atSP(addDays(today, -3), "16:00"), finalizado_por: USERS.leticia.id, created_at: atSP(addDays(today, -3), "14:00"), updated_at: atSP(addDays(today, -3), "16:00"),
+  });
+  t.nutri_controles.push({
+    id: uuid("nctrl:rh"), tipo: "enxoval_rh", unit_id: UNIT_IDS["moema-salao"], data: addDays(today, -1), responsavel_id: USERS.lais.id, status: "finalizado",
+    dados: { cabecalho: {}, linhas: [
+      { nome: "João Pedro", cargo: "Chapeiro(a)", uniforme: "Sim", epis: "luva térmica, avental", termo_epi: "Sim", termo_data: addDays(today, -40), aso_validade: addDays(today, 5), treinamento_data: addDays(today, -60) },
+      { nome: "Maria Clara", cargo: "Atendente", uniforme: "Não", epis: "", termo_epi: "N.A.", aso_validade: addDays(today, 300) },
+    ] },
+    observacoes: "Maria sem touca; orientada.", finalizado_em: atSP(addDays(today, -1), "17:30"), finalizado_por: USERS.lais.id, created_at: atSP(addDays(today, -1), "15:00"), updated_at: atSP(addDays(today, -1), "17:30"),
+  });
   // rotina padrão (áudios da Dani): Laís em Moema todo dia; Letícia em Imigrantes às quartas; Dani no Café dia 10
   const rotinaSeed = [
     { k: "r1", unit: "moema-salao", resp: USERS.lais, frequencia: "semanal", dias_semana: [2, 3, 4, 5, 6, 0], descricao: "Auditoria diária + planilhas + amostras" },
