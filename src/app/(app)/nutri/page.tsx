@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, CalendarX2, ChevronRight, ClipboardPlus, ListChecks, PlayCircle, Store, Thermometer, Users } from "lucide-react";
+import { Archive, CalendarDays, CalendarX2, ChevronRight, ClipboardPlus, ListChecks, PlayCircle, Store, Thermometer, Users } from "lucide-react";
 import { NutriAuditRow } from "@/components/nutri/audit-row";
 import { ControleCard } from "@/components/nutri/controle-card";
 import { AgendaItemRow } from "@/components/nutri/agenda-widgets";
@@ -165,6 +165,10 @@ async function ChefeHome({ profile }: { profile: { id: string; nome: string; rol
           </table>
         </div>
         <p className="mt-2 text-[11px] text-gray-500">Toque num número para ver os controles daquela unidade e tipo. Zero em cinza = nada preenchido no mês.</p>
+        <Link href="/nutri/arquivo" className="mt-3 flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-sm font-medium hover:bg-surface-muted">
+          <Archive className="h-4 w-4 text-gray-500" /> Arquivo de registros para impressão
+          <ChevronRight className="ml-auto h-4 w-4 text-gray-400" />
+        </Link>
       </Card>
 
       {/* vencimentos (pasta de documentação, ASO) */}

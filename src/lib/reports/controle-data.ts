@@ -1,8 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { addMonths, formatDatePT, formatDateTimePT, formatMonthPT, monthStart } from "../dates";
-import { getControleTipo, parseDados, resumirControle } from "../nutri/controle-tipos";
-import type { NutriControle, Unit } from "../types";
-import type { ControleReportData, ControleReportRegistro } from "./controle-report";
+import { CONTROLE_TIPOS, getControleTipo, parseDados, resumirControle } from "../nutri/controle-tipos";
+import type { Audit, NutriControle, Unit } from "../types";
+import type { ControleReportData, ControleReportRegistro, DossieReportData } from "./controle-report";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AdminClient = SupabaseClient<any, any, any>;
@@ -66,4 +66,30 @@ export async function buildControleMonthlyReport(admin: AdminClient, unitId: str
 
 export function controleFileName(slug: string, tipoCodigo: string, sufixo: string): string {
   return `controle-${tipoCodigo}-${slug}-${sufixo}.pdf`;
+}
+
+/** Arquivo de registros: todos os controles finalizados da unidade entre `from` e `to` (inclusive), por tipo, + auditorias concluídas. */
+export async function buildDossieReport(admin: AdminClient, unitId: string, from: string, to: string): Promise<DossieReportData | null> {
+  const [{ data: unit }, { data: rows }, { data: audits }] = await Promise.all([
+    admin.from("units").select("*").eq("id", unitId).maybeSingle(),
+    admin.from("nutri_controles").select("*").eq("unit_id", unitId).eq("status", "finalizado").gte("data", from).lte("data", to).order("data"),
+    admin.from("audits").select("*").eq("unit_id", unitId).eq("tipo", "nutricional").eq("status", "concluida").gte("data", from).lte("data", to).order("data"),
+  ]);
+  if (!unit) return null;
+  const u = unit as Unit;
+  const list = (rows ?? []) as NutriControle[];
+  const auds = (audits ?? []) as Audit[];
+  const nm = await nomes(admin, [...list.map((c) => c.responsavel_id), ...auds.map((a) => a.auditor_id)]);
+  const secoes = CONTROLE_TIPOS.map((tipo) => ({
+    tipo,
+    registros: list.filter((c) => c.tipo === tipo.codigo).map((c) => toRegistro(c, tipo.codigo, nm.get(c.responsavel_id) ?? "—")).filter((r): r is ControleReportRegistro => !!r),
+  }));
+  const periodoLabel = from.slice(0, 7) === to.slice(0, 7) && from.endsWith("-01") ? formatMonthPT(from) : `${formatDatePT(from)} a ${formatDatePT(to)}`;
+  return {
+    unidade: { nome: u.nome, endereco: u.endereco, supervisor_nome: u.supervisor_nome },
+    periodoLabel,
+    geradoEm: formatDateTimePT(new Date().toISOString()),
+    secoes,
+    auditorias: auds.map((a) => ({ data: formatDatePT(a.data), nutricionista: nm.get(a.auditor_id) ?? "—", nota: a.nota_final == null ? "—" : `${Math.round(Number(a.nota_final))}%`, classificacao: a.classificacao ?? "—" })),
+  };
 }

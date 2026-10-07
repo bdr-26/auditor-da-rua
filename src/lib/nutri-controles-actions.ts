@@ -127,6 +127,8 @@ export async function deleteControle(id: string): Promise<ControleResult> {
     const c = row as NutriControle;
     const chefe = profile.role === "proprietario" || isNutriChefe(profile);
     if (!chefe && !(c.responsavel_id === profile.id && c.status === "rascunho")) throw new Error("Só rascunhos seus podem ser excluídos.");
+    // registro finalizado é histórico (fiscalização): para corrigir, a chefe reabre e salva; não se apaga
+    if (c.status === "finalizado") throw new Error("Controle finalizado faz parte do arquivo e não pode ser excluído. Reabra para corrigir.");
     const { error } = await admin.from("nutri_controles").delete().eq("id", id);
     if (error) throw error;
     revalidate();

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Archive, ChevronRight, Plus } from "lucide-react";
 import { ControleCard } from "@/components/nutri/controle-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
@@ -38,7 +38,7 @@ export default async function ControlesPage({ searchParams }: { searchParams: Pr
     <div className="mx-auto max-w-2xl">
       <PageHeader
         title="Controles"
-        subtitle="Planilhas digitais: temperatura, óleo, recebimento, transporte, hortifrúti e manutenção"
+        subtitle="Planilhas digitais: temperatura, óleo, recebimento, transporte, hortifrúti, amostras, pasta, RH e manutenção"
         back="/nutri"
         actions={
           isNutri ? (
@@ -48,6 +48,15 @@ export default async function ControlesPage({ searchParams }: { searchParams: Pr
           ) : undefined
         }
       />
+
+      <Link href={`/nutri/arquivo${loja ? `?loja=${loja}` : ""}`} className="mb-4 flex items-center gap-2 rounded-2xl border border-line bg-white px-4 py-3 text-sm hover:bg-surface-muted">
+        <Archive className="h-4 w-4 text-gray-500" />
+        <span className="flex-1">
+          <span className="font-semibold">Arquivo de registros</span>
+          <span className="block text-xs text-gray-500">Por unidade e mês, com impressão de tudo para fiscalização.</span>
+        </span>
+        <ChevronRight className="h-4 w-4 text-gray-400" />
+      </Link>
 
       <div className="mb-2 flex gap-1.5 overflow-x-auto pb-1 text-xs">
         <Link href={q({ tipo: undefined })} className={cn("shrink-0 rounded-full px-3 py-1.5 font-medium", !tipo ? "bg-ink text-white" : "border border-line bg-white")}>
