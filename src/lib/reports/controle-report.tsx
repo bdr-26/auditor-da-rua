@@ -49,7 +49,7 @@ function columnsFor(tipo: ControleTipo) {
   ];
 }
 
-function Registro({ r, tipo, compact }: { r: ControleReportRegistro; tipo: ControleTipo; compact?: boolean }) {
+export function Registro({ r, tipo, compact }: { r: ControleReportRegistro; tipo: ControleTipo; compact?: boolean }) {
   const cab = cabecalhoRows(tipo, r.dados);
   const linhas = r.dados.linhas.filter((l) => l.nome || tipo.campos.some((c) => l[c.key] != null && l[c.key] !== ""));
   return (
@@ -98,6 +98,79 @@ export function ControleReportDocument({ data }: { data: ControleReportData }) {
         {d.registros.length === 0 ? <Empty text="Nenhum controle finalizado neste período." /> : d.registros.map((r) => <Registro key={r.id} r={r} tipo={d.tipo} compact={!unico} />)}
         <View style={styles.signature} wrap={false}>
           <Text style={styles.signatureBox}>Responsável: {unico && r0 ? r0.responsavel : "Equipe de nutrição"}</Text>
+          <Text style={styles.signatureBox}>Responsável da unidade: {d.unidade.supervisor_nome ?? "____________________"}</Text>
+        </View>
+        <PageFooter left={footer} />
+      </Page>
+    </Document>
+  );
+}
+
+/** Arquivo de registros: todos os controles finalizados de uma unidade num período, agrupados por tipo. */
+export interface DossieReportData {
+  unidade: { nome: string; endereco: string | null; supervisor_nome: string | null };
+  periodoLabel: string;
+  geradoEm: string;
+  secoes: { tipo: ControleTipo; registros: ControleReportRegistro[] }[];
+  auditorias: { data: string; nutricionista: string; nota: string; classificacao: string }[];
+}
+
+export function DossieReportDocument({ data }: { data: DossieReportData }) {
+  const d = data;
+  const total = d.secoes.reduce((n, s) => n + s.registros.length, 0);
+  const alertas = d.secoes.reduce((n, s) => n + s.registros.reduce((m, r) => m + r.alertas.length, 0), 0);
+  const footer = `ROTA · Arquivo de registros · ${d.unidade.nome} · ${d.periodoLabel}`;
+  return (
+    <Document title={`Arquivo de registros - ${d.unidade.nome} - ${d.periodoLabel}`} author="ROTA · Grupo Da Rua">
+      <Page size="A4" style={styles.page}>
+        <BrandHeader title="Arquivo de registros" subtitle={`${d.unidade.nome} · ${d.periodoLabel}`} right="Controles de qualidade" meta={`${d.unidade.endereco ?? ""}${d.unidade.endereco ? "  ·  " : ""}Emitido em ${d.geradoEm}`} />
+        <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
+          <Stat label="Registros" value={String(total)} small />
+          <Stat label="Tipos de controle" value={String(d.secoes.filter((s) => s.registros.length > 0).length)} small />
+          <Stat label="Fora da faixa" value={String(alertas)} tone={alertas > 0 ? "red" : "green"} small />
+          <Stat label="Auditorias" value={String(d.auditorias.length)} small />
+        </View>
+        <Section title="Resumo do período" hint="Quantidade de registros finalizados por tipo de controle.">
+          <Table<{ tipo: string; n: number; alertas: number }>
+            rows={d.secoes.map((s) => ({ tipo: s.tipo.nome, n: s.registros.length, alertas: s.registros.reduce((m, r) => m + r.alertas.length, 0) }))}
+            empty="Nenhum controle finalizado no período."
+            columns={[
+              { key: "t", label: "Controle", width: "64%", render: (r) => r.tipo },
+              { key: "n", label: "Registros", width: "18%", align: "right", render: (r) => String(r.n) },
+              { key: "a", label: "Fora da faixa", width: "18%", align: "right", render: (r) => <Text style={[styles.td, { textAlign: "right", color: r.alertas > 0 ? COLORS.red : COLORS.ink }]}>{String(r.alertas)}</Text> },
+            ]}
+          />
+        </Section>
+        {d.auditorias.length > 0 ? (
+          <Section title="Auditorias nutricionais do período" hint="Relatório individual de cada auditoria disponível no app (Histórico).">
+            <Table<DossieReportData["auditorias"][number]>
+              rows={d.auditorias}
+              columns={[
+                { key: "d", label: "Data", width: "20%", render: (r) => r.data },
+                { key: "n", label: "Nutricionista", width: "44%", render: (r) => r.nutricionista },
+                { key: "nota", label: "Nota", width: "16%", align: "right", render: (r) => r.nota },
+                { key: "c", label: "Classificação", width: "20%", render: (r) => r.classificacao },
+              ]}
+            />
+          </Section>
+        ) : null}
+        {total === 0 ? <Empty text="Nenhum controle finalizado neste período." /> : null}
+        {d.secoes
+          .filter((s) => s.registros.length > 0)
+          .map((s) => (
+            <View key={s.tipo.codigo} break>
+              <Text style={{ fontSize: 13, fontFamily: "Helvetica-Bold", marginBottom: 2 }}>{s.tipo.nome}</Text>
+              <Text style={{ fontSize: 8.5, color: COLORS.muted, marginBottom: 8 }}>
+                {s.tipo.descricao}
+                {s.tipo.base ? ` ${s.tipo.base}` : ""}
+              </Text>
+              {s.registros.map((r) => (
+                <Registro key={r.id} r={r} tipo={s.tipo} compact />
+              ))}
+            </View>
+          ))}
+        <View style={styles.signature} wrap={false}>
+          <Text style={styles.signatureBox}>Equipe de nutrição</Text>
           <Text style={styles.signatureBox}>Responsável da unidade: {d.unidade.supervisor_nome ?? "____________________"}</Text>
         </View>
         <PageFooter left={footer} />
