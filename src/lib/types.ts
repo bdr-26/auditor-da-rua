@@ -329,3 +329,37 @@ export interface AppSetting {
   descricao: string | null;
   updated_at: string;
 }
+
+// ---------- Módulo nutricional: agenda da equipe e controles ----------
+export type NutriAgendaTipo = "auditoria" | "controles" | "outro";
+export type NutriAgendaStatus = "prevista" | "concluida" | "cancelada";
+export interface NutriAgendaItem {
+  id: string;
+  data: string;
+  responsavel_id: string;
+  unit_id: string | null;
+  tipo: NutriAgendaTipo;
+  descricao: string | null;
+  status: NutriAgendaStatus;
+  concluida_em: string | null;
+  audit_id: string | null;
+  criado_por: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type NutriControleStatus = "rascunho" | "finalizado";
+export interface NutriControle {
+  id: string;
+  tipo: string;
+  unit_id: string;
+  data: string;
+  responsavel_id: string;
+  status: NutriControleStatus;
+  dados: unknown;
+  observacoes: string | null;
+  finalizado_em: string | null;
+  finalizado_por: string | null;
+  created_at: string;
+  updated_at: string;
+}
