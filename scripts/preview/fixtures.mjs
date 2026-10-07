@@ -112,6 +112,7 @@ export const FK = {
   demanda_anexos: { demanda_id: "demandas", user_id: "profiles" },
   nutri_agenda: { responsavel_id: "profiles", unit_id: "units", audit_id: "audits", criado_por: "profiles", rotina_id: "nutri_rotinas" },
   nutri_rotinas: { unit_id: "units", responsavel_id: "profiles", criado_por: "profiles" },
+  nutri_equipamentos: { unit_id: "units" },
   nutri_controles: { unit_id: "units", responsavel_id: "profiles", finalizado_por: "profiles" },
 };
 
@@ -199,6 +200,7 @@ export const TABLE_DEFAULTS = {
   demanda_anexos: { mime: null, tamanho: null },
   nutri_agenda: { unit_id: null, tipo: "auditoria", descricao: null, status: "prevista", concluida_em: null, audit_id: null, criado_por: null, rotina_id: null },
   nutri_rotinas: { tipo: "auditoria", frequencia: "semanal", dias_semana: [], dia_mes: null, descricao: null, ativa: true, criado_por: null },
+  nutri_equipamentos: { area: null, ordem: 0, ativo: true },
   nutri_controles: { status: "rascunho", dados: {}, observacoes: null, finalizado_em: null, finalizado_por: null },
   notifications_log: { user_id: null, chave_dedup: null, url: null },
   push_subscriptions: { user_agent: null },
@@ -231,6 +233,7 @@ export const TIMESTAMP_COLS = {
   demanda_anexos: ["created_at"],
   nutri_agenda: ["created_at", "updated_at"],
   nutri_rotinas: ["created_at", "updated_at"],
+  nutri_equipamentos: ["created_at", "updated_at"],
   nutri_controles: ["created_at", "updated_at"],
   app_settings: ["updated_at"],
 };
@@ -783,6 +786,7 @@ export function buildFixtures(today = todaySP()) {
     demanda_anexos: [],
     nutri_agenda: [],
     nutri_rotinas: [],
+    nutri_equipamentos: [],
     nutri_controles: [],
     push_subscriptions: [],
     notifications_log: [],
@@ -930,6 +934,18 @@ export function buildFixtures(today = todaySP()) {
     ] },
     observacoes: "Maria sem touca; orientada.", finalizado_em: atSP(addDays(today, -1), "17:30"), finalizado_por: USERS.lais.id, created_at: atSP(addDays(today, -1), "15:00"), updated_at: atSP(addDays(today, -1), "17:30"),
   });
+  // equipamentos de Moema Delivery (planilha de temperatura de equipamentos do Drive)
+  [
+    ["Geladeira nº 02", "Geladeira", "Produção"], ["Geladeira nº 05", "Geladeira", "Produção"], ["Geladeira nº 06", "Geladeira", "Produção"], ["Geladeira nº 09", "Geladeira", "Produção"],
+    ["Geladeira nº 01", "Geladeira", "Delivery"], ["Geladeira nº 03", "Geladeira", "Delivery"], ["Geladeira nº 04", "Geladeira", "Delivery"], ["Freezer nº 05", "Freezer", "Delivery"],
+    ["Pista quente nº 02", "Pista quente", "Delivery"], ["Pista quente nº 01", "Pista quente", "Delivery"], ["Pista fria nº 01", "Pista fria", "Delivery"],
+    ["Geladeira nº 07", "Geladeira", "Açougue"],
+    ["Freezer nº 08", "Freezer", "Estoque 1"], ["Geladeira nº 08", "Geladeira", "Estoque 1"], ["Freezer nº 01", "Freezer", "Estoque 1"], ["Freezer nº 03", "Freezer", "Estoque 1"], ["Freezer nº 04", "Freezer", "Estoque 1"],
+    ["Freezer nº 07", "Freezer", "Estoque 2"],
+  ].forEach(([nome, tipo, area], i) => t.nutri_equipamentos.push({ id: uuid(`equip:moema-delivery:${nome}`), unit_id: UNIT_IDS["moema-delivery"], nome, tipo, area, ordem: i + 1, ativo: true, created_at: baseCreated, updated_at: baseCreated }));
+  [["Geladeira nº 01", "Geladeira", "Cozinha"], ["Freezer nº 01", "Freezer", "Cozinha"], ["Pista fria nº 01", "Pista fria", "Cozinha"], ["Pista quente nº 01", "Pista quente", "Cozinha"]].forEach(([nome, tipo, area], i) =>
+    t.nutri_equipamentos.push({ id: uuid(`equip:moema-salao:${nome}`), unit_id: UNIT_IDS["moema-salao"], nome, tipo, area, ordem: i + 1, ativo: true, created_at: baseCreated, updated_at: baseCreated }),
+  );
   // rotina padrão (áudios da Dani): Laís em Moema todo dia; Letícia em Imigrantes às quartas; Dani no Café dia 10
   const rotinaSeed = [
     { k: "r1", unit: "moema-salao", resp: USERS.lais, frequencia: "semanal", dias_semana: [2, 3, 4, 5, 6, 0], descricao: "Auditoria diária + planilhas + amostras" },

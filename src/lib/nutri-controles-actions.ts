@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { isNutriChefe, requireProfile, type SessionProfile } from "./auth";
+import { getEquipamentos } from "./data/nutri-equipamentos";
 import { dadosIniciais, getControleTipo, parseDados, resumirControle, type ControleDados } from "./nutri/controle-tipos";
 import { createAdminClient } from "./supabase/admin";
 import type { NutriControle } from "./types";
@@ -30,9 +31,15 @@ export async function createControle(input: { tipo: string; unitId: string; data
     if (!input.unitId) throw new Error("Escolha a unidade.");
     if (!YMD.test(input.data)) throw new Error("Data inválida.");
     const admin = createAdminClient();
+    const dados = dadosIniciais(tipo);
+    // temperatura/manutenção: linhas vêm do cadastro de equipamentos da unidade (planilha de equipamentos)
+    if (tipo.inventario === "equipamentos") {
+      const equip = await getEquipamentos(admin, input.unitId);
+      if (equip.length > 0) dados.linhas = equip.map((e) => ({ nome: e.nome, tipo_equip: e.tipo, local: e.area ?? "" }));
+    }
     const { data, error } = await admin
       .from("nutri_controles")
-      .insert({ tipo: tipo.codigo, unit_id: input.unitId, data: input.data, responsavel_id: profile.id, status: "rascunho", dados: dadosIniciais(tipo) })
+      .insert({ tipo: tipo.codigo, unit_id: input.unitId, data: input.data, responsavel_id: profile.id, status: "rascunho", dados })
       .select("id")
       .single();
     if (error) throw error;
