@@ -9,6 +9,8 @@ export interface NutriReportApontamento {
   area: string;
   descricao: string;
   observacao: string | null;
+  corrigidoNaHora: boolean;
+  orientacao: string | null;
   fotos: NutriReportPhoto[];
   data?: string; // usado no mensal (dd/mm)
 }
@@ -48,12 +50,15 @@ export interface NutriAuditReportData {
   geradoEm: string;
   nota: number | null;
   classificacao: string | null;
-  totais: { conformes: number; nao_conformes: number; na: number; avaliados: number };
+  totais: { conformes: number; nao_conformes: number; na: number; avaliados: number; corrigidos: number };
   areas: NutriReportArea[];
   apontamentos: NutriReportApontamento[];
   pendencias: NutriReportPendencia[];
   fotosOmitidas: number;
+  /** Aprovação do supervisor da unidade (lado direito). */
   assinatura: ReportAssinatura | null;
+  /** Assinatura da equipe de qualidade (lado esquerdo). */
+  assinaturaAuditor: ReportAssinatura | null;
 }
 
 export interface NutriMonthlyAuditRow {

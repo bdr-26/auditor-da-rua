@@ -29,6 +29,8 @@ export interface UnitInput {
   ativa: boolean;
   entra_no_ranking: boolean;
   em_abertura: boolean;
+  /** Só nutrição (ex.: Café da Rua): fora da auditoria, rotação e ranking do gerente. */
+  somente_nutri: boolean;
   ordem_rotacao: number | null;
   supervisor_nome: string | null;
   endereco: string | null;
@@ -45,8 +47,9 @@ export async function saveUnit(input: UnitInput): Promise<AdminResult> {
       nome,
       tipo: input.tipo,
       ativa: input.ativa,
-      entra_no_ranking: input.tipo === "producao" ? false : input.entra_no_ranking,
+      entra_no_ranking: input.tipo === "producao" || input.somente_nutri ? false : input.entra_no_ranking,
       em_abertura: input.tipo === "producao" ? false : input.em_abertura,
+      somente_nutri: input.tipo === "producao" ? false : input.somente_nutri,
       supervisor_nome: input.supervisor_nome?.trim() || null,
       endereco: input.endereco?.trim() || null,
     };

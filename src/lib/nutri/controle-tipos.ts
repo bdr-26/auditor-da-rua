@@ -44,6 +44,10 @@ const num = (v: unknown): number | null => (v === "" || v == null || Number.isNa
 const SIM_NAO = ["Sim", "Não"];
 const SIM_NAO_NA = ["Sim", "Não", "N.A."];
 const CONF = ["Conforme", "Não conforme", "N.A."];
+const hojeYmd = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 
 /** Faixa por tipo de equipamento (°C). */
 const FAIXA_EQUIP: Record<string, { min?: number; max?: number }> = {
@@ -182,6 +186,62 @@ export const CONTROLE_TIPOS: ControleTipo[] = [
     campos: [
       { key: "ppm", label: "PPM medido", tipo: "select", opcoes: ["10", "50", "100", "200"], alerta: (v) => (v != null && v !== "" && String(v) !== "200" ? "abaixo de 200 PPM" : null) },
       { key: "tempo", label: "Tempo de imersão (min)", tipo: "number" },
+      { key: "obs", label: "Observação", tipo: "text" },
+    ],
+  },
+  {
+    codigo: "amostras",
+    nome: "Coleta de amostras",
+    curto: "Amostras",
+    descricao: "Só onde há produção/estagiária (Moema): amostras de cada preparação servida, duas coletas por dia.",
+    base: "Amostra de ~100 g por preparação, em embalagem higienizada e identificada (produto, data, hora, responsável), mantida sob refrigeração por 72 h e descartada depois.",
+    cabecalho: [
+      { key: "local", label: "Local", tipo: "select", opcoes: ["Salão", "Delivery", "Produção"], obrigatorio: true },
+      { key: "horario", label: "Horário da coleta", tipo: "time", obrigatorio: true },
+      { key: "coletado_por", label: "Quem coletou", tipo: "text" },
+    ],
+    linhaLabel: "Preparação",
+    linhasLivres: true,
+    campos: [
+      { key: "lote", label: "Lote", tipo: "text" },
+      { key: "temperatura", label: "Temperatura", tipo: "number", sufixo: "°C" },
+      { key: "identificada", label: "Identificada", tipo: "select", opcoes: SIM_NAO, alerta: (v) => (v === "Não" ? "amostra sem identificação" : null) },
+      { key: "descarte_em", label: "Descartar em", tipo: "date" },
+    ],
+  },
+  {
+    codigo: "conferencia_planilhas",
+    nome: "Conferência das planilhas da unidade",
+    curto: "Planilhas",
+    descricao: "Visita semanal: as planilhas que os funcionários preenchem no dia a dia foram feitas desde a última visita?",
+    base: "Marque a situação de cada planilha, os dias que faltaram e quem foi orientado. Vira pendência da próxima visita.",
+    cabecalho: [
+      { key: "periodo_inicio", label: "Período conferido — de", tipo: "date", obrigatorio: true },
+      { key: "periodo_fim", label: "até", tipo: "date", obrigatorio: true },
+    ],
+    linhaLabel: "Planilha",
+    linhasFixas: ["Temperatura dos equipamentos", "Temperatura na distribuição", "Óleo e gorduras", "Recebimento de mercadorias", "Alimentos transportados", "Higienização de hortifrúti", "Higienização / limpeza", "Manutenção"],
+    linhasLivres: true,
+    campos: [
+      { key: "situacao", label: "Situação", tipo: "select", opcoes: ["Preenchida", "Parcial", "Não preenchida", "N.A."], alerta: (v) => (v === "Parcial" ? "preenchimento parcial" : v === "Não preenchida" ? "não preenchida" : null) },
+      { key: "dias_faltantes", label: "Dias faltantes", tipo: "text", placeholder: "Ex.: 12 e 14/10" },
+      { key: "responsavel_loja", label: "Responsável na loja", tipo: "text" },
+      { key: "orientacao", label: "Orientação dada", tipo: "text" },
+    ],
+  },
+  {
+    codigo: "pasta_documentacao",
+    nome: "Pasta de documentação",
+    curto: "Pasta",
+    descricao: "Documentos obrigatórios da unidade: situação e vencimento de cada um.",
+    base: "Vencido ou ausente fica em vermelho. Preencha o vencimento para o app avisar quando estiver passando.",
+    cabecalho: [],
+    linhaLabel: "Documento",
+    linhasFixas: ["Alvará de funcionamento", "Licença sanitária (CMVS)", "AVCB / CLCB", "Controle integrado de pragas (certificado)", "Limpeza de caixa d'água / reservatório", "Análise de potabilidade da água", "Manual de boas práticas", "POPs (procedimentos operacionais)", "ASO / exames dos colaboradores", "Certificados de treinamento (boas práticas)", "Manutenção de coifa / exaustão"],
+    linhasLivres: true,
+    campos: [
+      { key: "situacao", label: "Situação", tipo: "select", opcoes: ["Em dia", "Vencido", "Ausente", "N.A."], alerta: (v) => (v === "Vencido" ? "documento vencido" : v === "Ausente" ? "documento ausente" : null) },
+      { key: "vencimento", label: "Vencimento", tipo: "date", alerta: (v) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && v < hojeYmd() ? "vencido" : null) },
       { key: "obs", label: "Observação", tipo: "text" },
     ],
   },

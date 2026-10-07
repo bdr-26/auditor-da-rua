@@ -80,6 +80,7 @@ export function UnitsManager({ units }: { units: Unit[] }) {
                       <Badge tone={u.ativa ? "green" : "gray"}>{u.ativa ? "ativa" : "inativa"}</Badge>
                       {u.entra_no_ranking && u.tipo === "loja" && <Badge tone="brand">ranking</Badge>}
                       {u.em_abertura && <Badge tone="brand">em abertura</Badge>}
+                      {u.somente_nutri && <Badge tone="gray">só nutrição</Badge>}
                       {u.nutri_checklist_em_revisao && <Badge tone="yellow">nutri em revisão</Badge>}
                     </span>
                   </td>

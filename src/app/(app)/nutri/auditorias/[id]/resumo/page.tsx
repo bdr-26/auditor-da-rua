@@ -41,11 +41,17 @@ export default async function NutriResumoPage({ params }: { params: Promise<{ id
   const resolvidas = pendings.filter((p) => p.resolvida === true);
   const mantidas = pendings.filter((p) => p.resolvida === false);
   const backHref = profile.role === "proprietario" ? `/dashboard/lojas/${unit.id}` : "/nutri";
+  const signedUrl = async (path: string | null) => (path ? (await supabase.storage.from("audit-photos").createSignedUrl(path, 60 * 60)).data?.signedUrl ?? null : null);
   let assinatura: SignatureInfo | null = null;
   if (audit.assinatura_nome && audit.assinada_em) {
-    const { data: s } = audit.assinatura_path ? await supabase.storage.from("audit-photos").createSignedUrl(audit.assinatura_path, 60 * 60) : { data: null };
-    assinatura = { nome: audit.assinatura_nome, cpf: audit.assinatura_cpf ?? "", cargo: audit.assinatura_cargo ?? "Supervisor(a)", assinadaEm: audit.assinada_em, imageUrl: s?.signedUrl ?? null };
+    assinatura = { nome: audit.assinatura_nome, cpf: audit.assinatura_cpf ?? "", cargo: audit.assinatura_cargo ?? "Supervisor(a)", assinadaEm: audit.assinada_em, imageUrl: await signedUrl(audit.assinatura_path) };
   }
+  let assinaturaAuditor: SignatureInfo | null = null;
+  if (audit.assinatura_auditor_nome && audit.assinada_auditor_em) {
+    assinaturaAuditor = { nome: audit.assinatura_auditor_nome, cpf: audit.assinatura_auditor_cpf ?? "", cargo: audit.assinatura_auditor_cargo ?? "Nutricionista", assinadaEm: audit.assinada_auditor_em, imageUrl: await signedUrl(audit.assinatura_auditor_path) };
+  }
+  const canSign = canManageAudit(profile, audit);
+  const corrigidos = answers.filter((a) => a.resposta === "nao_conforme" && a.corrigido_na_hora).length;
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
@@ -71,9 +77,10 @@ export default async function NutriResumoPage({ params }: { params: Promise<{ id
             <div className="font-semibold">{auditorNome}</div>
           </div>
         </div>
-        <div className="mt-3 flex justify-center gap-2 text-xs">
+        <div className="mt-3 flex flex-wrap justify-center gap-2 text-xs">
           <Badge tone="green">{score.conformes} conforme</Badge>
           <Badge tone="red">{score.nao_conformes} não conforme</Badge>
+          {corrigidos > 0 && <Badge tone="green">{corrigidos} corrigido{corrigidos === 1 ? "" : "s"} na hora</Badge>}
           <Badge tone="gray">{score.na} N/A</Badge>
         </div>
         {audit.concluida_em && <p className="mt-2 text-xs text-gray-400">concluída em {formatDateTimePT(audit.concluida_em)}</p>}
@@ -86,7 +93,12 @@ export default async function NutriResumoPage({ params }: { params: Promise<{ id
         )}
       </Card>
 
-      {!draft && <SignaturePad auditId={id} existing={assinatura} canSign={canManageAudit(profile, audit)} supervisorNome={unit.supervisor_nome} />}
+      {!draft && (
+        <>
+          <SignaturePad auditId={id} papel="auditor" existing={assinaturaAuditor} canSign={canSign} supervisorNome={auditorNome} defaultCargo={profile.role === "auditor_nutricao" && profile.nutri_nivel === "estagiaria" ? "Estagiária de nutrição" : "Nutricionista"} />
+          <SignaturePad auditId={id} existing={assinatura} canSign={canSign} supervisorNome={unit.supervisor_nome} />
+        </>
+      )}
 
       {!draft && (
         <ShareReport
@@ -122,8 +134,20 @@ export default async function NutriResumoPage({ params }: { params: Promise<{ id
                 <ul className="space-y-3">
                   {g.itens.map((i) => (
                     <li key={i.id} className="rounded-xl border border-red-100 bg-red-50/60 p-3">
-                      <p className="text-sm font-medium">{i.descricao}</p>
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-medium">{i.descricao}</p>
+                        {i.corrigido_na_hora && (
+                          <Badge tone="green" className="shrink-0">
+                            corrigido na hora
+                          </Badge>
+                        )}
+                      </div>
                       {i.observacao && <p className="mt-1 text-sm text-gray-700">{i.observacao}</p>}
+                      {i.orientacao && (
+                        <p className="mt-1 text-sm text-gray-700">
+                          <span className="font-medium">Orientação:</span> {i.orientacao}
+                        </p>
+                      )}
                       {i.photos.length > 0 && (
                         <div className="mt-2">
                           <PhotoGallery size="sm" photos={i.photos.map((p) => ({ id: p.id, url: urlByPath.get(p.path) ?? "" })).filter((p) => p.url)} />

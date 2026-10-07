@@ -17,6 +17,7 @@ export function UnitForm({ unit, onClose }: { unit?: Unit | null; onClose: () =>
     ativa: unit?.ativa ?? true,
     entra_no_ranking: unit?.entra_no_ranking ?? true,
     em_abertura: unit?.em_abertura ?? false,
+    somente_nutri: unit?.somente_nutri ?? false,
     ordem_rotacao: unit?.ordem_rotacao ?? null,
     supervisor_nome: unit?.supervisor_nome ?? "",
     endereco: unit?.endereco ?? "",
@@ -66,8 +67,11 @@ export function UnitForm({ unit, onClose }: { unit?: Unit | null; onClose: () =>
         <label className="flex items-center gap-2">
           <input type="checkbox" checked={form.ativa} onChange={(e) => set("ativa", e.target.checked)} className="h-5 w-5 accent-brand" /> Ativa
         </label>
+        <label className={cn("flex items-center gap-2", (form.tipo === "producao" || form.somente_nutri) && "opacity-50")}>
+          <input type="checkbox" checked={form.tipo === "producao" || form.somente_nutri ? false : form.entra_no_ranking} disabled={form.tipo === "producao" || form.somente_nutri} onChange={(e) => set("entra_no_ranking", e.target.checked)} className="h-5 w-5 accent-brand" /> Entra no ranking e na rotação
+        </label>
         <label className={cn("flex items-center gap-2", form.tipo === "producao" && "opacity-50")}>
-          <input type="checkbox" checked={form.tipo === "producao" ? false : form.entra_no_ranking} disabled={form.tipo === "producao"} onChange={(e) => set("entra_no_ranking", e.target.checked)} className="h-5 w-5 accent-brand" /> Entra no ranking e na rotação
+          <input type="checkbox" checked={form.tipo === "producao" ? false : form.somente_nutri} disabled={form.tipo === "producao"} onChange={(e) => set("somente_nutri", e.target.checked)} className="h-5 w-5 accent-brand" /> Só nutrição (fora da auditoria do gerente)
         </label>
         <label className={cn("flex items-center gap-2", form.tipo === "producao" && "opacity-50")}>
           <input type="checkbox" checked={form.tipo === "producao" ? false : form.em_abertura} disabled={form.tipo === "producao"} onChange={(e) => set("em_abertura", e.target.checked)} className="h-5 w-5 accent-brand" /> Em abertura (visita vira checklist, sem auditoria)
@@ -76,6 +80,11 @@ export function UnitForm({ unit, onClose }: { unit?: Unit | null; onClose: () =>
       {form.em_abertura && form.tipo !== "producao" && (
         <p className="rounded-lg bg-blue-50 p-3 text-xs text-blue-900">
           A loja continua na rotação do gerente, mas o dia dela é uma “visita de abertura”: ele cumpre as demandas do tipo “Checklist de abertura de nova loja” dessa loja. Desmarque quando a loja estiver operando para as auditorias passarem a valer.
+        </p>
+      )}
+      {form.somente_nutri && form.tipo !== "producao" && (
+        <p className="rounded-lg bg-blue-50 p-3 text-xs text-blue-900">
+          Unidade acompanhada só pela equipe de nutrição (ex.: Café da Rua): não aparece para o gerente, não entra na rotação nem no ranking. A nutrição faz auditorias, controles e a rotina normalmente.
         </p>
       )}
       {!unit && (

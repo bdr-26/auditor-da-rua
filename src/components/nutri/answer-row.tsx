@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import { Camera, Check, Loader2, Minus, X } from "lucide-react";
-import { Textarea } from "@/components/ui/form";
+import { Camera, Check, Loader2, Minus, Wrench, X } from "lucide-react";
+import { Input, Textarea } from "@/components/ui/form";
 import type { NutriFillAnswer } from "@/lib/data/nutri";
 import type { NutriAnswer } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -26,6 +26,8 @@ export function AnswerRow({
   highlight,
   onResposta,
   onObservacao,
+  onCorrigido,
+  onOrientacao,
   onAddPhotos,
   onRemovePhoto,
 }: {
@@ -36,6 +38,8 @@ export function AnswerRow({
   highlight?: boolean;
   onResposta: (resposta: NutriAnswer) => void;
   onObservacao: (texto: string) => void;
+  onCorrigido: (v: boolean) => void;
+  onOrientacao: (texto: string) => void;
   onAddPhotos: (files: FileList) => void;
   onRemovePhoto: (photoId: string, path: string) => void;
 }) {
@@ -82,6 +86,22 @@ export function AnswerRow({
               placeholder="Descreva o que foi encontrado…"
               className={cn(semApontamento && "border-red-300")}
             />
+          </label>
+
+          <button
+            type="button"
+            aria-pressed={answer.corrigido_na_hora}
+            onClick={() => onCorrigido(!answer.corrigido_na_hora)}
+            className={cn("flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm font-medium transition", answer.corrigido_na_hora ? "border-green-600 bg-green-600 text-white" : "border-gray-300 bg-white text-gray-700")}
+          >
+            <Wrench className="h-4 w-4 shrink-0" />
+            <span className="flex-1">Corrigido na hora{answer.corrigido_na_hora ? "" : "?"}</span>
+            <span className={cn("flex h-5 w-5 items-center justify-center rounded-full border", answer.corrigido_na_hora ? "border-white bg-white text-green-700" : "border-gray-300")}>{answer.corrigido_na_hora && <Check className="h-3.5 w-3.5" />}</span>
+          </button>
+
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium">Orientação dada (a quem e o quê)</span>
+            <Input value={answer.orientacao ?? ""} onChange={(e) => onOrientacao(e.target.value)} placeholder="Ex.: orientei o João a etiquetar ao abrir" />
           </label>
 
           <div>

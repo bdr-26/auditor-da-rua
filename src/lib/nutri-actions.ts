@@ -182,7 +182,7 @@ export async function concludeNutriAudit(auditId: string): Promise<ActionResult>
       nutri_entry_id: a.entry_id,
       nutri_item_id: a.item_id,
       descricao: a.descricao,
-      observacao_origem: (a.observacao ?? "").trim() || null,
+      observacao_origem: [(a.observacao ?? "").trim(), a.corrigido_na_hora ? "(corrigido na hora)" : ""].filter(Boolean).join(" ") || null,
       origem_audit_id: auditId,
       status: "aberta",
     }));

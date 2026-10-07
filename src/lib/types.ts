@@ -36,6 +36,8 @@ export interface Unit {
   nutri_checklist_em_revisao: boolean;
   /** Loja em abertura: fica na rotação como "visita de abertura" (checklist via demandas), sem auditoria. */
   em_abertura: boolean;
+  /** Unidade só da nutrição (ex.: Café da Rua): fora da auditoria, rotação e ranking do gerente. */
+  somente_nutri: boolean;
   created_at: string;
 }
 
@@ -106,6 +108,12 @@ export interface Audit {
   assinatura_path: string | null;
   assinada_em: string | null;
   assinatura_registrada_por: string | null;
+  /** Assinatura da equipe de qualidade (auditora) — lado esquerdo do relatório. */
+  assinatura_auditor_nome: string | null;
+  assinatura_auditor_cpf: string | null;
+  assinatura_auditor_cargo: string | null;
+  assinatura_auditor_path: string | null;
+  assinada_auditor_em: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -343,6 +351,27 @@ export interface NutriAgendaItem {
   status: NutriAgendaStatus;
   concluida_em: string | null;
   audit_id: string | null;
+  criado_por: string | null;
+  /** Preenchido quando a tarefa foi gerada pela rotina padrão. */
+  rotina_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type NutriRotinaFrequencia = "semanal" | "mensal";
+/** Rotina padrão da nutrição: visita recorrente de uma responsável a uma unidade. */
+export interface NutriRotina {
+  id: string;
+  unit_id: string;
+  responsavel_id: string;
+  tipo: NutriAgendaTipo;
+  frequencia: NutriRotinaFrequencia;
+  /** 0 = domingo … 6 = sábado (frequência semanal). */
+  dias_semana: number[];
+  /** 1–28 (frequência mensal). */
+  dia_mes: number | null;
+  descricao: string | null;
+  ativa: boolean;
   criado_por: string | null;
   created_at: string;
   updated_at: string;

@@ -83,6 +83,10 @@ export interface NutriFillAnswer {
   descricao: string;
   resposta: NutriAnswer | null;
   observacao: string | null;
+  /** Não conformidade corrigida na hora, junto com o funcionário. */
+  corrigido_na_hora: boolean;
+  /** Orientação dada (e a quem) sobre o item. */
+  orientacao: string | null;
   photos: NutriFillPhoto[];
 }
 
@@ -118,7 +122,7 @@ export async function getNutriAnswers(supabase: AnyClient, auditId: string): Pro
   const { data } = await supabase
     .from("audit_answers")
     .select(
-      "id, nutri_entry_id, nutri_item_id, nutri_item_version_id, nutri_area, nutri_peso, resposta, observacao, updated_at, nutri_item_versions(descricao), unit_nutri_checklist(area_ordem, ordem), audit_photos(id, storage_path, created_at)",
+      "id, nutri_entry_id, nutri_item_id, nutri_item_version_id, nutri_area, nutri_peso, resposta, observacao, corrigido_na_hora, orientacao, updated_at, nutri_item_versions(descricao), unit_nutri_checklist(area_ordem, ordem), audit_photos(id, storage_path, created_at)",
     )
     .eq("audit_id", auditId)
     .not("nutri_entry_id", "is", null);
@@ -131,6 +135,8 @@ export async function getNutriAnswers(supabase: AnyClient, auditId: string): Pro
     nutri_peso: string | number | null;
     resposta: NutriAnswer | null;
     observacao: string | null;
+    corrigido_na_hora: boolean | null;
+    orientacao: string | null;
     nutri_item_versions: { descricao: string } | { descricao: string }[] | null;
     unit_nutri_checklist: { area_ordem: number; ordem: number } | { area_ordem: number; ordem: number }[] | null;
     audit_photos: { id: string; storage_path: string; created_at: string }[] | null;
@@ -151,6 +157,8 @@ export async function getNutriAnswers(supabase: AnyClient, auditId: string): Pro
       descricao: version?.descricao ?? "(item sem texto)",
       resposta: r.resposta,
       observacao: r.observacao,
+      corrigido_na_hora: r.corrigido_na_hora === true,
+      orientacao: r.orientacao,
       photos: (r.audit_photos ?? [])
         .sort((a, b) => a.created_at.localeCompare(b.created_at))
         .map((p) => ({ id: p.id, path: p.storage_path })),
