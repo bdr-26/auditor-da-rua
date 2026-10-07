@@ -263,9 +263,9 @@ async function ChefeHome({ profile }: { profile: { id: string; nome: string; rol
         )}
       </section>
 
-      <Link href="/nutri/checklists" className="flex items-center gap-3 rounded-2xl border border-line bg-white px-4 py-3 active:bg-surface-muted">
-        <ListChecks className="h-5 w-5 text-brand-dark" />
-        <span className="flex-1 text-sm font-medium">Checklists por unidade</span>
+      <Link href="/nutri/arquivo" className="flex items-center gap-3 rounded-2xl border border-line bg-white px-4 py-3 active:bg-surface-muted">
+        <Archive className="h-5 w-5 text-brand-dark" />
+        <span className="flex-1 text-sm font-medium">Arquivo de registros (impressão)</span>
         <ChevronRight className="h-4 w-4 text-gray-400" />
       </Link>
     </div>

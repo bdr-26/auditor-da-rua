@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Archive, FileText, Printer } from "lucide-react";
+import { PeriodoDossie } from "@/components/nutri/periodo-dossie";
 import { ShareReport } from "@/components/reports/share-report";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -97,6 +98,7 @@ export default async function ArquivoPage({ searchParams }: { searchParams: Prom
               </p>
               <ShareReport compact pdfUrl={`/api/nutri/controles/dossie?unit=${unit.id}&from=${from}&to=${to}`} fileName={`arquivo-registros-${unit.slug}-${year}.pdf`} title={`Arquivo de registros · ${unit.nome} · ${year}`} text={`Arquivo de registros de ${unit.nome} em ${year}: todos os controles de qualidade finalizados.`} />
             </div>
+            <PeriodoDossie unitId={unit.id} unitNome={unit.nome} unitSlug={unit.slug} today={today} />
             <p className="mt-2 text-[11px] text-gray-500">Registros finalizados não podem ser apagados; para corrigir, a chefe reabre e salva. Rascunhos só entram no arquivo depois de finalizados.</p>
           </Card>
 

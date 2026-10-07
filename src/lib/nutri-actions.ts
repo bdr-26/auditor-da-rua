@@ -17,6 +17,13 @@ export type ActionResult = { ok: true; info?: string } | { ok: false; error: str
 
 const CHECKLIST_ROLES = ["auditor_nutricao", "proprietario"] as const;
 
+/** Banco de itens e composição do checklist: só a nutricionista chefe ou o proprietário editam. */
+async function requireChecklistEditor(): Promise<Awaited<ReturnType<typeof requireProfile>>> {
+  const profile = await requireChecklistEditor();
+  if (profile.role === "auditor_nutricao" && !isNutriChefe(profile)) throw new Error("Só a nutricionista chefe altera o checklist.");
+  return profile;
+}
+
 function fail(error: string): ActionResult {
   return { ok: false, error };
 }
@@ -242,7 +249,7 @@ export async function discardNutriDraft(auditId: string): Promise<ActionResult> 
 // =====================================================================
 
 export async function createBankItem(input: { descricao: string; area_padrao: string; peso?: number }): Promise<ActionResult & { id?: string }> {
-  await requireProfile([...CHECKLIST_ROLES]);
+  await requireChecklistEditor();
   const descricao = String(input.descricao ?? "").trim();
   const area = String(input.area_padrao ?? "").trim();
   const peso = Number(input.peso ?? 1);
@@ -260,7 +267,7 @@ export async function createBankItem(input: { descricao: string; area_padrao: st
 
 /** Editar o texto cria uma nova versão (trigger no banco); auditorias antigas mantêm o texto da época. */
 export async function updateBankItem(id: string, input: { descricao?: string; peso?: number; area_padrao?: string }): Promise<ActionResult> {
-  await requireProfile([...CHECKLIST_ROLES]);
+  await requireChecklistEditor();
   const patch: Record<string, unknown> = {};
   if (input.descricao != null) {
     const d = String(input.descricao).trim();
@@ -287,7 +294,7 @@ export async function updateBankItem(id: string, input: { descricao?: string; pe
 
 /** Desativar esconde o item das listas de "incluir"; composições existentes continuam como estão. */
 export async function setBankItemActive(id: string, ativo: boolean): Promise<ActionResult> {
-  await requireProfile([...CHECKLIST_ROLES]);
+  await requireChecklistEditor();
   const supabase = await createClient();
   const { error } = await supabase.from("nutri_item_bank").update({ ativo }).eq("id", id);
   if (error) return fail("Não foi possível atualizar o item.");
@@ -315,7 +322,7 @@ async function nextOrdem(supabase: Db, unitId: string, area: string): Promise<nu
 
 /** Inclui um item do banco na composição da unidade (área existente ou nova). */
 export async function addBankItemToUnit(input: { unitId: string; bankItemId: string; area: string }): Promise<ActionResult> {
-  await requireProfile([...CHECKLIST_ROLES]);
+  await requireChecklistEditor();
   const area = String(input.area ?? "").trim();
   if (!area) return fail("Informe a área.");
   const supabase = await createClient();
@@ -330,7 +337,7 @@ export async function addBankItemToUnit(input: { unitId: string; bankItemId: str
 
 /** Cria um item novo no banco (área padrão = área escolhida) e já inclui na unidade. */
 export async function createItemForUnit(input: { unitId: string; descricao: string; area: string; peso?: number }): Promise<ActionResult> {
-  await requireProfile([...CHECKLIST_ROLES]);
+  await requireChecklistEditor();
   const descricao = String(input.descricao ?? "").trim();
   const area = String(input.area ?? "").trim();
   const peso = Number(input.peso ?? 1);
@@ -351,7 +358,7 @@ export async function createItemForUnit(input: { unitId: string; descricao: stri
 
 /** Pausar / reativar uma entrada (preserva histórico). */
 export async function setEntryStatus(entryId: string, status: NutriItemStatus): Promise<ActionResult> {
-  await requireProfile([...CHECKLIST_ROLES]);
+  await requireChecklistEditor();
   const supabase = await createClient();
   const { data, error } = await supabase.from("unit_nutri_checklist").update({ status }).eq("id", entryId).select("unit_id").maybeSingle();
   if (error || !data) return fail("Não foi possível atualizar o item.");
@@ -364,7 +371,7 @@ export async function setEntryStatus(entryId: string, status: NutriItemStatus): 
  * ela é pausada em vez de removida (mantém a integridade do histórico).
  */
 export async function removeEntry(entryId: string): Promise<ActionResult> {
-  await requireProfile([...CHECKLIST_ROLES]);
+  await requireChecklistEditor();
   const supabase = await createClient();
   const { data: entry } = await supabase.from("unit_nutri_checklist").select("id, unit_id").eq("id", entryId).maybeSingle();
   if (!entry) return fail("Item não encontrado.");
@@ -387,7 +394,7 @@ export async function removeEntry(entryId: string): Promise<ActionResult> {
 
 /** Move a entrada uma posição para cima ou para baixo dentro da área (renumera a área). */
 export async function moveEntry(entryId: string, dir: "up" | "down"): Promise<ActionResult> {
-  await requireProfile([...CHECKLIST_ROLES]);
+  await requireChecklistEditor();
   const supabase = await createClient();
   const { data: entry } = await supabase.from("unit_nutri_checklist").select("id, unit_id, area").eq("id", entryId).maybeSingle();
   if (!entry) return fail("Item não encontrado.");
@@ -407,7 +414,7 @@ export async function moveEntry(entryId: string, dir: "up" | "down"): Promise<Ac
 
 /** Move a área inteira uma posição para cima/baixo (renumera area_ordem de todas as áreas da unidade). */
 export async function moveArea(unitId: string, area: string, dir: "up" | "down"): Promise<ActionResult> {
-  await requireProfile([...CHECKLIST_ROLES]);
+  await requireChecklistEditor();
   const supabase = await createClient();
   const areas = (await getUnitComposition(supabase, unitId)).map((a) => a.area);
   const i = areas.indexOf(area);
@@ -424,7 +431,7 @@ export async function moveArea(unitId: string, area: string, dir: "up" | "down")
 
 /** Renomeia a área (todas as entradas da unidade nessa área). */
 export async function renameArea(unitId: string, from: string, to: string): Promise<ActionResult> {
-  await requireProfile([...CHECKLIST_ROLES]);
+  await requireChecklistEditor();
   const novo = String(to ?? "").trim();
   if (!novo) return fail("Informe o nome da área.");
   if (novo === from) return { ok: true };
@@ -439,7 +446,7 @@ export async function renameArea(unitId: string, from: string, to: string): Prom
 
 /** Marca/desmarca "checklist em revisão" da unidade. */
 export async function setUnitRevisao(unitId: string, emRevisao: boolean): Promise<ActionResult> {
-  await requireProfile([...CHECKLIST_ROLES]);
+  await requireChecklistEditor();
   // RLS de units só permite escrita do proprietário; a nutricionista também pode validar → service_role após checar o papel
   const admin = createAdminClient();
   const { error } = await admin.from("units").update({ nutri_checklist_em_revisao: emRevisao }).eq("id", unitId);
@@ -451,7 +458,7 @@ export async function setUnitRevisao(unitId: string, emRevisao: boolean): Promis
 
 /** Copia a composição de outra unidade (adiciona só o que ainda não existe). */
 export async function copyComposition(targetUnitId: string, sourceUnitId: string): Promise<ActionResult> {
-  await requireProfile([...CHECKLIST_ROLES]);
+  await requireChecklistEditor();
   if (targetUnitId === sourceUnitId) return fail("Escolha uma unidade diferente.");
   const supabase = await createClient();
   const [source, target] = await Promise.all([getUnitComposition(supabase, sourceUnitId), getUnitComposition(supabase, targetUnitId)]);
