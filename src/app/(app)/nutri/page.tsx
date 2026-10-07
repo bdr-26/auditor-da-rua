@@ -210,7 +210,7 @@ async function ChefeHome({ profile }: { profile: { id: string; nome: string; rol
           </CardTitle>
           <div className="space-y-2">
             {[...ov.agendaAtrasada, ...ov.agendaHoje].slice(0, 6).map((it) => (
-              <AgendaItemRow key={it.id} item={it} unitName={it.unit_id ? unitName.get(it.unit_id) ?? null : null} responsavelNome={nome.get(it.responsavel_id) ?? null} isChefe isMine={it.responsavel_id === profile.id} today={today} />
+              <AgendaItemRow key={it.id} item={it} unitName={it.unit_id ? unitName.get(it.unit_id) ?? null : null} responsavelNome={nome.get(it.responsavel_id) ?? null} isChefe isMine={it.responsavel_id === profile.id} today={today} atalhos={isNutri} />
             ))}
           </div>
         </Card>
@@ -314,23 +314,7 @@ async function EstagiariaHome({ profile }: { profile: { id: string; nome: string
         ) : (
           <div className="space-y-2">
             {agendaHoje.map((it) => (
-              <div key={it.id}>
-                <AgendaItemRow item={it} unitName={it.unit_id ? unitName.get(it.unit_id) ?? null : null} responsavelNome={null} isChefe={false} isMine today={today} />
-                {it.unit_id && it.status === "prevista" && (
-                  <div className="mt-1 flex gap-2 pl-1 text-xs">
-                    {it.tipo !== "controles" && (
-                      <Link href={`/nutri/nova?unit=${it.unit_id}`} className="font-medium text-brand-dark">
-                        Iniciar auditoria →
-                      </Link>
-                    )}
-                    {it.tipo !== "auditoria" && (
-                      <Link href={`/nutri/controles/novo?loja=${it.unit_id}`} className="font-medium text-brand-dark">
-                        Preencher controle →
-                      </Link>
-                    )}
-                  </div>
-                )}
-              </div>
+              <AgendaItemRow key={it.id} item={it} unitName={it.unit_id ? unitName.get(it.unit_id) ?? null : null} responsavelNome={null} isChefe={false} isMine today={today} atalhos />
             ))}
           </div>
         )}
