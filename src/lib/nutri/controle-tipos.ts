@@ -15,6 +15,8 @@ export interface Campo {
   placeholder?: string;
   /** Avalia o valor e devolve um alerta (ex.: fora da faixa) ou null. */
   alerta?: (valor: unknown, linha: Record<string, unknown>) => string | null;
+  /** Campo de data de vencimento: entra na lista de "vencimentos" (vencidos / próximos 30 dias). */
+  vencimento?: boolean;
 }
 
 export interface ControleTipo {
@@ -241,7 +243,27 @@ export const CONTROLE_TIPOS: ControleTipo[] = [
     linhasLivres: true,
     campos: [
       { key: "situacao", label: "Situação", tipo: "select", opcoes: ["Em dia", "Vencido", "Ausente", "N.A."], alerta: (v) => (v === "Vencido" ? "documento vencido" : v === "Ausente" ? "documento ausente" : null) },
-      { key: "vencimento", label: "Vencimento", tipo: "date", alerta: (v) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && v < hojeYmd() ? "vencido" : null) },
+      { key: "vencimento", label: "Vencimento", tipo: "date", vencimento: true, alerta: (v) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && v < hojeYmd() ? "vencido" : null) },
+      { key: "obs", label: "Observação", tipo: "text" },
+    ],
+  },
+  {
+    codigo: "enxoval_rh",
+    nome: "Enxoval de RH (uniforme, EPIs, exames)",
+    curto: "RH / EPIs",
+    descricao: "Por colaborador: cargo, uniforme e EPIs entregues, termo assinado, ASO e treinamento de boas práticas.",
+    base: "Todo colaborador com uniforme completo, EPIs do cargo entregues com termo assinado, ASO válido e treinamento de boas práticas registrado. ASO vencido fica em vermelho e entra nos vencimentos.",
+    cabecalho: [],
+    linhaLabel: "Colaborador",
+    linhasLivres: true,
+    campos: [
+      { key: "cargo", label: "Cargo", tipo: "select", opcoes: ["Chapeiro(a)", "Auxiliar de cozinha", "Atendente", "Supervisor(a)", "Entregador(a)", "Produção", "Outro"] },
+      { key: "uniforme", label: "Uniforme completo", tipo: "select", opcoes: SIM_NAO, alerta: (v) => (v === "Não" ? "uniforme incompleto" : null) },
+      { key: "epis", label: "EPIs entregues", tipo: "text", placeholder: "Ex.: luva térmica, avental, sapato antiderrapante" },
+      { key: "termo_epi", label: "Termo de EPI assinado", tipo: "select", opcoes: SIM_NAO_NA, alerta: (v) => (v === "Não" ? "termo não assinado" : null) },
+      { key: "termo_data", label: "Data do termo", tipo: "date" },
+      { key: "aso_validade", label: "ASO válido até", tipo: "date", vencimento: true, alerta: (v) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && v < hojeYmd() ? "ASO vencido" : null) },
+      { key: "treinamento_data", label: "Treinamento boas práticas", tipo: "date" },
       { key: "obs", label: "Observação", tipo: "text" },
     ],
   },

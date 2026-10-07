@@ -1,11 +1,12 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AUDIT_TYPE_LABELS, NUTRI_AGENDA_TIPO_LABELS } from "../constants";
-import { addDays, todaySP } from "../dates";
+import { addDays, formatDateShortPT, todaySP, weekday } from "../dates";
+import { getVencimentos } from "../data/nutri-vencimentos";
 import { materializeNutriRotinas } from "../nutri/rotinas-sync";
-import { appUrl, sendPushToUsers } from "../push";
+import { appUrl, ownerIds, sendPushToUsers } from "../push";
 import { ensureSchedule } from "../schedule-sync";
-import type { AuditType, NutriAgendaItem, ScheduleDay } from "../types";
+import type { AuditType, NutriAgendaItem, ScheduleDay, Unit } from "../types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AdminClient = SupabaseClient<any, any, any>;
@@ -24,7 +25,7 @@ export interface DailyReminderResult {
   }[];
   motivo?: string;
   /** Rotina padrão da nutrição materializada + lembretes do dia para a equipe nutri. */
-  nutri?: { agenda_criada: number; lembretes: { responsavel_id: string; tarefas: number; enviados: number; pulados: number }[]; erro?: string };
+  nutri?: { agenda_criada: number; lembretes: { responsavel_id: string; tarefas: number; enviados: number; pulados: number }[]; vencimentos?: { vencidos: number; proximos: number; enviados: number }; erro?: string };
 }
 
 /**
@@ -125,11 +126,35 @@ async function nutriDailyReminder(admin: AdminClient, data: string): Promise<Non
       });
       out.lembretes.push({ responsavel_id: responsavelId, tarefas: ts.length, enviados: r.enviados, pulados: r.pulados });
     }
+    out.vencimentos = await avisarVencimentos(admin, data);
   } catch (e) {
     console.error("[cron] rotina nutri", e);
     out.erro = (e as Error).message;
   }
   return out;
+}
+
+/**
+ * Segunda-feira (ou primeira execução da semana): avisa chefe e proprietários dos documentos/exames
+ * vencidos ou vencendo em 30 dias. Dedup por semana (`vencimentos:${segunda}`).
+ */
+async function avisarVencimentos(admin: AdminClient, data: string): Promise<{ vencidos: number; proximos: number; enviados: number }> {
+  const { data: units } = await admin.from("units").select("*").eq("ativa", true);
+  const lista = await getVencimentos(admin, (units ?? []) as Unit[]);
+  const vencidos = lista.filter((v) => v.dias < 0).length;
+  const proximos = lista.length - vencidos;
+  if (lista.length === 0) return { vencidos, proximos, enviados: 0 };
+  const segunda = addDays(data, -((weekday(data) + 6) % 7));
+  const { data: chefes } = await admin.from("profiles").select("id").eq("role", "auditor_nutricao").eq("nutri_nivel", "chefe").eq("ativo", true);
+  const destinatarios = Array.from(new Set([...(chefes ?? []).map((p) => p.id as string), ...(await ownerIds(admin))]));
+  const primeiro = lista[0];
+  const r = await sendPushToUsers(admin, destinatarios, "nutri_vencimentos", `vencimentos:${segunda}`, {
+    titulo: vencidos > 0 ? `${vencidos} documento${vencidos === 1 ? "" : "s"}/exame${vencidos === 1 ? "" : "s"} vencido${vencidos === 1 ? "" : "s"}` : `${proximos} vencimento${proximos === 1 ? "" : "s"} nos próximos 30 dias`,
+    corpo: `${primeiro.item} · ${primeiro.unidade} · ${formatDateShortPT(primeiro.data)}${lista.length > 1 ? ` e mais ${lista.length - 1}` : ""}`,
+    url: appUrl("/nutri"),
+    tag: `vencimentos-${segunda}`,
+  });
+  return { vencidos, proximos, enviados: r.enviados };
 }
 
 async function activeGeneralAuditors(admin: AdminClient): Promise<string[]> {

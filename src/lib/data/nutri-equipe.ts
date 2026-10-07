@@ -4,6 +4,7 @@ import { CONTROLE_TIPOS } from "../nutri/controle-tipos";
 import type { Audit, NutriAgendaItem, NutriControle, Unit } from "../types";
 import { getNutriAgenda, getNutriTeam } from "./nutri-agenda";
 import { getControles } from "./nutri-controles";
+import { getVencimentos, type Vencimento } from "./nutri-vencimentos";
 import { getNutriAudits } from "./nutri";
 import { getUnits } from "./units";
 
@@ -34,6 +35,8 @@ export interface EquipeOverview {
   agendaHoje: NutriAgendaItem[];
   agendaAtrasada: NutriAgendaItem[];
   units: Unit[];
+  /** vencidos e vencendo em 30 dias (pasta de documentação, ASO) */
+  vencimentos: Vencimento[];
 }
 
 /** Visão da nutricionista chefe: equipe, rascunhos abertos, conferência dos controles e agenda. */
@@ -51,6 +54,7 @@ export async function getEquipeOverview(supabase: AnyClient, mesInput?: string):
     getNutriAgenda(supabase, { from: addMonths(mes, -1), to: fim, status: ["prevista"] }),
   ]);
   const doMes = auditsMes.filter((a) => a.data >= mes && a.data < fim);
+  const vencimentos = await getVencimentos(supabase, units);
 
   const membros: MembroStats[] = team.map((m) => {
     const minhas = doMes.filter((a) => a.auditor_id === m.id);
@@ -89,5 +93,6 @@ export async function getEquipeOverview(supabase: AnyClient, mesInput?: string):
     agendaHoje: agenda.filter((t) => t.data === today),
     agendaAtrasada: agenda.filter((t) => t.data < today),
     units,
+    vencimentos,
   };
 }
