@@ -51,10 +51,12 @@ export function toneOfNutri(classificacao: string | null): Tone {
     case "Excelente":
       return "green";
     case "Satisfatório":
+    case "Bom":
       return "yellow";
     case "Insatisfatório":
       return "orange";
     case "Crítico":
+    case "Regular":
       return "red";
     default:
       return "gray";

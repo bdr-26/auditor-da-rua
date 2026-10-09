@@ -113,6 +113,7 @@ export const FK = {
   nutri_agenda: { responsavel_id: "profiles", unit_id: "units", audit_id: "audits", criado_por: "profiles", rotina_id: "nutri_rotinas" },
   nutri_rotinas: { unit_id: "units", responsavel_id: "profiles", criado_por: "profiles" },
   nutri_equipamentos: { unit_id: "units" },
+  nutri_catalogo: {},
   nutri_controles: { unit_id: "units", responsavel_id: "profiles", finalizado_por: "profiles" },
 };
 
@@ -201,6 +202,7 @@ export const TABLE_DEFAULTS = {
   nutri_agenda: { unit_id: null, tipo: "auditoria", descricao: null, status: "prevista", concluida_em: null, audit_id: null, criado_por: null, rotina_id: null },
   nutri_rotinas: { tipo: "auditoria", frequencia: "semanal", dias_semana: [], dia_mes: null, descricao: null, ativa: true, criado_por: null },
   nutri_equipamentos: { area: null, ordem: 0, ativo: true },
+  nutri_catalogo: { detalhe: null, ativo: true, ordem: 0 },
   nutri_controles: { status: "rascunho", dados: {}, observacoes: null, finalizado_em: null, finalizado_por: null },
   notifications_log: { user_id: null, chave_dedup: null, url: null },
   push_subscriptions: { user_agent: null },
@@ -234,6 +236,7 @@ export const TIMESTAMP_COLS = {
   nutri_agenda: ["created_at", "updated_at"],
   nutri_rotinas: ["created_at", "updated_at"],
   nutri_equipamentos: ["created_at", "updated_at"],
+  nutri_catalogo: ["created_at", "updated_at"],
   nutri_controles: ["created_at", "updated_at"],
   app_settings: ["updated_at"],
 };
@@ -618,16 +621,16 @@ export function computeAuditScore(tipo, blocks, answers) {
 }
 
 const NUTRI_BANDS = [
-  { nome: "Excelente", min: 91 },
-  { nome: "Satisfatório", min: 80 },
-  { nome: "Insatisfatório", min: 50 },
-  { nome: "Crítico", min: 0 },
+  { nome: "Excelente", min: 95 },
+  { nome: "Bom", min: 80 },
+  { nome: "Regular", min: 60 },
+  { nome: "Insatisfatório", min: 0 },
 ];
 function classifyNutri(nota) {
   if (nota == null) return null;
   const r = Math.round(nota);
   for (const b of NUTRI_BANDS) if (r >= b.min) return b.nome;
-  return "Crítico";
+  return "Insatisfatório";
 }
 /** Port de computeNutriScore (src/lib/domain/nutri.ts) → nota, classificação e notas_blocos por área. */
 function computeNutri(answers) {
@@ -787,6 +790,7 @@ export function buildFixtures(today = todaySP()) {
     nutri_agenda: [],
     nutri_rotinas: [],
     nutri_equipamentos: [],
+    nutri_catalogo: [],
     nutri_controles: [],
     push_subscriptions: [],
     notifications_log: [],
@@ -941,11 +945,20 @@ export function buildFixtures(today = todaySP()) {
     ["Pista quente nº 02", "Pista quente", "Delivery"], ["Pista quente nº 01", "Pista quente", "Delivery"], ["Pista fria nº 01", "Pista fria", "Delivery"],
     ["Geladeira nº 07", "Geladeira", "Açougue"],
     ["Freezer nº 08", "Freezer", "Estoque 1"], ["Geladeira nº 08", "Geladeira", "Estoque 1"], ["Freezer nº 01", "Freezer", "Estoque 1"], ["Freezer nº 03", "Freezer", "Estoque 1"], ["Freezer nº 04", "Freezer", "Estoque 1"],
-    ["Freezer nº 07", "Freezer", "Estoque 2"],
+    ["Freezer nº 07", "Freezer", "Produção"], ["Geladeira nº 10", "Geladeira", "Delivery"],
   ].forEach(([nome, tipo, area], i) => t.nutri_equipamentos.push({ id: uuid(`equip:moema-delivery:${nome}`), unit_id: UNIT_IDS["moema-delivery"], nome, tipo, area, ordem: i + 1, ativo: true, created_at: baseCreated, updated_at: baseCreated }));
   [["Geladeira nº 01", "Geladeira", "Cozinha"], ["Freezer nº 01", "Freezer", "Cozinha"], ["Pista fria nº 01", "Pista fria", "Cozinha"], ["Pista quente nº 01", "Pista quente", "Cozinha"]].forEach(([nome, tipo, area], i) =>
     t.nutri_equipamentos.push({ id: uuid(`equip:moema-salao:${nome}`), unit_id: UNIT_IDS["moema-salao"], nome, tipo, area, ordem: i + 1, ativo: true, created_at: baseCreated, updated_at: baseCreated }),
   );
+  // catálogos (fornecedores com CNPJ, produtos, marcas, preparações, hortifrútis)
+  const catalogoSeed = [
+    ["fornecedor", "Frigorífico Boi Bom Ltda", "12.345.678/0001-90"], ["fornecedor", "Laticínios Serra Azul", "98.765.432/0001-10"], ["fornecedor", "Hortifruti Central", "11.222.333/0001-44"],
+    ["produto", "Carne de hambúrguer 160 g"], ["produto", "Queijo cheddar fatiado"], ["produto", "Bacon em cubos"], ["produto", "Pão brioche"],
+    ["marca", "Boi Bom"], ["marca", "Serra Azul"], ["marca", "Da Rua"],
+    ["preparacao", "Cebola caramelizada"], ["preparacao", "Maionese da Rua"], ["preparacao", "Molho caipira"], ["preparacao", "Carne de hambúrguer"],
+    ["hortifruti", "Alface"], ["hortifruti", "Tomate"], ["hortifruti", "Cebola"], ["hortifruti", "Limão"],
+  ];
+  catalogoSeed.forEach(([categoria, nome, detalhe], i) => t.nutri_catalogo.push({ id: uuid(`cat:${categoria}:${nome}`), categoria, nome, detalhe: detalhe ?? null, ativo: true, ordem: i + 1, created_at: baseCreated, updated_at: baseCreated }));
   // rotina padrão (áudios da Dani): Laís em Moema todo dia; Letícia em Imigrantes às quartas; Dani no Café dia 10
   const rotinaSeed = [
     { k: "r1", unit: "moema-salao", resp: USERS.lais, frequencia: "semanal", dias_semana: [2, 3, 4, 5, 6, 0], descricao: "Auditoria diária + planilhas + amostras" },
@@ -959,9 +972,9 @@ export function buildFixtures(today = todaySP()) {
   t.nutri_controles.push({
     id: uuid("nctrl:1"), tipo: "temperatura_equipamentos", unit_id: UNIT_IDS["moema-salao"], data: addDays(today, -1), responsavel_id: USERS.lais.id, status: "finalizado",
     dados: { cabecalho: { termometro: "Espeto digital 2" }, linhas: [
-      { nome: "Refrigerador 1", tipo_equip: "Refrigerador", local: "Cozinha", temp_manha: 4, temp_tarde: 6.5, acao: "Ajustado termostato" },
-      { nome: "Freezer 1", tipo_equip: "Freezer", local: "Estoque", temp_manha: -16, temp_tarde: -15 },
-      { nome: "Pista fria", tipo_equip: "Pista fria", local: "Linha", temp_manha: 3, temp_tarde: 4 },
+      { nome: "Refrigerador 1", tipo_equip: "Refrigerador", local: "Cozinha", temp1: 4, temp2: 6.5, acao: "Ajustado termostato" },
+      { nome: "Freezer 1", tipo_equip: "Freezer", local: "Estoque", temp1: -16, temp2: -15 },
+      { nome: "Pista fria", tipo_equip: "Pista fria", local: "Linha", temp1: 3, temp2: 4 },
     ] },
     observacoes: "Refrigerador 1 acima da faixa à tarde; técnico acionado.", finalizado_em: atSP(addDays(today, -1), "17:10"), finalizado_por: USERS.lais.id, created_at: atSP(addDays(today, -1), "15:00"), updated_at: atSP(addDays(today, -1), "17:10"),
   });

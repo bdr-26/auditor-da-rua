@@ -3,10 +3,11 @@ import { ControleForm } from "@/components/nutri/controle-form";
 import { ShareReport } from "@/components/reports/share-report";
 import { PageHeader } from "@/components/ui/page-header";
 import { isNutriChefe, requireProfile } from "@/lib/auth";
+import { getCatalogosParaForm } from "@/lib/data/nutri-catalogo";
 import { getControle } from "@/lib/data/nutri-controles";
 import { getUnit } from "@/lib/data/units";
 import { formatDatePT } from "@/lib/dates";
-import { getControleTipo, parseDados } from "@/lib/nutri/controle-tipos";
+import { fotosDoRegistro, getControleTipo, parseDados } from "@/lib/nutri/controle-tipos";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +21,14 @@ export default async function ControlePage({ params }: { params: Promise<{ id: s
   if (!c) notFound();
   const tipo = getControleTipo(c.tipo);
   if (!tipo) notFound();
-  const [unit, { data: resp }] = await Promise.all([getUnit(supabase, c.unit_id), supabase.from("profiles").select("nome").eq("id", c.responsavel_id).maybeSingle()]);
+  const [unit, { data: resp }, catalogos] = await Promise.all([getUnit(supabase, c.unit_id), supabase.from("profiles").select("nome").eq("id", c.responsavel_id).maybeSingle(), getCatalogosParaForm(supabase)]);
+  const dados = parseDados(c.dados, tipo);
+  const fotoUrls: Record<string, string> = {};
+  const paths = fotosDoRegistro(tipo, dados);
+  if (paths.length > 0) {
+    const { data: signed } = await supabase.storage.from("audit-photos").createSignedUrls(paths, 60 * 60);
+    for (const s of signed ?? []) if (s.path && s.signedUrl) fotoUrls[s.path] = s.signedUrl;
+  }
   const chefe = profile.role === "proprietario" || isNutriChefe(profile);
   const canEdit = chefe || (c.responsavel_id === profile.id && c.status === "rascunho");
   const unitName = unit?.nome ?? "Unidade";
@@ -38,7 +46,7 @@ export default async function ControlePage({ params }: { params: Promise<{ id: s
           text={`${tipo.nome} de ${unitName} em ${formatDatePT(c.data)}.`}
         />
       )}
-      <ControleForm controle={c} tipoCodigo={tipo.codigo} inicial={parseDados(c.dados, tipo)} unitName={unitName} canEdit={canEdit} isChefe={chefe} />
+      <ControleForm controle={c} tipoCodigo={tipo.codigo} inicial={dados} unitName={unitName} canEdit={canEdit} isChefe={chefe} catalogos={catalogos} fotoUrls={fotoUrls} />
     </div>
   );
 }

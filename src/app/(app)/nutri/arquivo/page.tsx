@@ -10,7 +10,7 @@ import { getControles } from "@/lib/data/nutri-controles";
 import { getNutriAudits } from "@/lib/data/nutri";
 import { getUnits } from "@/lib/data/units";
 import { formatMonthPT, formatMonthShortPT, monthStart, todaySP } from "@/lib/dates";
-import { CONTROLE_TIPOS } from "@/lib/nutri/controle-tipos";
+import { CONTROLE_TIPOS_ATIVOS } from "@/lib/nutri/controle-tipos";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
@@ -107,7 +107,7 @@ export default async function ArquivoPage({ searchParams }: { searchParams: Prom
               <thead className="text-left text-[10px] uppercase tracking-wide text-gray-500">
                 <tr>
                   <th className="px-3 py-2">Mês</th>
-                  {CONTROLE_TIPOS.map((t) => (
+                  {CONTROLE_TIPOS_ATIVOS.map((t) => (
                     <th key={t.codigo} className="px-1 py-2 text-center">
                       {t.curto}
                     </th>
@@ -123,7 +123,7 @@ export default async function ArquivoPage({ searchParams }: { searchParams: Prom
                   return (
                     <tr key={mes} className={cn("border-t border-line", total === 0 && countAud(mes) === 0 && "text-gray-400")}>
                       <td className="px-3 py-2 font-medium capitalize">{formatMonthShortPT(mes)}</td>
-                      {CONTROLE_TIPOS.map((t) => {
+                      {CONTROLE_TIPOS_ATIVOS.map((t) => {
                         const n = count(mes, t.codigo);
                         return (
                           <td key={t.codigo} className="px-1 py-2 text-center">

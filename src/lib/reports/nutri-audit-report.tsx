@@ -3,7 +3,7 @@ import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
 import { Bar, BrandHeader, Chip, COLORS, Empty, fmtPct, PageFooter, Section, Stat, styles, Table, toneColors, toneOfNutri, toneOfPct } from "./pdf-ui";
 import type { NutriAuditReportData, NutriReportApontamento, NutriReportArea, ReportAssinatura } from "./nutri-types";
 
-export const FAIXAS = "Faixas: Excelente 91–100% · Satisfatório 80–90% · Insatisfatório 50–79% · Crítico abaixo de 50%. Nota = itens conformes ÷ itens aplicáveis (N/A fora do cálculo).";
+export const FAIXAS = "Faixas: Excelente 95–100% (risco mínimo) · Bom 80–94% (risco baixo, corrigir no prazo) · Regular 60–79% (risco moderado, plano de ação e reinspeção) · Insatisfatório abaixo de 60% (risco alto). Nota = itens conformes ÷ itens aplicáveis (N/A fora do cálculo).";
 
 export function ApontamentoNutri({ a, showDate }: { a: NutriReportApontamento; showDate?: boolean }) {
   return (

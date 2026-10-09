@@ -21,7 +21,7 @@ const auditoria: NutriAuditReportData = {
   nutricionista: "Daniele Ramos",
   geradoEm: "22/09/2026 15:10",
   nota: 88.1,
-  classificacao: "Satisfatório",
+  classificacao: "Bom",
   totais: { conformes: 37, nao_conformes: 5, na: 1, avaliados: 43, corrigidos: 3 },
   areas: [
     { area: "Cozinha / Chapa", conformes: 12, nao_conformes: 3, na: 0, aplicaveis: 15, nota: 80 },
@@ -57,13 +57,13 @@ const mensal: NutriMonthlyReportData = {
   mesLabel: "setembro de 2026",
   geradoEm: "01/10/2026 09:00",
   nutricionistas: ["Daniele Ramos"],
-  resultado: { nota: 86.4, classificacao: "Satisfatório", n: 4, melhor: 93, pior: 79.1 },
-  anterior: { nota: 81.9, classificacao: "Satisfatório", n: 4 },
+  resultado: { nota: 86.4, classificacao: "Bom", n: 4, melhor: 93, pior: 79.1 },
+  anterior: { nota: 81.9, classificacao: "Bom", n: 4 },
   auditorias: [
     { auditId: "1", data: "01/09", nota: 79.1, classificacao: "Insatisfatório", nao_conformes: 9, nutricionista: "Daniele Ramos" },
-    { auditId: "2", data: "08/09", nota: 85.7, classificacao: "Satisfatório", nao_conformes: 6, nutricionista: "Daniele Ramos" },
+    { auditId: "2", data: "08/09", nota: 85.7, classificacao: "Bom", nao_conformes: 6, nutricionista: "Daniele Ramos" },
     { auditId: "3", data: "15/09", nota: 93, classificacao: "Excelente", nao_conformes: 3, nutricionista: "Daniele Ramos" },
-    { auditId: "4", data: "22/09", nota: 88.1, classificacao: "Satisfatório", nao_conformes: 5, nutricionista: "Daniele Ramos" },
+    { auditId: "4", data: "22/09", nota: 88.1, classificacao: "Bom", nao_conformes: 5, nutricionista: "Daniele Ramos" },
   ],
   areas: [
     { area: "Cozinha / Chapa", conformes: 46, nao_conformes: 14, na: 0, aplicaveis: 60, nota: 76.7 },

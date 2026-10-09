@@ -1,6 +1,6 @@
 // PDF dos controles digitais (planilhas): um registro, ou a compilação do mês por unidade e tipo.
-import { Document, Page, Text, View } from "@react-pdf/renderer";
-import { formatCampo, linhaPreenchida, type Campo, type ControleDados, type ControleTipo } from "../nutri/controle-tipos";
+import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
+import { cabecalhoVisivel, camposDaLinha, formatCampo, linhaPreenchida, linhaVisivel, rotuloCampo, type Campo, type ControleDados, type ControleTipo } from "../nutri/controle-tipos";
 import { BrandHeader, Chip, COLORS, Empty, PageFooter, Section, Stat, styles, Table } from "./pdf-ui";
 
 export interface ControleReportRegistro {
@@ -13,6 +13,8 @@ export interface ControleReportRegistro {
   observacoes: string | null;
   dados: ControleDados;
   alertas: { linha: string; campo: string; alerta: string }[];
+  /** caminho da foto → data URI (campos `foto`) */
+  fotos: Record<string, string>;
 }
 
 export interface ControleReportData {
@@ -24,24 +26,26 @@ export interface ControleReportData {
   mesLabel?: string;
 }
 
-function cabecalhoRows(tipo: ControleTipo, dados: ControleDados): { label: string; valor: string }[] {
-  return tipo.cabecalho.map((c) => ({ label: c.label, valor: formatCampo(c, dados.cabecalho[c.key]) }));
+function cabecalhoRows(tipo: ControleTipo, dados: ControleDados): { label: string; valor: string; alerta: string | null }[] {
+  return cabecalhoVisivel(tipo, dados.cabecalho)
+    .filter((c) => dados.cabecalho[c.key] != null && dados.cabecalho[c.key] !== "")
+    .map((c) => ({ label: rotuloCampo(c, dados.cabecalho), valor: formatCampo(c, dados.cabecalho[c.key]), alerta: c.alerta ? c.alerta(dados.cabecalho[c.key], {}, dados.cabecalho) : null }));
 }
 
-function columnsFor(tipo: ControleTipo) {
-  const campos = tipo.campos;
+function columnsFor(tipo: ControleTipo, dados: ControleDados) {
+  const campos = tipo.campos.filter((c) => c.tipo !== "foto");
   const first = 24;
   const rest = (100 - first) / Math.max(1, campos.length);
   return [
     { key: "nome", label: tipo.linhaLabel, width: `${first}%`, render: (l: ControleDados["linhas"][number]) => l.nome || "—" },
     ...campos.map((c: Campo) => ({
       key: c.key,
-      label: c.label,
+      label: rotuloCampo(c, dados.cabecalho),
       width: `${rest}%`,
       align: (c.tipo === "number" ? "right" : "left") as "right" | "left",
       render: (l: ControleDados["linhas"][number]) => {
         const v = l[c.key];
-        const alerta = c.alerta && v != null && v !== "" ? c.alerta(v, l) : null;
+        const alerta = c.alerta && v != null && v !== "" ? c.alerta(v, l, dados.cabecalho) : null;
         const txt = formatCampo(c, v);
         return alerta ? <Text style={{ color: COLORS.red, fontFamily: "Helvetica-Bold" }}>{txt}</Text> : txt;
       },
@@ -49,10 +53,27 @@ function columnsFor(tipo: ControleTipo) {
   ];
 }
 
+/** Fotos de uma linha (campos `foto`). */
+function FotosLinha({ r, tipo, l }: { r: ControleReportRegistro; tipo: ControleTipo; l: Record<string, unknown> }) {
+  const paths = camposDaLinha(tipo, l).filter((c) => c.tipo === "foto").flatMap((c) => (Array.isArray(l[c.key]) ? (l[c.key] as unknown[]).map(String) : []));
+  const uris = paths.map((p) => r.fotos[p]).filter((u): u is string => !!u);
+  if (uris.length === 0) return null;
+  return (
+    <View style={styles.photoRow}>
+      {uris.map((u, i) => (
+        // eslint-disable-next-line jsx-a11y/alt-text -- Image do react-pdf não tem alt
+        <Image key={i} src={u} style={styles.photo} />
+      ))}
+    </View>
+  );
+}
+
 export function Registro({ r, tipo, compact }: { r: ControleReportRegistro; tipo: ControleTipo; compact?: boolean }) {
   const cab = cabecalhoRows(tipo, r.dados);
-  const linhas = r.dados.linhas.filter((l) => l.nome || linhaPreenchida(tipo, l));
-  const ficha = tipo.campos.length > 8; // muitos campos: cada linha vira uma ficha (rótulo: valor) em vez de tabela estreita
+  const linhas = r.dados.linhas.filter((l) => linhaVisivel(tipo, r.dados.cabecalho, l) && (l.nome || linhaPreenchida(tipo, l)));
+  const temFoto = tipo.campos.some((c) => c.tipo === "foto") && linhas.some((l) => camposDaLinha(tipo, l).some((c) => c.tipo === "foto" && Array.isArray(l[c.key]) && (l[c.key] as unknown[]).length > 0));
+  const variam = linhas.some((l) => Array.isArray(l.campos)); // linhas com conjuntos de campos diferentes
+  const ficha = tipo.campos.length > 8 || temFoto || variam; // muitos campos: cada linha vira uma ficha (rótulo: valor) em vez de tabela estreita
   return (
     <Section title={compact ? `${r.data} · ${r.responsavel}` : "Registros"} hint={compact ? undefined : tipo.descricao}>
       {cab.length > 0 && (
@@ -60,7 +81,7 @@ export function Registro({ r, tipo, compact }: { r: ControleReportRegistro; tipo
           {cab.map((c) => (
             <Text key={c.label} style={{ fontSize: 8.5 }}>
               <Text style={{ color: COLORS.muted }}>{c.label}: </Text>
-              {c.valor}
+              <Text style={c.alerta ? { color: COLORS.red, fontFamily: "Helvetica-Bold" } : undefined}>{c.valor}</Text>
             </Text>
           ))}
         </View>
@@ -71,25 +92,26 @@ export function Registro({ r, tipo, compact }: { r: ControleReportRegistro; tipo
         ) : (
           linhas.map((l, i) => (
             <View key={i} style={{ borderWidth: 1, borderColor: COLORS.border, borderRadius: 4, padding: 6, marginBottom: 4 }} wrap={false}>
-              <Text style={[styles.bold, { marginBottom: 2 }]}>{l.nome || "—"}</Text>
+              <Text style={[styles.bold, { marginBottom: 2 }]}>{typeof l.grupo === "string" ? `${l.grupo} · ` : ""}{l.nome || "—"}</Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-                {tipo.campos.map((c) => {
+                {camposDaLinha(tipo, l).map((c) => {
                   const v = l[c.key];
-                  if (v == null || v === "") return null;
-                  const alerta = c.alerta ? c.alerta(v, l) : null;
+                  if (v == null || v === "" || c.tipo === "foto") return null;
+                  const alerta = c.alerta ? c.alerta(v, l, r.dados.cabecalho) : null;
                   return (
                     <Text key={c.key} style={{ fontSize: 8, width: "31%" }}>
-                      <Text style={{ color: COLORS.muted }}>{c.label}: </Text>
+                      <Text style={{ color: COLORS.muted }}>{rotuloCampo(c, r.dados.cabecalho)}: </Text>
                       <Text style={alerta ? { color: COLORS.red, fontFamily: "Helvetica-Bold" } : undefined}>{formatCampo(c, v)}</Text>
                     </Text>
                   );
                 })}
               </View>
+              <FotosLinha r={r} tipo={tipo} l={l} />
             </View>
           ))
         )
       ) : (
-        <Table<ControleDados["linhas"][number]> columns={columnsFor(tipo)} rows={linhas} empty="Nenhuma linha preenchida." />
+        <Table<ControleDados["linhas"][number]> columns={columnsFor(tipo, r.dados)} rows={linhas} empty="Nenhuma linha preenchida." />
       )}
       {r.alertas.length > 0 && (
         <View style={{ marginTop: 4, flexDirection: "row", flexWrap: "wrap", gap: 4 }}>

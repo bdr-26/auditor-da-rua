@@ -7,7 +7,7 @@ import { isNutriChefe, requireProfile } from "@/lib/auth";
 import { getNutriTeam } from "@/lib/data/nutri-agenda";
 import { getControles } from "@/lib/data/nutri-controles";
 import { getUnits } from "@/lib/data/units";
-import { CONTROLE_TIPOS } from "@/lib/nutri/controle-tipos";
+import { CONTROLE_TIPOS_ATIVOS } from "@/lib/nutri/controle-tipos";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
@@ -62,7 +62,7 @@ export default async function ControlesPage({ searchParams }: { searchParams: Pr
         <Link href={q({ tipo: undefined })} className={cn("shrink-0 rounded-full px-3 py-1.5 font-medium", !tipo ? "bg-ink text-white" : "border border-line bg-white")}>
           Todos
         </Link>
-        {CONTROLE_TIPOS.map((t) => (
+        {CONTROLE_TIPOS_ATIVOS.map((t) => (
           <Link key={t.codigo} href={q({ tipo: t.codigo })} className={cn("shrink-0 rounded-full px-3 py-1.5 font-medium", tipo === t.codigo ? "bg-ink text-white" : "border border-line bg-white")}>
             {t.curto}
           </Link>

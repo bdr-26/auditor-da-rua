@@ -18,7 +18,7 @@ import { getUnits } from "@/lib/data/units";
 import { addDays, daysBetween, formatDatePT, formatDayLabelPT, formatMonthPT, monthStart, todaySP } from "@/lib/dates";
 import { computeMonthlyNutri } from "@/lib/domain/monthly";
 import { classifyNutri, nutriBandTone } from "@/lib/domain/nutri";
-import { CONTROLE_TIPOS } from "@/lib/nutri/controle-tipos";
+import { CONTROLE_TIPOS_ATIVOS } from "@/lib/nutri/controle-tipos";
 import { createClient } from "@/lib/supabase/server";
 import { cn, fmtPct } from "@/lib/utils";
 
@@ -138,7 +138,7 @@ async function ChefeHome({ profile }: { profile: { id: string; nome: string; rol
             <thead className="text-left text-[10px] uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="py-1 pr-2">Unidade</th>
-                {CONTROLE_TIPOS.map((t) => (
+                {CONTROLE_TIPOS_ATIVOS.map((t) => (
                   <th key={t.codigo} className="py-1 pr-2 text-center">
                     {t.curto}
                   </th>
@@ -149,7 +149,7 @@ async function ChefeHome({ profile }: { profile: { id: string; nome: string; rol
               {ov.conferencia.map(({ unit, porTipo }) => (
                 <tr key={unit.id} className="border-t border-line">
                   <td className="py-1.5 pr-2 font-medium">{unit.nome}</td>
-                  {CONTROLE_TIPOS.map((t) => {
+                  {CONTROLE_TIPOS_ATIVOS.map((t) => {
                     const n = porTipo[t.codigo] ?? 0;
                     return (
                       <td key={t.codigo} className="py-1.5 pr-2 text-center">
@@ -171,6 +171,10 @@ async function ChefeHome({ profile }: { profile: { id: string; nome: string; rol
         </Link>
         <Link href="/nutri/equipamentos" className="mt-2 flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-sm font-medium hover:bg-surface-muted">
           <Thermometer className="h-4 w-4 text-gray-500" /> Equipamentos por unidade (planilha de temperatura)
+          <ChevronRight className="ml-auto h-4 w-4 text-gray-400" />
+        </Link>
+        <Link href="/nutri/catalogo" className="mt-2 flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-sm font-medium hover:bg-surface-muted">
+          <ListChecks className="h-4 w-4 text-gray-500" /> Catálogos: fornecedores, produtos, marcas, hortifrútis
           <ChevronRight className="ml-auto h-4 w-4 text-gray-400" />
         </Link>
       </Card>

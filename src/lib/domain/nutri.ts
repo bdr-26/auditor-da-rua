@@ -26,12 +26,12 @@ export interface NutriScoreResult {
   perdidos_por_area: NutriAreaLoss[];
 }
 
-/** Faixas idênticas ao Food Checker: Excelente 91–100, Satisfatório 80–90, Insatisfatório 50–79, Crítico < 50. */
+/** Escala de classificação sanitária (Daniele): Excelente 95–100, Bom 80–94, Regular 60–79, Insatisfatório < 60. */
 export function classifyNutri(nota: number | null): string | null {
   if (nota == null) return null;
   const r = Math.round(nota);
   for (const b of NUTRI_BANDS) if (r >= b.min) return b.nome;
-  return "Crítico";
+  return "Insatisfatório";
 }
 
 /** Nota = Σ pesos conformes ÷ Σ pesos aplicáveis × 100 (N/A fora do cálculo). */
@@ -85,10 +85,12 @@ export function nutriBandTone(classificacao: string | null): "green" | "yellow" 
   switch (classificacao) {
     case "Excelente":
       return "green";
+    case "Bom":
     case "Satisfatório":
       return "yellow";
-    case "Insatisfatório":
+    case "Regular":
       return "orange";
+    case "Insatisfatório":
     case "Crítico":
       return "red";
     default:
