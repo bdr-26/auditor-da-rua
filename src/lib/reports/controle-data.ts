@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { addMonths, formatDatePT, formatDateTimePT, formatMonthPT, monthStart } from "../dates";
-import { CONTROLE_TIPOS, getControleTipo, parseDados, resumirControle } from "../nutri/controle-tipos";
+import { CONTROLE_TIPOS, fotosDoRegistro, getControleTipo, parseDados, resumirControle } from "../nutri/controle-tipos";
+import { photoDataUri } from "./data";
 import type { Audit, NutriControle, Unit } from "../types";
 import type { ControleReportData, ControleReportRegistro, DossieReportData } from "./controle-report";
 
@@ -14,12 +15,18 @@ async function nomes(admin: AdminClient, ids: string[]): Promise<Map<string, str
   return new Map((data ?? []).map((p) => [p.id as string, p.nome as string]));
 }
 
-function toRegistro(c: NutriControle, tipoCodigo: string, nome: string): ControleReportRegistro | null {
+async function toRegistro(admin: AdminClient, c: NutriControle, tipoCodigo: string, nome: string): Promise<ControleReportRegistro | null> {
   const tipo = getControleTipo(tipoCodigo);
   if (!tipo) return null;
   const dados = parseDados(c.dados, tipo);
   const resumo = resumirControle(tipo, dados);
+  const fotos: Record<string, string> = {};
+  for (const p of fotosDoRegistro(tipo, dados).slice(0, 12)) {
+    const uri = await photoDataUri(admin, p);
+    if (uri) fotos[p] = uri;
+  }
   return {
+    fotos,
     id: c.id,
     data: formatDatePT(c.data),
     dataIso: c.data,
@@ -42,7 +49,7 @@ export async function buildControleReport(admin: AdminClient, id: string): Promi
   const [{ data: unit }, nm] = await Promise.all([admin.from("units").select("*").eq("id", c.unit_id).maybeSingle(), nomes(admin, [c.responsavel_id])]);
   if (!unit) return null;
   const u = unit as Unit;
-  const reg = toRegistro(c, tipo.codigo, nm.get(c.responsavel_id) ?? "—");
+  const reg = await toRegistro(admin, c, tipo.codigo, nm.get(c.responsavel_id) ?? "—");
   return { tipo, unidade: { nome: u.nome, endereco: u.endereco, supervisor_nome: u.supervisor_nome }, geradoEm: formatDateTimePT(new Date().toISOString()), registros: reg ? [reg] : [] };
 }
 
@@ -60,7 +67,7 @@ export async function buildControleMonthlyReport(admin: AdminClient, unitId: str
   const u = unit as Unit;
   const list = (rows ?? []) as NutriControle[];
   const nm = await nomes(admin, list.map((c) => c.responsavel_id));
-  const registros = list.map((c) => toRegistro(c, tipo.codigo, nm.get(c.responsavel_id) ?? "—")).filter((r): r is ControleReportRegistro => !!r);
+  const registros = (await Promise.all(list.map((c) => toRegistro(admin, c, tipo.codigo, nm.get(c.responsavel_id) ?? "—")))).filter((r): r is ControleReportRegistro => !!r);
   return { tipo, unidade: { nome: u.nome, endereco: u.endereco, supervisor_nome: u.supervisor_nome }, geradoEm: formatDateTimePT(new Date().toISOString()), registros, mesLabel: formatMonthPT(mes) };
 }
 
@@ -80,10 +87,11 @@ export async function buildDossieReport(admin: AdminClient, unitId: string, from
   const list = (rows ?? []) as NutriControle[];
   const auds = (audits ?? []) as Audit[];
   const nm = await nomes(admin, [...list.map((c) => c.responsavel_id), ...auds.map((a) => a.auditor_id)]);
-  const secoes = CONTROLE_TIPOS.map((tipo) => ({
-    tipo,
-    registros: list.filter((c) => c.tipo === tipo.codigo).map((c) => toRegistro(c, tipo.codigo, nm.get(c.responsavel_id) ?? "—")).filter((r): r is ControleReportRegistro => !!r),
-  }));
+  const secoes = [];
+  for (const tipo of CONTROLE_TIPOS) {
+    const registros = (await Promise.all(list.filter((c) => c.tipo === tipo.codigo).map((c) => toRegistro(admin, c, tipo.codigo, nm.get(c.responsavel_id) ?? "—")))).filter((r): r is ControleReportRegistro => !!r);
+    secoes.push({ tipo, registros });
+  }
   const periodoLabel = from.slice(0, 7) === to.slice(0, 7) && from.endsWith("-01") ? formatMonthPT(from) : `${formatDatePT(from)} a ${formatDatePT(to)}`;
   return {
     unidade: { nome: u.nome, endereco: u.endereco, supervisor_nome: u.supervisor_nome },

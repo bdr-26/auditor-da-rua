@@ -88,3 +88,14 @@ Fontes: pasta PLANILHAS (óleo, hortifrúti, manutenção, distribuição, tempe
 - **Pasta sanitária**: a lista completa do mvp.xlsx (dedetização, caixa d'água, filtros, resíduos, reciclagem de óleo, exaustão, calibração, manutenção, manual e POPs, planilhas, RH, administrativo) com situação, periodicidade e vencimento; o formulário mostra os grupos recolhíveis.
 - **Enxoval de RH**: EPIs por cargo no texto-base, EPIs faltantes, ficha de EPI, ordem de serviço, declaração de ciência, treinamentos (EPI e boas práticas 8 h), ASO e exame de fezes (6 meses) como vencimentos.
 - Linhas fixas aceitam valores padrão (`LinhaFixa` objeto); `linhaPreenchida()` ignora esses padrões ao contar preenchimento. PDF: tipos com mais de 8 campos saem em formato ficha (rótulo: valor) em vez de tabela.
+
+## Ajustes dos testes em loja (apresentação da Daniele, out/2026; migration 0015)
+
+- **Motor dos controles**: cabeçalho com valor padrão (`padrao`), seções recolhíveis (`secao`) e condição (`quando`); rótulos com `{chave}` do cabeçalho (horários editáveis); linha fixa com subconjunto de campos (`campos`) e grupo condicional (`grupoCondicional`); campos `catalogo` (lista + "Outro…", `detalheEm` copia o CNPJ) e `foto` (upload por `uploadControleFoto` para `audit-photos/controles/<id>/…`, URLs assinadas na página, data URI no PDF); `CONTROLE_TIPOS_ATIVOS` exclui tipos `oculto`. Número aceita negativo e vírgula (`NumeroInput` com botão ±).
+- **Distribuição**: horários 11h–23h e trocas (13h, 17h, 21h) editáveis na seção "Horários"; amostra por alimento; lote só no Pão (com validade original); Água, Molho caipira e Carne de hambúrguer só com conservação e amostra; tabela de temperatura × tempo no texto-base; grupo "Refeição de funcionário" (Arroz, Feijão, Proteína, 14h30 e 16h30 editáveis) e seção "Balcão térmico" (80–90 °C, água ≥ 80 °C, alimento > 60 °C) só quando o cabeçalho diz "Se aplica".
+- **Equipamentos**: 1º/2º horário (hora) + T °C; negativo aceito. Moema Delivery: Freezer nº 07 na Produção e Geladeira nº 10 no Delivery (migration 0015).
+- **Coleta de amostras** oculta (substituída pela amostra por alimento). **Caixa de gordura** novo (caixa, quem fez, ação corretiva, foto). **Manutenção** com foto.
+- **Catálogos** (`nutri_catalogo`, `/nutri/catalogo`, chefe): fornecedor (CNPJ sai sozinho), produto, marca, preparação transportada, hortifrúti; usados no recebimento, transportados e hortifrúti.
+- **Transportados**: "Local" (saída da matriz, entrada na filial, saída da filial, retorno para matriz) e "Transportado como" (caixa térmica, gelo, carro refrigerado, outros).
+- **Classificação do checklist**: Excelente 95–100, Bom 80–94, Regular 60–79, Insatisfatório < 60 (`NUTRI_BANDS`).
+- **Checklists** voltam ao menu das estagiárias em modo consulta (itens ativos por área); a edição continua só da chefe.

@@ -69,13 +69,13 @@ export async function saveControle(id: string, input: { dados: ControleDados; ob
     if (!tipo) throw new Error("Tipo de controle inválido.");
     const dados = parseDados(input.dados, tipo);
     // limita campos ao que o tipo conhece e descarta linhas vazias sem nome
-    const keys = new Set(tipo.campos.map((k) => k.key));
+    const keys = new Set([...tipo.campos.map((k) => k.key), "grupo", "campos"]); // grupo/campos: metadados da linha fixa
     const hkeys = new Set(tipo.cabecalho.map((k) => k.key));
     const limpo: ControleDados = {
       cabecalho: Object.fromEntries(Object.entries(dados.cabecalho).filter(([k]) => hkeys.has(k))),
       linhas: dados.linhas
         .map((l) => ({ ...Object.fromEntries(Object.entries(l).filter(([k]) => keys.has(k))), nome: String(l.nome ?? "").slice(0, 120) }) as ControleDados["linhas"][number])
-        .filter((l) => l.nome.trim() !== "" || tipo.campos.some((k) => l[k.key] != null && l[k.key] !== "")),
+        .filter((l) => l.nome.trim() !== "" || tipo.campos.some((k) => l[k.key] != null && l[k.key] !== "" && !(Array.isArray(l[k.key]) && (l[k.key] as unknown[]).length === 0))),
     };
     const patch: Record<string, unknown> = { dados: limpo, observacoes: input.observacoes?.trim() || null };
     if (input.data && YMD.test(input.data)) patch.data = input.data;
@@ -142,5 +142,29 @@ export async function deleteControle(id: string): Promise<ControleResult> {
     redirect("/nutri/controles");
   } catch (e) {
     return fail(e);
+  }
+}
+
+export type FotoResult = { ok: true; path: string; url: string } | { ok: false; error: string };
+
+/** Envia uma foto de um controle (campo `foto`) para o bucket de fotos e devolve o caminho + URL temporária. */
+export async function uploadControleFoto(controleId: string, form: FormData): Promise<FotoResult> {
+  try {
+    const profile = await requireProfile(["auditor_nutricao", "proprietario"]);
+    const admin = createAdminClient();
+    const { data: row } = await admin.from("nutri_controles").select("*").eq("id", controleId).maybeSingle();
+    if (!row) throw new Error("Controle não encontrado.");
+    if (!canEdit(profile, row as NutriControle)) throw new Error("Sem permissão para anexar fotos neste controle.");
+    const file = form.get("file");
+    if (!(file instanceof Blob) || file.size === 0) throw new Error("Foto vazia.");
+    if (file.size > 5_000_000) throw new Error("Foto muito grande (máx. 5 MB).");
+    const buf = Buffer.from(await file.arrayBuffer());
+    const path = `controles/${controleId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+    const { error } = await admin.storage.from("audit-photos").upload(path, buf, { contentType: "image/jpeg", upsert: false });
+    if (error) throw error;
+    const { data: signed } = await admin.storage.from("audit-photos").createSignedUrl(path, 60 * 60);
+    return { ok: true, path, url: signed?.signedUrl ?? "" };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 }

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { addMonths, monthStart, todaySP } from "../dates";
-import { CONTROLE_TIPOS } from "../nutri/controle-tipos";
+import { CONTROLE_TIPOS_ATIVOS } from "../nutri/controle-tipos";
 import type { Audit, NutriAgendaItem, NutriControle, Unit } from "../types";
 import { getNutriAgenda, getNutriTeam } from "./nutri-agenda";
 import { getControles } from "./nutri-controles";
@@ -79,7 +79,7 @@ export async function getEquipeOverview(supabase: AnyClient, mesInput?: string):
     .filter((u) => u.ativa)
     .map((unit) => {
       const porTipo: Record<string, number> = {};
-      for (const t of CONTROLE_TIPOS) porTipo[t.codigo] = controlesMes.filter((c) => c.unit_id === unit.id && c.tipo === t.codigo).length;
+      for (const t of CONTROLE_TIPOS_ATIVOS) porTipo[t.codigo] = controlesMes.filter((c) => c.unit_id === unit.id && c.tipo === t.codigo).length;
       return { unit, porTipo };
     });
 

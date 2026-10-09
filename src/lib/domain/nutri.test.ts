@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 import { classifyNutri, computeNutriScore } from "./nutri";
 
 describe("módulo nutricional", () => {
-  it("faixas do Food Checker", () => {
+  it("escala de classificação sanitária", () => {
     expect(classifyNutri(100)).toBe("Excelente");
-    expect(classifyNutri(91)).toBe("Excelente");
-    expect(classifyNutri(90)).toBe("Satisfatório");
-    expect(classifyNutri(80)).toBe("Satisfatório");
-    expect(classifyNutri(79)).toBe("Insatisfatório");
-    expect(classifyNutri(50)).toBe("Insatisfatório");
-    expect(classifyNutri(49.4)).toBe("Crítico");
+    expect(classifyNutri(95)).toBe("Excelente");
+    expect(classifyNutri(94)).toBe("Bom");
+    expect(classifyNutri(80)).toBe("Bom");
+    expect(classifyNutri(79)).toBe("Regular");
+    expect(classifyNutri(60)).toBe("Regular");
+    expect(classifyNutri(59.4)).toBe("Insatisfatório");
     expect(classifyNutri(null)).toBeNull();
   });
 
@@ -22,7 +22,7 @@ describe("módulo nutricional", () => {
       { entry_id: "5", area: "Salão", peso: 2, resposta: "conforme" },
     ]);
     expect(r.nota).toBe(80); // 4/5
-    expect(r.classificacao).toBe("Satisfatório");
+    expect(r.classificacao).toBe("Bom");
     expect(r.na).toBe(1);
     expect(r.perdidos_por_area).toEqual([
       { area: "Cozinha", perdidos: 1, aplicaveis: 2, nota: 50 },

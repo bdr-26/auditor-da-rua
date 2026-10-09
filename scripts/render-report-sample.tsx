@@ -70,7 +70,7 @@ const loja: LojaReportData = {
   ],
   nutri: {
     nota: 86.4,
-    classificacao: "Satisfatório",
+    classificacao: "Bom",
     n: 2,
     anterior: 91.2,
     apontamentos: [
@@ -136,7 +136,7 @@ const consolidado: ConsolidadoReportData = {
     { unidade: "Moema Salão", n: 1, datas: ["2026-09-03"], nota: 78, classificacao: "Insatisfatório" },
     { unidade: "Moema Delivery", n: 1, datas: ["2026-09-03"], nota: 70.1, classificacao: "Insatisfatório" },
     { unidade: "Imigrantes", n: 0, datas: [], nota: null, classificacao: null },
-    { unidade: "Bela Vista", n: 2, datas: ["2026-09-10", "2026-09-24"], nota: 86.4, classificacao: "Satisfatório" },
+    { unidade: "Bela Vista", n: 2, datas: ["2026-09-10", "2026-09-24"], nota: 86.4, classificacao: "Bom" },
     { unidade: "Mooca", n: 1, datas: ["2026-09-17"], nota: 93, classificacao: "Excelente" },
   ],
   food99: [

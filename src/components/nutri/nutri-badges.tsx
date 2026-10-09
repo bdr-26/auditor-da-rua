@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { nutriBandTone } from "@/lib/domain/nutri";
 import { cn, fmtPct } from "@/lib/utils";
 
-/** Badge de classificação nutricional (Excelente / Satisfatório / Insatisfatório / Crítico). */
+/** Badge de classificação nutricional (Excelente / Bom / Regular / Insatisfatório). */
 export function ClassBadge({ classificacao, className }: { classificacao: string | null; className?: string }) {
   return (
     <Badge tone={nutriBandTone(classificacao)} className={className}>

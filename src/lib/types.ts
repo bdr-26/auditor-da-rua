@@ -390,6 +390,18 @@ export interface NutriEquipamento {
   updated_at: string;
 }
 
+/** Item de catálogo da nutrição (fornecedor com CNPJ, produto, marca, preparação, hortifrúti). */
+export interface NutriCatalogoItem {
+  id: string;
+  categoria: "fornecedor" | "produto" | "marca" | "preparacao" | "hortifruti";
+  nome: string;
+  detalhe: string | null;
+  ativo: boolean;
+  ordem: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export type NutriControleStatus = "rascunho" | "finalizado";
 export interface NutriControle {
   id: string;

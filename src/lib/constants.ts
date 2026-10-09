@@ -63,11 +63,12 @@ export const REDUCED_SAMPLE_MIN = 3;
 export const PRIZE_VALUE = 200;
 export const RECURRENCE_VISITS = 2;
 
+/** Escala de classificação do checklist sanitário (Daniele): risco mínimo, baixo, moderado, alto. */
 export const NUTRI_BANDS = [
-  { nome: "Excelente", min: 91 },
-  { nome: "Satisfatório", min: 80 },
-  { nome: "Insatisfatório", min: 50 },
-  { nome: "Crítico", min: 0 },
+  { nome: "Excelente", min: 95 },
+  { nome: "Bom", min: 80 },
+  { nome: "Regular", min: 60 },
+  { nome: "Insatisfatório", min: 0 },
 ] as const;
 
 /** Posições da rotação semanal: qua..dom (0=qua). Terça = produção fixa. */
