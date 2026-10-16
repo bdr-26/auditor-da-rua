@@ -36,6 +36,7 @@ function navFor(role: SessionProfile["role"]): NavItem[] {
     case "proprietario":
       return [
         { href: "/dashboard", label: "Dashboard", icon: "chart" },
+        { href: "/dashboard/auditorias", label: "Auditorias", icon: "audits" },
         { href: "/dashboard/calendario", label: "Rotina", icon: "calendar" },
         { href: "/dashboard/demandas", label: "Demandas", icon: "tasks" },
         { href: "/dashboard/fechamento", label: "Fechamento", icon: "closing" },

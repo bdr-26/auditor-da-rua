@@ -61,3 +61,7 @@ Depois de fechado, dashboard e loja mostram a nota fechada, a posição e "Loja 
 | `removeDayOff` (devolver à rotação) | apaga a folga/"sem visita" e regera o dia |
 
 No celular o painel do dia é uma folha inferior acima da barra de navegação (área segura); no desktop, painel lateral com arrastar e soltar entre células.
+
+## Auditorias (`/dashboard/auditorias`)
+
+Listagem de todas as auditorias do mês para o proprietário, em dois blocos (gerente e nutrição), com filtro por mês (últimos 12) e por unidade. Cada item mostra dia, unidade, tipo, quem fez e a nota (PctBadge para o gerente; nota + classificação para a nutrição), com "Abrir" (resumo) e `ShareReport` compacto (compartilhar por link, abrir/imprimir, baixar). Rascunhos aparecem sem nota e sem PDF. Dados: `getMonthAudits(..., { status: "todas" })`.
