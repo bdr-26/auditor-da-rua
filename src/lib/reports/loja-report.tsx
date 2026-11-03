@@ -86,7 +86,8 @@ function pontosDeAtencao(d: LojaReportData): { tone: Tone; texto: string }[] {
     if (d.food99.nota_99food != null && d.food99.nota_99food < 4.5) out.push({ tone: "orange", texto: `Nota 99Food em ${fmtNum(d.food99.nota_99food, 2)} (abaixo de 4,5).` });
     const det = d.food99.detalhe;
     if (det) {
-      if (det.cancel_pct != null && det.cancel_pct >= 10) out.push({ tone: "orange", texto: `${det.cancelados} pedidos cancelados de ${det.pedidos_total.toLocaleString("pt-BR")} (${fmtNum(det.cancel_pct, 1)}%).` });
+      if ((det.nao_aceitos_pct ?? 0) >= 2) out.push({ tone: "orange", texto: `${det.nao_aceitos} pedidos não aceitos no prazo (${fmtNum(det.nao_aceitos_pct, 1)}%): a 99 cancelou porque a loja não confirmou. Venda perdida, concentrada nos horários de pico.` });
+      if (det.cancel_pct != null && det.cancel_pct >= 5) out.push({ tone: "orange", texto: `${det.cancelados} pedidos cancelados de ${(det.concluidos + det.cancelados).toLocaleString("pt-BR")} (${fmtNum(det.cancel_pct, 1)}%), sem contar desistências imediatas do cliente.` });
       if (det.cancel_loja > 0) {
         const motivos = Object.entries(det.cancel_motivos_loja).map(([m, n]) => `${m} (${n})`).join(", ");
         out.push({ tone: "orange", texto: `${det.cancel_loja} ${plural(det.cancel_loja, "cancelamento", "cancelamentos")} por responsabilidade da loja${motivos ? `: ${motivos}` : ""}.` });
@@ -135,8 +136,10 @@ function Detalhe99Bloco({ det }: { det: Detalhe99 }) {
           <Text style={styles.td}>Clientes novos: {det.novos_clientes.toLocaleString("pt-BR")}{det.novos_pct != null ? ` (${fmtNum(det.novos_pct, 0)}%)` : ""}</Text>
           <Text style={styles.td}>Aceite do pedido: {det.tempo_aceite_medio == null ? "—" : `${fmtNum(det.tempo_aceite_medio, 0)} s`} em média</Text>
           <Text style={[styles.bold, { fontSize: 8.5, marginTop: 5, marginBottom: 2 }]}>Cancelamentos ({det.cancelados})</Text>
-          {resp.length === 0 ? <Text style={styles.empty}>Nenhum.</Text> : resp.map(([r, n]) => <Text key={r} style={styles.tdMuted}>{r.replace("Responsabilidade d", "D")}: {n}</Text>)}
-          {Object.keys(det.cancel_motivos_loja).length ? <Text style={[styles.tdMuted, { marginTop: 2 }]}>Motivos da loja: {Object.entries(det.cancel_motivos_loja).map(([m, n]) => `${m} (${n})`).join("; ")}</Text> : null}
+          <Text style={[styles.td, { color: (det.nao_aceitos_pct ?? 0) >= 2 ? toneColors("orange").fg : COLORS.ink }]}>Não aceitos no prazo: {det.nao_aceitos ?? 0}{det.nao_aceitos_pct != null ? ` (${fmtNum(det.nao_aceitos_pct, 1)}%)` : ""}</Text>
+          <Text style={styles.td}>Cancelados pela loja: {det.cancel_loja}{Object.keys(det.cancel_motivos_loja).length ? ` — ${Object.entries(det.cancel_motivos_loja).map(([m, n]) => `${m} (${n})`).join("; ")}` : ""}</Text>
+          <Text style={styles.td}>Depois do aceite: {det.cancel_apos_aceite ?? 0}{resp.length ? ` — ${resp.map(([r, n]) => `${r.replace("Responsabilidade d", "d")} ${n}`).join(", ")}` : ""}</Text>
+          <Text style={[styles.tdMuted, { marginTop: 2 }]}>Desistências imediatas (menos de 1 min, fora do número acima): {det.desistencias ?? 0}</Text>
         </View>
       </View>
       {neg.length > 0 || det.comentarios_negativos.length > 0 ? (
@@ -382,7 +385,7 @@ export function LojaReportDocument({ data }: { data: LojaReportData }) {
               <View style={[styles.statGrid, { marginTop: 0 }]}>
                 <Stat label="Pedidos no mês" value={d.food99.pedidos == null ? "—" : d.food99.pedidos.toLocaleString("pt-BR")} hint={d.food99.detalhe ? "concluídos" : undefined} small />
                 <Stat label="Nota 99Food" value={d.food99.nota_99food == null ? "—" : fmtNum(d.food99.nota_99food, 2)} hint={d.food99.detalhe ? `${d.food99.detalhe.avaliacoes} ${plural(d.food99.detalhe.avaliacoes, "avaliação", "avaliações")}` : undefined} small />
-                <Stat label="Cancelamentos" value={d.food99.cancelamentos == null ? "—" : String(d.food99.cancelamentos)} hint={d.food99.detalhe?.cancel_pct != null ? `${fmtNum(d.food99.detalhe.cancel_pct, 1)}% dos pedidos · ${d.food99.detalhe.cancel_loja} da loja` : undefined} small />
+                <Stat label="Cancelamentos" value={d.food99.cancelamentos == null ? "—" : String(d.food99.cancelamentos)} hint={d.food99.detalhe?.cancel_pct != null ? `${fmtNum(d.food99.detalhe.cancel_pct, 1)}% · ${d.food99.detalhe.nao_aceitos ?? 0} não aceitos` : undefined} small />
                 <Stat label="Tempo médio de entrega" value={d.food99.tempo_medio_entrega == null ? "—" : `${d.food99.tempo_medio_entrega} min`} hint={d.food99.detalhe?.tempo_preparo_medio != null ? `preparo ${fmtNum(d.food99.detalhe.tempo_preparo_medio, 0)} min · entrega ${fmtNum(d.food99.detalhe.tempo_entrega_medio, 0)} min` : undefined} small />
               </View>
               {d.food99.detalhe ? <Detalhe99Bloco det={d.food99.detalhe} /> : null}

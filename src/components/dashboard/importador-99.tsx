@@ -89,12 +89,14 @@ export function Importador99({ mes, unidades, onAplicar }: { mes: string; unidad
           </p>
           {foraDoMes && <p className="rounded-lg bg-orange-50 px-3 py-2 text-xs text-orange-800">Atenção: o arquivo tem pedidos fora de {ym}. Confira se exportou o mês certo.</p>}
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[34rem] text-xs">
+            <table className="w-full min-w-[42rem] text-xs">
               <thead className="text-left uppercase tracking-wide text-gray-500">
                 <tr className="border-b border-line">
                   <th className="py-1.5 pr-2">Loja</th>
                   <th className="py-1.5 pr-2 text-right">Pedidos</th>
+                  <th className="py-1.5 pr-2 text-right">Não aceitos</th>
                   <th className="py-1.5 pr-2 text-right">Cancel.</th>
+                  <th className="py-1.5 pr-2 text-right">Desist.</th>
                   <th className="py-1.5 pr-2 text-right">Nota</th>
                   <th className="py-1.5 pr-2 text-right">Tempo</th>
                   <th className="py-1.5 pr-2 text-right">Dias</th>
@@ -115,9 +117,13 @@ export function Importador99({ mes, unidades, onAplicar }: { mes: string; unidad
                           {!conhecida && <span className="ml-1 font-normal">(não está no fechamento)</span>}
                         </td>
                         <td className="py-1.5 pr-2 text-right tabular-nums">{i.pedidos.toLocaleString("pt-BR")}</td>
+                        <td className={cn("py-1.5 pr-2 text-right tabular-nums", (u.detalhe.nao_aceitos_pct ?? 0) >= 2 && "font-semibold text-orange-700")}>
+                          {u.detalhe.nao_aceitos} <span className="font-normal text-gray-400">({u.detalhe.nao_aceitos_pct ?? 0}%)</span>
+                        </td>
                         <td className="py-1.5 pr-2 text-right tabular-nums">
                           {i.cancelamentos} <span className="text-gray-400">({u.detalhe.cancel_pct ?? 0}%)</span>
                         </td>
+                        <td className="py-1.5 pr-2 text-right tabular-nums text-gray-400">{u.detalhe.desistencias}</td>
                         <td className="py-1.5 pr-2 text-right tabular-nums">{i.nota_99food == null ? "—" : i.nota_99food.toFixed(2)}</td>
                         <td className="py-1.5 pr-2 text-right tabular-nums">{i.tempo_medio_entrega == null ? "—" : `${i.tempo_medio_entrega} min`}</td>
                         <td className="py-1.5 pr-2 text-right tabular-nums">{u.detalhe.dias}</td>
@@ -149,7 +155,7 @@ export function Importador99({ mes, unidades, onAplicar }: { mes: string; unidad
             </div>
           )}
           <p className="text-xs text-gray-500">
-            Pedidos = concluídos (sem os cancelados). Nota = média das avaliações dos clientes (1 a 5). Tempo = média do pedido até a conclusão da entrega.
+            Pedidos = concluídos. Não aceitos = a loja não confirmou no prazo (cancelamento automático da 99). Cancel. = não aceitos + cancelados pela loja + cancelados depois do aceite. Desist. = cancelados em menos de 1 minuto sem aceite (cliente refez o pedido); ficam fora do número de cancelamentos. Nota = média das avaliações (1 a 5). Tempo = média do pedido até a conclusão da entrega.
             {semUnidade.length > 0 && " Lojas fora do fechamento são ignoradas."}
           </p>
           <Button
