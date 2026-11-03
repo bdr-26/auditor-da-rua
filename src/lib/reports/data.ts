@@ -9,6 +9,7 @@ import { classifyNutri } from "../domain/nutri";
 import { BLOCK_NAMES, MAIN_BLOCKS } from "../domain/scoring";
 import type { Detalhe99 } from "../indicadores-99";
 import { getSettings, type AppSettings } from "../settings";
+import { agruparNutriNc, type NutriNcLinha } from "./nutri-recorrencia";
 import type { Audit, AuditType, BlockScore, Unit } from "../types";
 import type { ConsolidadoReportData, LojaReportData, ReportApontamento, ReportBlockRow, ReportItemStat, ReportNutriApontamento, ReportPendencia, ReportRankingRow, ReportRecorrente } from "./types";
 
@@ -165,8 +166,10 @@ interface AnswerRow {
 
 interface NutriAnswerRow {
   audit_id: string;
+  nutri_item_id: string | null;
   nutri_area: string | null;
   observacao: string | null;
+  corrigido_na_hora: boolean | null;
   nutri_item_versions: { descricao: string } | null;
   nutri_item_bank: { descricao: string } | null;
 }
@@ -186,7 +189,7 @@ async function getNutriNonConformities(admin: AdminClient, auditIds: string[]): 
   if (auditIds.length === 0) return [];
   const { data, error } = await admin
     .from("audit_answers")
-    .select("audit_id, nutri_area, observacao, nutri_item_versions(descricao), nutri_item_bank(descricao)")
+    .select("audit_id, nutri_item_id, nutri_area, observacao, corrigido_na_hora, nutri_item_versions(descricao), nutri_item_bank(descricao)")
     .in("audit_id", auditIds)
     .eq("resposta", "nao_conforme");
   if (error) throw error;
@@ -295,7 +298,8 @@ export async function buildMonthlyReportData(admin: AdminClient, mesInput: strin
   const prevGerenteAudits = prev.audits.filter((a) => a.tipo !== "nutricional");
   const prevAuditType = new Map(prev.audits.map((a) => [a.id, a.tipo]));
 
-  const [answers, prevAnswers, nutriNc] = await Promise.all([
+  const prevNutriAudits = prev.audits.filter((a) => a.tipo === "nutricional");
+  const [answers, prevAnswers, nutriNc, prevNutriNc] = await Promise.all([
     getGerenteAnswers(
       admin,
       gerenteAudits.map((a) => a.id),
@@ -308,7 +312,18 @@ export async function buildMonthlyReportData(admin: AdminClient, mesInput: strin
       admin,
       nutriAudits.map((a) => a.id),
     ),
+    getNutriNonConformities(
+      admin,
+      prevNutriAudits.map((a) => a.id),
+    ),
   ]);
+  const ncLinha = (n: NutriAnswerRow): NutriNcLinha => ({
+    audit_id: n.audit_id,
+    item_id: n.nutri_item_id,
+    item: n.nutri_item_bank?.descricao ?? n.nutri_item_versions?.descricao ?? "Item",
+    area: n.nutri_area ?? "—",
+    corrigido: !!n.corrigido_na_hora,
+  });
   // data da auditoria de origem das pendências (pode ser de meses anteriores)
   const origemIds = Array.from(new Set((pendings ?? []).map((p) => p.origem_audit_id as string).filter((id) => !auditById.has(id))));
   const origemData = new Map<string, string>(cur.audits.map((a) => [a.id, a.data]));
@@ -390,6 +405,12 @@ export async function buildMonthlyReportData(admin: AdminClient, mesInput: strin
         observacao: n.observacao,
       }))
       .sort((a, b) => a.data.localeCompare(b.data) || a.area.localeCompare(b.area, "pt-BR"));
+    const prevUnitNutriIds = new Set(prevNutriAudits.filter((a) => a.unit_id === unit.id).map((a) => a.id));
+    const nutriRecorrentes = agruparNutriNc(
+      nutriNc.filter((n) => unitNutriIds.has(n.audit_id)).map(ncLinha),
+      unitNutri.length,
+      prevNutriNc.filter((n) => prevUnitNutriIds.has(n.audit_id)).map(ncLinha),
+    );
 
     const ind = (indicators ?? []).find((i) => i.unit_id === unit.id);
     lojas.push({
@@ -428,7 +449,7 @@ export async function buildMonthlyReportData(admin: AdminClient, mesInput: strin
       nutri:
         unit.tipo === "producao" && s.n_auditorias_nutri === 0
           ? null
-          : { nota: s.nota_nutricional, classificacao: classifyNutri(s.nota_nutricional), n: s.n_auditorias_nutri, anterior: p?.nota_nutricional ?? null, apontamentos: nutriApont },
+          : { nota: s.nota_nutricional, classificacao: classifyNutri(s.nota_nutricional), n: s.n_auditorias_nutri, anterior: p?.nota_nutricional ?? null, apontamentos: nutriApont, recorrentes: nutriRecorrentes },
       food99: ind ? { nota_99food: num(ind.nota_99food), cancelamentos: num(ind.cancelamentos), tempo_medio_entrega: num(ind.tempo_medio_entrega), pedidos: num(ind.pedidos), detalhe: (ind.detalhe_99 as Detalhe99 | null) ?? null } : null,
     });
   }
