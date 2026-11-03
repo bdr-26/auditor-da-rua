@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireProfile } from "./auth";
+import { detalhe99Valido, type Detalhe99 } from "./indicadores-99";
 import { closeMonth, reopenMonth, regenerateReports } from "./closing";
 import { getClosings } from "./data/dashboard";
 import { getTemplateById, toScoringBlocks } from "./data/templates";
@@ -298,6 +299,9 @@ export interface IndicatorInput {
   pedidos?: number | null;
   /** Recado do mês para a loja (impresso no relatório do supervisor). */
   recado?: string | null;
+  /** Detalhe do relatório "Dados do pedido" da 99 (lido no navegador; ver src/lib/indicadores-99.ts). */
+  detalhe_99?: Detalhe99 | null;
+  arquivo_99?: string | null;
 }
 
 /** Lança/atualiza os indicadores 99Food do mês (uma linha por loja). */
@@ -313,7 +317,9 @@ export async function saveExternalIndicators(mesInput: string, rows: IndicatorIn
       if (r.tempo_medio_entrega != null && r.tempo_medio_entrega < 0) return { ok: false, error: "Tempo médio deve ser ≥ 0." };
       if (r.pedidos != null && (r.pedidos < 0 || !Number.isInteger(r.pedidos))) return { ok: false, error: "Pedidos deve ser um inteiro ≥ 0." };
       if (r.recado != null && r.recado.length > 600) return { ok: false, error: "O recado deve ter até 600 caracteres." };
+      if (r.detalhe_99 != null && !detalhe99Valido(r.detalhe_99)) return { ok: false, error: "Detalhe do relatório da 99 inválido. Importe o arquivo de novo." };
     }
+    const agora = new Date().toISOString();
     const payload = rows.map((r) => ({
       mes,
       unit_id: r.unitId,
@@ -322,8 +328,11 @@ export async function saveExternalIndicators(mesInput: string, rows: IndicatorIn
       tempo_medio_entrega: r.tempo_medio_entrega,
       pedidos: r.pedidos ?? null,
       recado: r.recado?.trim() ? r.recado.trim() : null,
+      detalhe_99: r.detalhe_99 ?? null,
+      importado_99_em: r.detalhe_99 ? agora : null,
+      arquivo_99: r.detalhe_99 ? (r.arquivo_99 ?? "").slice(0, 200) || null : null,
       lancado_por: profile.id,
-      updated_at: new Date().toISOString(),
+      updated_at: agora,
     }));
     if (payload.length) {
       const { error } = await admin.from("external_indicators").upsert(payload, { onConflict: "mes,unit_id" });

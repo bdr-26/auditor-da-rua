@@ -193,7 +193,7 @@ export const TABLE_DEFAULTS = {
   audit_pending_reviews: { resolvida: null, observacao: null },
   monthly_closings: { n_auditorias: 0, n_auditorias_nutri: 0, falhas_graves: 0, amostra_reduzida: false, inelegivel_produto_vencido: false, posicao_ranking: null, elegivel: false, premiada: false, empate: false, fechado_por: null },
   owner_adjustments: { closing_id: null, valor_original: null, valor_novo: null },
-  external_indicators: { nota_99food: null, cancelamentos: null, tempo_medio_entrega: null, pedidos: null, recado: null, lancado_por: null },
+  external_indicators: { nota_99food: null, cancelamentos: null, tempo_medio_entrega: null, pedidos: null, recado: null, detalhe_99: null, importado_99_em: null, arquivo_99: null, lancado_por: null },
   reports: { unit_id: null, gerado_por: null },
   auditor_days_off: { auditor_id: null, motivo: "Folga de domingo", criado_por: null },
   demandas: { descricao: null, prazo: null, prioridade: "normal", categoria: "geral", status: "aberta", unit_id: null, conclusao_texto: null, concluida_em: null, concluida_por: null },
@@ -1464,8 +1464,11 @@ export function buildFixtures(today = todaySP()) {
     ["moema-delivery", 4.6, 5, 38, 2615, null],
     ["imigrantes", 4.3, 7, 42, 1210, "Atenção aos cancelamentos: revisar o tempo de preparo nos horários de pico."],
   ];
+  // detalhe do relatório "Dados do pedido" da 99 importado (só Moema Delivery, para o relatório do supervisor)
+  const detalhe99Moema = {"periodo": {"de": `${prevStart.slice(0, 7)}-01`, "ate": `${prevStart.slice(0, 7)}-31`}, "dias": 31, "lojas_99": [{"id": "5764608147579473685", "nome": "Burger da Rua - Moema", "pedidos": 1780}, {"id": "5764611700901544924", "nome": "Smash da Rua", "pedidos": 835}], "pedidos_total": 2615, "concluidos": 2320, "cancelados": 295, "cancel_pct": 11.3, "cancel_resp": {"Sem informação": 278, "Responsabilidade da plataforma": 7, "Responsabilidade da loja": 5, "Responsabilidade do cliente": 3, "Responsabilidade do entregador": 2}, "cancel_loja": 5, "cancel_motivos_loja": {"A loja não confirmou o pedido no prazo": 3, "Fechado": 2}, "avaliacoes": 198, "nota_media": 4.6, "distribuicao": {"1": 11, "2": 5, "3": 6, "4": 11, "5": 165}, "tags_negativas": {"Itens faltando": 6, "Comida ruim": 3, "Porções pequenas": 2}, "tags_positivas": {"Comida excelente": 48, "Recomendaria": 41, "Bem embalado": 40}, "comentarios_negativos": [{"data": `${prevStart.slice(0, 7)}-18`, "nota": 1, "texto": "Faltou a batata do combo e o lanche chegou frio."}, {"data": `${prevStart.slice(0, 7)}-09`, "nota": 2, "texto": "Na foto é grande, na vida real pequeno."}], "atrasados": 55, "atraso_pct": 2.4, "itens_em_falta": 1, "novos_clientes": 960, "novos_pct": 41.4, "tempo_total_medio": 29.5, "tempo_entrega_medio": 22.5, "tempo_preparo_medio": 11.6, "tempo_aceite_medio": 2.8};
   for (const [slug, nota_99food, cancelamentos, tempo, pedidos, recado] of ind) {
-    t.external_indicators.push({ id: uuid(`ind:${prevStart}:${slug}`), mes: prevStart, unit_id: UNIT_IDS[slug], nota_99food, cancelamentos, tempo_medio_entrega: tempo, pedidos, recado, lancado_por: USERS.antonio.id, updated_at: atSP(curStart, "18:00") });
+    const detalhe_99 = slug === "moema-delivery" ? detalhe99Moema : null;
+    t.external_indicators.push({ id: uuid(`ind:${prevStart}:${slug}`), mes: prevStart, unit_id: UNIT_IDS[slug], nota_99food, cancelamentos, tempo_medio_entrega: tempo, pedidos, recado, detalhe_99, importado_99_em: detalhe_99 ? atSP(curStart, "17:55") : null, arquivo_99: detalhe_99 ? `Dados_do_pedido${prevStart.slice(0, 7)}.xlsx` : null, lancado_por: USERS.antonio.id, updated_at: atSP(curStart, "18:00") });
   }
   t.reports.push({ id: uuid(`report:${prevStart}:consolidado`), mes: prevStart, unit_id: null, tipo: "consolidado", storage_path: `${prevStart.slice(0, 7)}/consolidado.pdf`, gerado_por: USERS.antonio.id, gerado_em: addIsoMinutes(fechadoEm, 2) });
   t.reports.push({ id: uuid(`report:${prevStart}:moema-salao`), mes: prevStart, unit_id: UNIT_IDS["moema-salao"], tipo: "loja", storage_path: `${prevStart.slice(0, 7)}/moema-salao.pdf`, gerado_por: USERS.antonio.id, gerado_em: addIsoMinutes(fechadoEm, 3) });

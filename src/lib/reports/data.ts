@@ -7,6 +7,7 @@ import { addMonths, formatDateTimePT, formatMonthPT, monthEnd, monthStart } from
 import { computeMonthlyNutri, computeMonthlyOperational, rankUnits, type MonthlyAuditInput } from "../domain/monthly";
 import { classifyNutri } from "../domain/nutri";
 import { BLOCK_NAMES, MAIN_BLOCKS } from "../domain/scoring";
+import type { Detalhe99 } from "../indicadores-99";
 import { getSettings, type AppSettings } from "../settings";
 import type { Audit, AuditType, BlockScore, Unit } from "../types";
 import type { ConsolidadoReportData, LojaReportData, ReportApontamento, ReportBlockRow, ReportItemStat, ReportNutriApontamento, ReportPendencia, ReportRankingRow, ReportRecorrente } from "./types";
@@ -428,7 +429,7 @@ export async function buildMonthlyReportData(admin: AdminClient, mesInput: strin
         unit.tipo === "producao" && s.n_auditorias_nutri === 0
           ? null
           : { nota: s.nota_nutricional, classificacao: classifyNutri(s.nota_nutricional), n: s.n_auditorias_nutri, anterior: p?.nota_nutricional ?? null, apontamentos: nutriApont },
-      food99: ind ? { nota_99food: num(ind.nota_99food), cancelamentos: num(ind.cancelamentos), tempo_medio_entrega: num(ind.tempo_medio_entrega), pedidos: num(ind.pedidos) } : null,
+      food99: ind ? { nota_99food: num(ind.nota_99food), cancelamentos: num(ind.cancelamentos), tempo_medio_entrega: num(ind.tempo_medio_entrega), pedidos: num(ind.pedidos), detalhe: (ind.detalhe_99 as Detalhe99 | null) ?? null } : null,
     });
   }
 

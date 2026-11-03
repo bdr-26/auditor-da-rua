@@ -2,6 +2,7 @@
 import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
 import { AUDIT_TYPE_SHORT } from "../constants";
 import { formatDatePT } from "../dates";
+import type { Detalhe99 } from "../indicadores-99";
 import {
   Bar,
   BrandHeader,
@@ -55,6 +56,11 @@ function resumoDoMes(d: LojaReportData): string[] {
     if (d.food99.nota_99food != null) partes.push(`nota 99Food ${fmtNum(d.food99.nota_99food, 2)}`);
     if (d.food99.cancelamentos != null) partes.push(`${d.food99.cancelamentos} ${plural(d.food99.cancelamentos, "cancelamento", "cancelamentos")}`);
     if (d.food99.tempo_medio_entrega != null) partes.push(`entrega média ${d.food99.tempo_medio_entrega} min`);
+    const det = d.food99.detalhe;
+    if (det) {
+      if (det.avaliacoes) partes.push(`${det.avaliacoes} ${plural(det.avaliacoes, "avaliação", "avaliações")}`);
+      if (det.novos_pct != null) partes.push(`${det.novos_pct}% de clientes novos`);
+    }
     if (partes.length) out.push(`Delivery: ${partes.join(" · ")}.`);
   }
   return out;
@@ -78,10 +84,74 @@ function pontosDeAtencao(d: LojaReportData): { tone: Tone; texto: string }[] {
   if (abertas > 0) out.push({ tone: "yellow", texto: `${abertas} ${plural(abertas, "pendência aberta", "pendências abertas")} da auditoria: serão conferidas na próxima visita.` });
   if (d.food99) {
     if (d.food99.nota_99food != null && d.food99.nota_99food < 4.5) out.push({ tone: "orange", texto: `Nota 99Food em ${fmtNum(d.food99.nota_99food, 2)} (abaixo de 4,5).` });
-    if (d.food99.pedidos && d.food99.cancelamentos != null && d.food99.cancelamentos / d.food99.pedidos >= 0.02) out.push({ tone: "orange", texto: `${d.food99.cancelamentos} cancelamentos em ${d.food99.pedidos.toLocaleString("pt-BR")} pedidos (${fmtNum((d.food99.cancelamentos / d.food99.pedidos) * 100, 1)}%).` });
+    const det = d.food99.detalhe;
+    if (det) {
+      if (det.cancel_pct != null && det.cancel_pct >= 10) out.push({ tone: "orange", texto: `${det.cancelados} pedidos cancelados de ${det.pedidos_total.toLocaleString("pt-BR")} (${fmtNum(det.cancel_pct, 1)}%).` });
+      if (det.cancel_loja > 0) {
+        const motivos = Object.entries(det.cancel_motivos_loja).map(([m, n]) => `${m} (${n})`).join(", ");
+        out.push({ tone: "orange", texto: `${det.cancel_loja} ${plural(det.cancel_loja, "cancelamento", "cancelamentos")} por responsabilidade da loja${motivos ? `: ${motivos}` : ""}.` });
+      }
+      if (det.atraso_pct != null && det.atraso_pct >= 5) out.push({ tone: "orange", texto: `${det.atrasados} pedidos com preparação atrasada (${fmtNum(det.atraso_pct, 1)}%).` });
+      const neg = Object.entries(det.tags_negativas).slice(0, 3).map(([t, n]) => `${t} (${n})`);
+      const baixas = det.distribuicao["1"] + det.distribuicao["2"] + det.distribuicao["3"];
+      if (baixas > 0 && det.avaliacoes > 0 && baixas / det.avaliacoes >= 0.1) out.push({ tone: "orange", texto: `${baixas} ${plural(baixas, "avaliação", "avaliações")} de 1 a 3 estrelas em ${det.avaliacoes}${neg.length ? `: ${neg.join(", ")}` : ""}.` });
+      if (det.itens_em_falta > 0) out.push({ tone: "yellow", texto: `${det.itens_em_falta} ${plural(det.itens_em_falta, "pedido entregue", "pedidos entregues")} com item em falta.` });
+    } else if (d.food99.pedidos && d.food99.cancelamentos != null && d.food99.cancelamentos / (d.food99.pedidos + d.food99.cancelamentos) >= 0.1) {
+      out.push({ tone: "orange", texto: `${d.food99.cancelamentos} cancelamentos para ${d.food99.pedidos.toLocaleString("pt-BR")} pedidos concluídos (${fmtNum((d.food99.cancelamentos / (d.food99.pedidos + d.food99.cancelamentos)) * 100, 1)}%).` });
+    }
   }
   if (d.amostra_reduzida) out.push({ tone: "yellow", texto: "Amostra reduzida: menos auditorias que o previsto; a nota do mês tem menos peso." });
   return out;
+}
+
+/** Detalhe do relatório da 99: avaliações, cancelamentos, atrasos e o que os clientes reclamaram. */
+function Detalhe99Bloco({ det }: { det: Detalhe99 }) {
+  const estrelas = (["5", "4", "3", "2", "1"] as const).map((k) => ({ k, n: det.distribuicao[k] }));
+  const neg = Object.entries(det.tags_negativas);
+  const pos = Object.entries(det.tags_positivas).slice(0, 4);
+  const resp = Object.entries(det.cancel_resp).sort((a, b) => b[1] - a[1]);
+  return (
+    <View style={{ marginTop: 8 }}>
+      <View style={[styles.row, { gap: 8 }]} wrap={false}>
+        <View style={[styles.card, { flex: 1 }]}>
+          <Text style={[styles.bold, { fontSize: 8.5, marginBottom: 3 }]}>Avaliações dos clientes</Text>
+          {det.avaliacoes === 0 ? (
+            <Text style={styles.empty}>Sem avaliações no mês.</Text>
+          ) : (
+            estrelas.map(({ k, n }) => (
+              <View key={k} style={[styles.row, { alignItems: "center", marginBottom: 2 }]}>
+                <Text style={[styles.tdMuted, { width: 42 }]}>{k} estrela{k === "1" ? "" : "s"}</Text>
+                <Bar pct={det.avaliacoes ? (n / det.avaliacoes) * 100 : 0} tone={k === "5" || k === "4" ? "green" : k === "3" ? "yellow" : "red"} height={5} />
+                <Text style={[styles.tdMuted, { width: 34, textAlign: "right" }]}>{n}</Text>
+              </View>
+            ))
+          )}
+          {pos.length ? <Text style={[styles.tdMuted, { marginTop: 3 }]}>Elogios: {pos.map(([t, n]) => `${t} (${n})`).join(", ")}</Text> : null}
+        </View>
+        <View style={[styles.card, { flex: 1 }]}>
+          <Text style={[styles.bold, { fontSize: 8.5, marginBottom: 3 }]}>Operação</Text>
+          <Text style={styles.td}>Preparação atrasada: {det.atrasados} ({det.atraso_pct == null ? "—" : `${fmtNum(det.atraso_pct, 1)}%`})</Text>
+          <Text style={styles.td}>Pedidos com item em falta: {det.itens_em_falta}</Text>
+          <Text style={styles.td}>Clientes novos: {det.novos_clientes.toLocaleString("pt-BR")}{det.novos_pct != null ? ` (${fmtNum(det.novos_pct, 0)}%)` : ""}</Text>
+          <Text style={styles.td}>Aceite do pedido: {det.tempo_aceite_medio == null ? "—" : `${fmtNum(det.tempo_aceite_medio, 0)} s`} em média</Text>
+          <Text style={[styles.bold, { fontSize: 8.5, marginTop: 5, marginBottom: 2 }]}>Cancelamentos ({det.cancelados})</Text>
+          {resp.length === 0 ? <Text style={styles.empty}>Nenhum.</Text> : resp.map(([r, n]) => <Text key={r} style={styles.tdMuted}>{r.replace("Responsabilidade d", "D")}: {n}</Text>)}
+          {Object.keys(det.cancel_motivos_loja).length ? <Text style={[styles.tdMuted, { marginTop: 2 }]}>Motivos da loja: {Object.entries(det.cancel_motivos_loja).map(([m, n]) => `${m} (${n})`).join("; ")}</Text> : null}
+        </View>
+      </View>
+      {neg.length > 0 || det.comentarios_negativos.length > 0 ? (
+        <View style={[styles.card, { marginTop: 8, borderLeftWidth: 3, borderLeftColor: toneColors("orange").fg }]} wrap={false}>
+          <Text style={[styles.bold, { fontSize: 8.5, marginBottom: 3 }]}>O que os clientes reclamaram (avaliações de 1 a 3 estrelas)</Text>
+          {neg.length ? <Text style={styles.td}>{neg.map(([t, n]) => `${t} (${n})`).join(" · ")}</Text> : null}
+          {det.comentarios_negativos.slice(0, 5).map((c, i) => (
+            <Text key={i} style={[styles.tdMuted, { marginTop: 2 }]}>
+              {formatDatePT(c.data)} · {c.nota} {c.nota === 1 ? "estrela" : "estrelas"} · “{c.texto}”
+            </Text>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
 }
 
 function Bullets({ items, tone }: { items: string[]; tone?: Tone }) {
@@ -306,13 +376,16 @@ export function LojaReportDocument({ data }: { data: LojaReportData }) {
           )}
         </Section>
 
-        <Section title="Delivery e indicadores 99Food" hint="Informativos: não compõem a nota (lançados pelo proprietário no fechamento).">
+        <Section title="Delivery e indicadores 99Food" hint={d.food99?.detalhe ? `Relatório "Dados do pedido" da 99 importado no fechamento (${d.food99.detalhe.dias} dias${d.food99.detalhe.periodo ? `, ${formatDatePT(d.food99.detalhe.periodo.de)} a ${formatDatePT(d.food99.detalhe.periodo.ate)}` : ""}). Informativo: não compõe a nota.` : "Informativos: não compõem a nota (lançados pelo proprietário no fechamento)."}>
           {d.food99 ? (
-            <View style={[styles.statGrid, { marginTop: 0 }]}>
-              <Stat label="Pedidos no mês" value={d.food99.pedidos == null ? "—" : d.food99.pedidos.toLocaleString("pt-BR")} small />
-              <Stat label="Nota 99Food" value={d.food99.nota_99food == null ? "—" : fmtNum(d.food99.nota_99food, 2)} small />
-              <Stat label="Cancelamentos" value={d.food99.cancelamentos == null ? "—" : String(d.food99.cancelamentos)} small />
-              <Stat label="Tempo médio de entrega" value={d.food99.tempo_medio_entrega == null ? "—" : `${d.food99.tempo_medio_entrega} min`} small />
+            <View>
+              <View style={[styles.statGrid, { marginTop: 0 }]}>
+                <Stat label="Pedidos no mês" value={d.food99.pedidos == null ? "—" : d.food99.pedidos.toLocaleString("pt-BR")} hint={d.food99.detalhe ? "concluídos" : undefined} small />
+                <Stat label="Nota 99Food" value={d.food99.nota_99food == null ? "—" : fmtNum(d.food99.nota_99food, 2)} hint={d.food99.detalhe ? `${d.food99.detalhe.avaliacoes} ${plural(d.food99.detalhe.avaliacoes, "avaliação", "avaliações")}` : undefined} small />
+                <Stat label="Cancelamentos" value={d.food99.cancelamentos == null ? "—" : String(d.food99.cancelamentos)} hint={d.food99.detalhe?.cancel_pct != null ? `${fmtNum(d.food99.detalhe.cancel_pct, 1)}% dos pedidos · ${d.food99.detalhe.cancel_loja} da loja` : undefined} small />
+                <Stat label="Tempo médio de entrega" value={d.food99.tempo_medio_entrega == null ? "—" : `${d.food99.tempo_medio_entrega} min`} hint={d.food99.detalhe?.tempo_preparo_medio != null ? `preparo ${fmtNum(d.food99.detalhe.tempo_preparo_medio, 0)} min · entrega ${fmtNum(d.food99.detalhe.tempo_entrega_medio, 0)} min` : undefined} small />
+              </View>
+              {d.food99.detalhe ? <Detalhe99Bloco det={d.food99.detalhe} /> : null}
             </View>
           ) : (
             <Empty text="Indicadores não lançados para este mês." />

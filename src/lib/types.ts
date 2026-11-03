@@ -1,4 +1,5 @@
 // Tipos de domínio espelhando o esquema Postgres (supabase/migrations/0001_schema.sql)
+import type { Detalhe99 } from "./indicadores-99";
 
 export type UserRole = "auditor_geral" | "auditor_nutricao" | "proprietario";
 export type UnitKind = "loja" | "producao";
@@ -312,6 +313,10 @@ export interface ExternalIndicator {
   pedidos: number | null;
   /** Recado do mês para a loja, impresso no relatório do supervisor. */
   recado: string | null;
+  /** Detalhe do relatório "Dados do pedido" da 99 importado (ver src/lib/indicadores-99.ts). */
+  detalhe_99: Detalhe99 | null;
+  importado_99_em: string | null;
+  arquivo_99: string | null;
   lancado_por: string | null;
   updated_at: string;
 }

@@ -1,5 +1,6 @@
 // Dados "planos" que alimentam os documentos PDF. Montados por data.ts (a partir do Supabase)
 // ou por scripts/render-report-sample.tsx (dados fictícios) — os componentes só renderizam.
+import type { Detalhe99 } from "../indicadores-99";
 import type { AuditType } from "../types";
 
 export interface ReportBlockRow {
@@ -48,6 +49,8 @@ export interface ReportFood99 {
   cancelamentos: number | null;
   tempo_medio_entrega: number | null;
   pedidos: number | null;
+  /** Detalhe do relatório "Dados do pedido" importado no fechamento (null = lançado à mão). */
+  detalhe: Detalhe99 | null;
 }
 
 /** Item com média ≤ 3 neste mês E no mês anterior (problema que se repete). */

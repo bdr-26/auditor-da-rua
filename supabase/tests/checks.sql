@@ -107,3 +107,7 @@ rollback;
 -- 0016: indicadores do mês com pedidos e recado (relatório do supervisor)
 select case when (select count(*) from information_schema.columns where table_name = 'external_indicators' and column_name in ('pedidos', 'recado')) = 2
   then 'external_indicators.pedidos/recado: OK' else 'FALHA colunas 0016' end;
+
+-- 0017: detalhe do relatório da 99 importado
+select case when (select count(*) from information_schema.columns where table_name = 'external_indicators' and column_name in ('detalhe_99', 'importado_99_em', 'arquivo_99')) = 3
+  then 'external_indicators.detalhe_99: OK' else 'FALHA colunas 0017' end;
