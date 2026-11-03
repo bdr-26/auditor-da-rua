@@ -26,7 +26,7 @@ import {
 } from "./pdf-ui";
 import type { LojaReportData, ReportApontamento, ReportAuditRow, ReportBlockRow, ReportItemStat, ReportNutriApontamento, ReportPendencia, ReportRecorrente } from "./types";
 
-const plural = (n: number, s: string, p: string) => (n === 1 ? s : p);
+export const plural = (n: number, s: string, p: string) => (n === 1 ? s : p);
 
 /** Resumo em linguagem simples para o supervisor: o que importa do mês em poucas linhas. */
 function resumoDoMes(d: LojaReportData): string[] {
@@ -67,7 +67,7 @@ function resumoDoMes(d: LojaReportData): string[] {
 }
 
 /** Pontos de atenção: tudo que precisa de ação imediata do supervisor, do mais grave para o menos. */
-function pontosDeAtencao(d: LojaReportData): { tone: Tone; texto: string }[] {
+export function pontosDeAtencao(d: LojaReportData): { tone: Tone; texto: string }[] {
   const out: { tone: Tone; texto: string }[] = [];
   if (d.falhas_graves > 0) {
     const itens = Array.from(new Set(d.apontamentos.filter((a) => a.falha_grave).map((a) => a.item)));

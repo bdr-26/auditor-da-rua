@@ -56,12 +56,14 @@ Na virada do mês o proprietário envia **um PDF por loja** ao grupo de WhatsApp
 6. **Pendências em aberto** — `pending_issues` com `status = 'aberta'` da unidade (gerente e nutrição), com data da auditoria de origem, visitas sem resolver e selo reincidente.
 7. Apontamentos (nota 1–2 com fotos) · Nutrição · **Delivery e indicadores 99Food** (pedidos, nota, cancelamentos, tempo; com o relatório da 99 importado, também distribuição de estrelas, elogios, atrasos, itens em falta, clientes novos, cancelamentos por responsável/motivo e o que os clientes reclamaram) · Auditorias do mês · assinatura do supervisor. Com o detalhe da 99, os pontos de atenção ganham: não aceitos no prazo ≥ 2%, cancelamentos ≥ 5% (sem desistências), cancelamentos pela loja (com motivos), preparação atrasada ≥ 5%, avaliações de 1–3 estrelas ≥ 10% (com as tags) e itens em falta.
 
-Onde gerar/compartilhar (`LojaReportLinks` → `ShareReport`, folha de compartilhamento do celular ou link assinado de 7 dias):
+**Versão resumida (uma página)** — `src/lib/reports/loja-resumo-report.tsx`, a que vai para o grupo dos supervisores (padrão dos botões de compartilhar). Mesmos dados (`LojaReportData`), só o essencial: 4 KPIs (nota e variação, ranking/selos, nutrição, 99Food), "O que precisa de ação este mês" (até 5 pontos, os mais graves), bloco **AUDITORIA DO GERENTE** (onde acertou × o que melhorar, até 4 itens cada, "2º mês" nos recorrentes, pendências em aberto), bloco **AUDITORIA DA NUTRIÇÃO** (nota, classificação, variação, até 4 não conformidades), bloco **DELIVERY · 99FOOD** (pedidos, nota, não aceitos, cancelados, tempo, atrasos, reclamações) e o recado da direção. A versão completa continua disponível (`?versao=completo`).
+
+Onde gerar/compartilhar (`LojaReportLinks` → `ShareReport`, folha de compartilhamento do celular ou link assinado de 7 dias; o link "Abrir relatório completo" abaixo de cada loja abre a versão completa):
 
 - `/dashboard/fechamento/[mes]` — card "Relatório por loja — grupo dos supervisores", com todas as lojas ranqueadas + Moema Produção, antes e depois do fechamento;
 - `/dashboard/lojas/[unitId]` e `/dashboard/auditorias?loja=…` — a loja selecionada.
 
-Rota `GET/POST /api/reports/loja?unit=<id>&mes=YYYY-MM` (proprietário e gerente): gera o PDF na hora com `buildMonthlyReportData(admin, mes, { unitIds: [unit] })` — **oficial** quando o mês tem `monthly_closings` (mesmos números do fechamento), **PRÉVIA** enquanto está aberto (marca d'água no cabeçalho e no nome do arquivo). O `POST` guarda em `reports/loja/<unit>/<mes>.pdf` e devolve o link assinado. Os PDFs gerados no fechamento (`generateMonthlyReports`) usam o mesmo documento.
+Rota `GET/POST /api/reports/loja?unit=<id>&mes=YYYY-MM[&versao=completo]` (proprietário e gerente): gera o PDF na hora (resumo por padrão) com `buildMonthlyReportData(admin, mes, { unitIds: [unit] })` — **oficial** quando o mês tem `monthly_closings` (mesmos números do fechamento), **PRÉVIA** enquanto está aberto (marca d'água no cabeçalho e no nome do arquivo). O `POST` guarda em `reports/loja/<unit>/<mes>.pdf` e devolve o link assinado. Os PDFs gerados no fechamento (`generateMonthlyReports`) usam o mesmo documento.
 
 Lembrete: no dia 1 de cada mês o cron das 8h envia push aos proprietários ("Virada de mês: relatórios de <mês>", dedup `virada:<mês>`) apontando para o fechamento do mês anterior.
 

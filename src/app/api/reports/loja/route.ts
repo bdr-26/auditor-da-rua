@@ -3,7 +3,7 @@ import { getSessionProfile } from "@/lib/auth";
 import { formatMonthPT, monthStart } from "@/lib/dates";
 import { buildMonthlyReportData } from "@/lib/reports/data";
 import { REPORTS_BUCKET } from "@/lib/reports/generate";
-import { renderLojaReport } from "@/lib/reports/render";
+import { renderLojaReport, renderLojaResumoReport } from "@/lib/reports/render";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -29,12 +29,14 @@ async function prepare(req: Request) {
   const bundle = await buildMonthlyReportData(admin, mes, { unitIds: [unitId] });
   const data = bundle.lojas.find((l) => l.unidade.id === unitId);
   if (!data) return { error: NextResponse.json({ error: "unidade sem relatório mensal (inativa, fora do ranking ou só da nutrição)" }, { status: 404 }) };
-  const pdf = await renderLojaReport(data);
-  const name = `relatorio-${data.unidade.slug}-${mes.slice(0, 7)}${data.oficial ? "" : "-previa"}.pdf`;
-  return { admin, unitId, mes, data, pdf, name, download: url.searchParams.get("download") === "1" };
+  // versão resumida (uma página, para o grupo dos supervisores) é o padrão; `versao=completo` traz tudo
+  const completo = url.searchParams.get("versao") === "completo";
+  const pdf = completo ? await renderLojaReport(data) : await renderLojaResumoReport(data);
+  const name = `${completo ? "relatorio" : "resumo"}-${data.unidade.slug}-${mes.slice(0, 7)}${data.oficial ? "" : "-previa"}.pdf`;
+  return { admin, unitId, mes, data, pdf, name, completo, download: url.searchParams.get("download") === "1" };
 }
 
-/** PDF mensal da loja: `?unit=<id>&mes=YYYY-MM` (`&download=1` para baixar). */
+/** PDF mensal da loja: `?unit=<id>&mes=YYYY-MM` (`&versao=completo` para a versão completa, `&download=1` para baixar). */
 export async function GET(req: Request) {
   const r = await prepare(req);
   if ("error" in r) return r.error;
@@ -51,7 +53,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const r = await prepare(req);
   if ("error" in r) return r.error;
-  const path = `loja/${r.unitId}/${r.mes.slice(0, 7)}${r.data.oficial ? "" : "-previa"}.pdf`;
+  const path = `loja/${r.unitId}/${r.mes.slice(0, 7)}${r.completo ? "-completo" : "-resumo"}${r.data.oficial ? "" : "-previa"}.pdf`;
   const { error: upErr } = await r.admin.storage.from(REPORTS_BUCKET).upload(path, r.pdf, { contentType: "application/pdf", upsert: true });
   if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
   const { data: signed, error: signErr } = await r.admin.storage.from(REPORTS_BUCKET).createSignedUrl(path, SHARE_TTL, { download: r.name });

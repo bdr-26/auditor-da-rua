@@ -171,9 +171,11 @@ const consolidado: ConsolidadoReportData = {
 
 async function render() {
   // import dinâmico: só o processo filho (node puro, sem tsx) carrega o react-pdf
-  const { renderConsolidadoReport, renderLojaReport } = await import("../src/lib/reports/render");
+  const { renderConsolidadoReport, renderLojaReport, renderLojaResumoReport } = await import("../src/lib/reports/render");
   mkdirSync(outDir, { recursive: true });
   const jobs: [string, () => Promise<Buffer>][] = [
+    ["resumo-bela-vista.pdf", () => renderLojaResumoReport(loja)],
+    ["resumo-moema-producao.pdf", () => renderLojaResumoReport(producao)],
     ["loja-bela-vista.pdf", () => renderLojaReport(loja)],
     ["loja-moema-producao.pdf", () => renderLojaReport(producao)],
     ["consolidado.pdf", () => renderConsolidadoReport(consolidado)],

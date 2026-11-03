@@ -12,12 +12,13 @@ export interface LojaReportUnit {
 
 /** Texto que acompanha o PDF no WhatsApp (grupo dos supervisores). */
 export function lojaReportShareText(nome: string, mes: string, oficial: boolean): string {
-  return `${oficial ? "Relatório mensal" : "Prévia do relatório mensal"} de ${nome} · ${formatMonthPT(mes)}: auditorias do mês, nota e ranking, onde acertamos, o que melhorar, o que é recorrente, pendências, pedidos e nota 99Food.`;
+  return `${oficial ? "Resumo do mês" : "Prévia do resumo do mês"} de ${nome} · ${formatMonthPT(mes)}: nota, o que precisa de ação, auditoria do gerente, auditoria da nutrição e delivery.`;
 }
 
 /**
  * Relatório mensal por loja (PDF) para enviar ao grupo dos supervisores: um bloco por loja com
- * compartilhar (WhatsApp) / abrir / baixar. `oficial=false` enquanto o mês está aberto (prévia).
+ * compartilhar (WhatsApp) / abrir / baixar do RESUMO (uma página) e um link para a versão completa.
+ * `oficial=false` enquanto o mês está aberto (prévia).
  */
 export function LojaReportLinks({ mes, units, oficial, compact }: { mes: string; units: LojaReportUnit[]; oficial: boolean; compact?: boolean }) {
   if (units.length === 0) return <p className="text-sm text-gray-500">Nenhuma loja com relatório mensal neste mês.</p>;
@@ -35,10 +36,13 @@ export function LojaReportLinks({ mes, units, oficial, compact }: { mes: string;
           <ShareReport
             compact
             pdfUrl={`/api/reports/loja?unit=${u.id}&mes=${ym}`}
-            fileName={`relatorio-${u.slug}-${ym}${oficial ? "" : "-previa"}.pdf`}
-            title={`Relatório mensal · ${u.nome} · ${formatMonthPT(mes)}`}
+            fileName={`resumo-${u.slug}-${ym}${oficial ? "" : "-previa"}.pdf`}
+            title={`Resumo do mês · ${u.nome} · ${formatMonthPT(mes)}`}
             text={lojaReportShareText(u.nome, mes, oficial)}
           />
+          <a href={`/api/reports/loja?unit=${u.id}&mes=${ym}&versao=completo`} target="_blank" rel="noopener" className="mt-1 inline-block text-xs text-brand-dark underline underline-offset-2" data-testid={`relatorio-completo-${u.slug}`}>
+            Abrir relatório completo (todos os itens, fotos e detalhe do delivery)
+          </a>
         </div>
       ))}
     </div>

@@ -7,6 +7,7 @@ import { ControleReportDocument, DossieReportDocument, type ControleReportData, 
 import { GerenteAuditReportDocument } from "./gerente-audit-report";
 import type { GerenteAuditReportData } from "./gerente-types";
 import { LojaReportDocument } from "./loja-report";
+import { LojaResumoReportDocument } from "./loja-resumo-report";
 import { NutriAuditReportDocument } from "./nutri-audit-report";
 import { NutriMonthlyReportDocument } from "./nutri-monthly-report";
 import type { NutriAuditReportData, NutriMonthlyReportData } from "./nutri-types";
@@ -16,6 +17,10 @@ type DocElement = ReactElement<DocumentProps>;
 
 export async function renderLojaReport(data: LojaReportData): Promise<Buffer> {
   return renderToBuffer(createElement(LojaReportDocument, { data }) as unknown as DocElement);
+}
+
+export async function renderLojaResumoReport(data: LojaReportData): Promise<Buffer> {
+  return renderToBuffer(createElement(LojaResumoReportDocument, { data }) as unknown as DocElement);
 }
 
 export async function renderConsolidadoReport(data: ConsolidadoReportData): Promise<Buffer> {
