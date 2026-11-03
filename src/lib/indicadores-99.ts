@@ -3,18 +3,33 @@
 // e no servidor (validação). Nada de "server-only" nem de Supabase aqui.
 //
 // Colunas usadas (nomes como a 99 exporta; a comparação ignora acentos e maiúsculas):
-//   Data · Nome do estabelecimento · ID do loja · Horário do cancelamento · Parte responsável pelo
-//   cancelamento · Motivos de cancelamentos por parte da loja · Nível de avaliação do cliente (100–500)
+//   Data · Nome do estabelecimento · ID do loja · Horário do pedido · Horário do cancelamento · Parte
+//   responsável pelo cancelamento · Motivos de cancelamentos por parte da loja · Nível de avaliação do cliente (100–500)
 //   · Tag de avaliação do cliente · Conteúdo de avaliação do cliente · Tempo de finalização do pedido
 //   (segundos) · Duração da entrega (segundos) · Tempo de preparo (minutos) · Tempo para aceitação do
 //   pedido (segundos) · Preparação atrasada? · Itens em falta · Quantidade de pedidos anteriores do
 //   cliente na loja.
+
+/**
+ * Tipo do cancelamento (ver `classificarCancelamento`):
+ *  - desistencia: cancelado em menos de 1 minuto, sem a loja ter aceitado — o cliente refez o pedido ou o
+ *    pagamento falhou. Não é operação perdida: fica FORA do número de cancelamentos.
+ *  - nao_aceito: a loja não confirmou o pedido no prazo (cancelamento automático da 99, aos 5 ou 10 min).
+ *  - loja: a loja cancelou ativamente (fechada, item esgotado…).
+ *  - apos_aceite: pedido aceito e cancelado depois (plataforma, entregador, cliente).
+ *  - indefinido: sem horário do pedido para medir (arquivo antigo) — conta como cancelamento.
+ */
+export type TipoCancelamento = "desistencia" | "nao_aceito" | "loja" | "apos_aceite" | "indefinido";
 
 export interface Pedido99 {
   data: string; // YYYY-MM-DD
   id_99: string;
   loja: string;
   cancelado: boolean;
+  /** minutos entre o pedido e o cancelamento (null se não cancelado ou sem horários) */
+  minutos_ate_cancelamento: number | null;
+  /** a loja chegou a aceitar o pedido (tempo de aceite > 0 ou clicou em "pronto") */
+  aceito: boolean;
   responsavel_cancelamento: string | null;
   motivo_loja: string | null;
   nota: number | null; // 1..5
@@ -33,14 +48,25 @@ export interface Detalhe99 {
   periodo: { de: string; ate: string } | null;
   dias: number;
   lojas_99: { id: string; nome: string; pedidos: number }[];
+  /** todas as linhas do relatório (inclui desistências) */
   pedidos_total: number;
   concluidos: number;
+  /** cancelamentos que contam: não aceitos + loja + após o aceite (+ indefinidos). Desistências ficam fora. */
   cancelados: number;
+  /** cancelados ÷ (concluídos + cancelados) */
   cancel_pct: number | null;
-  /** cancelamentos por "Parte responsável" (a maioria vem sem informação). */
-  cancel_resp: Record<string, number>;
+  /** cancelados em < 1 min sem aceite (cliente refez / pagamento) — informativo */
+  desistencias: number;
+  /** a loja não confirmou no prazo (cancelamento automático da 99) */
+  nao_aceitos: number;
+  /** não aceitos ÷ (concluídos + cancelados) */
+  nao_aceitos_pct: number | null;
+  /** cancelados pela própria loja (fechada, esgotado…) */
   cancel_loja: number;
   cancel_motivos_loja: Record<string, number>;
+  /** cancelados depois do aceite, por "Parte responsável" */
+  cancel_apos_aceite: number;
+  cancel_resp: Record<string, number>;
   avaliacoes: number;
   nota_media: number | null;
   distribuicao: Record<"1" | "2" | "3" | "4" | "5", number>;
@@ -85,6 +111,15 @@ export function num99(v: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/** "2026-10-30 19:47:42" → ms (hora local do relatório; só a diferença importa) */
+function hora99(v: unknown): number | null {
+  const m = String(v ?? "")
+    .trim()
+    .match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+  if (!m) return null;
+  return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]);
+}
+
 function data99(v: unknown): string | null {
   const t = String(v ?? "").trim();
   const m = t.match(/^(\d{4})(\d{2})(\d{2})$/);
@@ -100,7 +135,9 @@ const COLS = {
   data: ["Data"],
   nome: ["Nome do estabelecimento"],
   id: ["ID do loja", "ID da loja"],
+  pedido: ["Horário do pedido"],
   cancel: ["Horário do cancelamento"],
+  pronto: ["Clicou em “Pronto para ser retirado”?", "Clicou em Pronto para ser retirado?"],
   resp: ["Parte responsável pelo cancelamento"],
   motivo: ["Motivos de cancelamentos por parte da loja"],
   nivel: ["Nível de avaliação do cliente"],
@@ -141,11 +178,16 @@ export function parsePedidos99(grade: unknown[][]): { pedidos: Pedido99[]; erro?
     };
     const atr = norm99(cel(row, "atrasado"));
     const ant = cel(row, "anteriores");
+    const hPedido = hora99(cel(row, "pedido"));
+    const hCancel = hora99(cel(row, "cancel"));
+    const aceiteS = num99(cel(row, "aceite"));
     pedidos.push({
       data,
       id_99,
       loja: cel(row, "nome"),
       cancelado: cel(row, "cancel") !== "",
+      minutos_ate_cancelamento: hPedido != null && hCancel != null ? Math.max(0, (hCancel - hPedido) / 60000) : null,
+      aceito: (aceiteS != null && aceiteS > 0) || norm99(cel(row, "pronto")) === "sim",
       responsavel_cancelamento: cel(row, "resp") || null,
       motivo_loja: cel(row, "motivo") || null,
       nota,
@@ -157,7 +199,7 @@ export function parsePedidos99(grade: unknown[][]): { pedidos: Pedido99[]; erro?
       tempo_total_min: pos("total") != null ? pos("total")! / 60 : null,
       tempo_entrega_min: pos("entrega") != null ? pos("entrega")! / 60 : null,
       tempo_preparo_min: pos("preparo"),
-      tempo_aceite_s: num99(cel(row, "aceite")),
+      tempo_aceite_s: aceiteS,
       atrasado: atr === "sim" ? true : atr === "nao" ? false : null,
       item_em_falta: cel(row, "falta") !== "",
       cliente_novo: ant === "" ? null : num99(ant) === 0,
@@ -186,6 +228,18 @@ export function unidadeDaLoja99(id_99: string, nome: string): string | null {
   return null;
 }
 
+/** Classifica um pedido cancelado (ver TipoCancelamento). */
+export function classificarCancelamento(p: Pedido99): TipoCancelamento {
+  const motivo = norm99(p.motivo_loja);
+  const respLoja = norm99(p.responsavel_cancelamento).includes("loja");
+  if (motivo.includes("nao confirmou") || motivo.includes("prazo")) return "nao_aceito";
+  if (p.motivo_loja || respLoja) return "loja";
+  if (p.aceito) return "apos_aceite";
+  if (p.minutos_ate_cancelamento == null) return "indefinido";
+  if (p.minutos_ate_cancelamento < 1) return "desistencia";
+  return "nao_aceito";
+}
+
 const r1 = (v: number) => Math.round(v * 10) / 10;
 const r2 = (v: number) => Math.round(v * 100) / 100;
 const media = (xs: number[]) => (xs.length ? xs.reduce((s, v) => s + v, 0) / xs.length : null);
@@ -208,7 +262,10 @@ export function agregarPedidos99(pedidos: Pedido99[]): Detalhe99 {
   const comentarios: Detalhe99["comentarios_negativos"] = [];
   const dias = new Set<string>();
   let cancelados = 0;
+  let desistencias = 0;
+  let naoAceitos = 0;
   let cancelLoja = 0;
+  let aposAceite = 0;
   let atrasados = 0;
   let atrasoBase = 0;
   let falta = 0;
@@ -222,10 +279,20 @@ export function agregarPedidos99(pedidos: Pedido99[]): Detalhe99 {
     l.pedidos++;
     lojas.set(p.id_99, l);
     if (p.cancelado) {
+      const tipo = classificarCancelamento(p);
+      if (tipo === "desistencia") {
+        desistencias++;
+        continue;
+      }
       cancelados++;
-      inc(resp, p.responsavel_cancelamento ?? "Sem informação");
-      if (p.motivo_loja || norm99(p.responsavel_cancelamento).includes("loja")) cancelLoja++;
-      if (p.motivo_loja) inc(motivos, p.motivo_loja);
+      if (tipo === "nao_aceito") naoAceitos++;
+      else if (tipo === "loja") {
+        cancelLoja++;
+        if (p.motivo_loja) inc(motivos, p.motivo_loja);
+      } else {
+        aposAceite++;
+        inc(resp, p.responsavel_cancelamento ?? "Sem informação");
+      }
       continue;
     }
     if (p.nota != null) {
@@ -248,7 +315,8 @@ export function agregarPedidos99(pedidos: Pedido99[]): Detalhe99 {
       if (p.cliente_novo) novos++;
     }
   }
-  const concluidos = pedidos.length - cancelados;
+  const concluidos = pedidos.length - cancelados - desistencias;
+  const base = concluidos + cancelados;
   const datas = Array.from(dias).sort();
   const mNota = media(notas);
   const mt = (xs: number[]) => {
@@ -262,10 +330,14 @@ export function agregarPedidos99(pedidos: Pedido99[]): Detalhe99 {
     pedidos_total: pedidos.length,
     concluidos,
     cancelados,
-    cancel_pct: pct(cancelados, pedidos.length),
-    cancel_resp: resp,
+    cancel_pct: pct(cancelados, base),
+    desistencias,
+    nao_aceitos: naoAceitos,
+    nao_aceitos_pct: pct(naoAceitos, base),
     cancel_loja: cancelLoja,
     cancel_motivos_loja: top(motivos, 6),
+    cancel_apos_aceite: aposAceite,
+    cancel_resp: resp,
     avaliacoes: notas.length,
     nota_media: mNota == null ? null : r2(mNota),
     distribuicao: dist,
