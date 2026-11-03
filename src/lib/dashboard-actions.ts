@@ -294,6 +294,10 @@ export interface IndicatorInput {
   nota_99food: number | null;
   cancelamentos: number | null;
   tempo_medio_entrega: number | null;
+  /** Nº de pedidos no mês (informativo; vai para o relatório do supervisor). */
+  pedidos?: number | null;
+  /** Recado do mês para a loja (impresso no relatório do supervisor). */
+  recado?: string | null;
 }
 
 /** Lança/atualiza os indicadores 99Food do mês (uma linha por loja). */
@@ -307,6 +311,8 @@ export async function saveExternalIndicators(mesInput: string, rows: IndicatorIn
       if (r.nota_99food != null && (r.nota_99food < 0 || r.nota_99food > 5)) return { ok: false, error: "Nota 99Food deve estar entre 0 e 5." };
       if (r.cancelamentos != null && (r.cancelamentos < 0 || !Number.isInteger(r.cancelamentos))) return { ok: false, error: "Cancelamentos deve ser um inteiro ≥ 0." };
       if (r.tempo_medio_entrega != null && r.tempo_medio_entrega < 0) return { ok: false, error: "Tempo médio deve ser ≥ 0." };
+      if (r.pedidos != null && (r.pedidos < 0 || !Number.isInteger(r.pedidos))) return { ok: false, error: "Pedidos deve ser um inteiro ≥ 0." };
+      if (r.recado != null && r.recado.length > 600) return { ok: false, error: "O recado deve ter até 600 caracteres." };
     }
     const payload = rows.map((r) => ({
       mes,
@@ -314,6 +320,8 @@ export async function saveExternalIndicators(mesInput: string, rows: IndicatorIn
       nota_99food: r.nota_99food,
       cancelamentos: r.cancelamentos,
       tempo_medio_entrega: r.tempo_medio_entrega,
+      pedidos: r.pedidos ?? null,
+      recado: r.recado?.trim() ? r.recado.trim() : null,
       lancado_por: profile.id,
       updated_at: new Date().toISOString(),
     }));

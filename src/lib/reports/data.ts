@@ -9,7 +9,7 @@ import { classifyNutri } from "../domain/nutri";
 import { BLOCK_NAMES, MAIN_BLOCKS } from "../domain/scoring";
 import { getSettings, type AppSettings } from "../settings";
 import type { Audit, AuditType, BlockScore, Unit } from "../types";
-import type { ConsolidadoReportData, LojaReportData, ReportApontamento, ReportBlockRow, ReportItemStat, ReportNutriApontamento, ReportRankingRow } from "./types";
+import type { ConsolidadoReportData, LojaReportData, ReportApontamento, ReportBlockRow, ReportItemStat, ReportNutriApontamento, ReportPendencia, ReportRankingRow, ReportRecorrente } from "./types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AdminClient = SupabaseClient<any, any, any>;
@@ -264,12 +264,17 @@ export interface MonthlyReportBundle {
 }
 
 /** Monta todos os dados dos relatórios do mês (1 por loja + consolidado). */
-export async function buildMonthlyReportData(admin: AdminClient, mesInput: string, opts: { maxPhotos?: number } = {}): Promise<MonthlyReportBundle> {
+/**
+ * @param opts.unitIds limita os relatórios por loja a estas unidades (ranking e consolidado continuam
+ *        com todas) — usado pelo PDF de uma loja só, para não baixar fotos das outras.
+ */
+export async function buildMonthlyReportData(admin: AdminClient, mesInput: string, opts: { maxPhotos?: number; unitIds?: string[] } = {}): Promise<MonthlyReportBundle> {
   const mes = monthStart(mesInput);
   const mesAnterior = addMonths(mes, -1);
   const maxPhotos = opts.maxPhotos ?? MAX_PHOTOS_PER_REPORT;
   const geradoEm = formatDateTimePT(new Date().toISOString());
   const mesLabel = formatMonthPT(mes);
+  const mesAnteriorLabel = formatMonthPT(mesAnterior);
 
   const [units, settings] = await Promise.all([getUnits(admin, { ativas: true }), getSettings(admin)]);
   const [cur, prev, { data: profiles }, { data: indicators }, { data: schedule }, { data: pendings }] = await Promise.all([
@@ -278,7 +283,7 @@ export async function buildMonthlyReportData(admin: AdminClient, mesInput: strin
     admin.from("profiles").select("id, nome"),
     admin.from("external_indicators").select("*").eq("mes", mes),
     admin.from("schedule_days").select("*").gte("data", mes).lte("data", monthEnd(mes)).order("data"),
-    admin.from("pending_issues").select("unit_id, reincidente").eq("status", "aberta"),
+    admin.from("pending_issues").select("id, unit_id, descricao, nota_origem, origem_audit_id, visitas_sem_resolver, reincidente, item_id, nutri_entry_id, created_at").eq("status", "aberta"),
   ]);
   const unitById = new Map(units.map((u) => [u.id, u]));
   const nomeProfile = new Map((profiles ?? []).map((p) => [p.id as string, p.nome as string]));
@@ -286,20 +291,33 @@ export async function buildMonthlyReportData(admin: AdminClient, mesInput: strin
   const nutriAudits = cur.audits.filter((a) => a.tipo === "nutricional");
   const auditType = new Map(cur.audits.map((a) => [a.id, a.tipo]));
   const auditById = new Map(cur.audits.map((a) => [a.id, a]));
+  const prevGerenteAudits = prev.audits.filter((a) => a.tipo !== "nutricional");
+  const prevAuditType = new Map(prev.audits.map((a) => [a.id, a.tipo]));
 
-  const [answers, nutriNc] = await Promise.all([
+  const [answers, prevAnswers, nutriNc] = await Promise.all([
     getGerenteAnswers(
       admin,
       gerenteAudits.map((a) => a.id),
+    ),
+    getGerenteAnswers(
+      admin,
+      prevGerenteAudits.map((a) => a.id),
     ),
     getNutriNonConformities(
       admin,
       nutriAudits.map((a) => a.id),
     ),
   ]);
+  // data da auditoria de origem das pendências (pode ser de meses anteriores)
+  const origemIds = Array.from(new Set((pendings ?? []).map((p) => p.origem_audit_id as string).filter((id) => !auditById.has(id))));
+  const origemData = new Map<string, string>(cur.audits.map((a) => [a.id, a.data]));
+  if (origemIds.length > 0) {
+    const { data: origens } = await admin.from("audits").select("id, data").in("id", origemIds);
+    for (const o of origens ?? []) origemData.set(o.id as string, o.data as string);
+  }
 
   const rankedUnits = units.filter((u) => u.entra_no_ranking && u.tipo === "loja");
-  const reportUnits = units.filter((u) => u.entra_no_ranking || u.tipo === "producao");
+  const reportUnits = units.filter((u) => (u.entra_no_ranking || u.tipo === "producao") && (!opts.unitIds || opts.unitIds.includes(u.id)));
 
   // ---------- relatórios por loja ----------
   const lojas: LojaReportData[] = [];
@@ -310,6 +328,29 @@ export async function buildMonthlyReportData(admin: AdminClient, mesInput: strin
     const unitAuditIds = new Set(unitAudits.map((a) => a.id));
     const unitAnswers = answers.filter((a) => unitAuditIds.has(a.audit_id));
     const { bons, manter, melhorar } = itemStats(unitAnswers, auditType);
+
+    // recorrentes: média ≤ 3 neste mês e também no mês anterior
+    const prevUnitIds = new Set(prevGerenteAudits.filter((a) => a.unit_id === unit.id).map((a) => a.id));
+    const prevMelhorar = new Map(itemStats(prevAnswers.filter((a) => prevUnitIds.has(a.audit_id)), prevAuditType).melhorar.map((m) => [m.chave, m]));
+    const recorrentes: ReportRecorrente[] = melhorar
+      .filter((m) => prevMelhorar.has(m.chave))
+      .map((m) => {
+        const pm = prevMelhorar.get(m.chave)!;
+        return { chave: m.chave, descricao: m.descricao, media: m.media, media_anterior: pm.media, ocorrencias: m.ocorrencias, ocorrencias_anterior: pm.ocorrencias };
+      });
+
+    // pendências em aberto da unidade (gerente e nutri), reincidentes primeiro
+    const pendenciasUnit: ReportPendencia[] = (pendings ?? [])
+      .filter((p) => p.unit_id === unit.id)
+      .map((p) => ({
+        descricao: p.descricao as string,
+        origem: p.nutri_entry_id ? ("nutri" as const) : ("gerente" as const),
+        desde: origemData.get(p.origem_audit_id as string) ?? String(p.created_at).slice(0, 10),
+        visitas_sem_resolver: Number(p.visitas_sem_resolver ?? 0),
+        reincidente: !!p.reincidente,
+        nota_origem: num(p.nota_origem),
+      }))
+      .sort((a, b) => Number(b.reincidente) - Number(a.reincidente) || b.visitas_sem_resolver - a.visitas_sem_resolver || a.desde.localeCompare(b.desde));
 
     // apontamentos (nota 1–2) com fotos (limite por relatório)
     let fotosRestantes = maxPhotos;
@@ -353,6 +394,7 @@ export async function buildMonthlyReportData(admin: AdminClient, mesInput: strin
     lojas.push({
       mes,
       mesLabel,
+      mesAnteriorLabel,
       geradoEm,
       oficial: cur.oficial,
       unidade: { id: unit.id, nome: unit.nome, slug: unit.slug, tipo: unit.tipo, supervisor_nome: unit.supervisor_nome },
@@ -374,7 +416,10 @@ export async function buildMonthlyReportData(admin: AdminClient, mesInput: strin
       bons,
       manter,
       melhorar,
+      recorrentes,
+      pendencias: pendenciasUnit,
       apontamentos,
+      recado: typeof ind?.recado === "string" && ind.recado.trim() ? ind.recado.trim() : null,
       auditorias: unitAudits
         .slice()
         .sort((a, b) => b.data.localeCompare(a.data))
@@ -383,7 +428,7 @@ export async function buildMonthlyReportData(admin: AdminClient, mesInput: strin
         unit.tipo === "producao" && s.n_auditorias_nutri === 0
           ? null
           : { nota: s.nota_nutricional, classificacao: classifyNutri(s.nota_nutricional), n: s.n_auditorias_nutri, anterior: p?.nota_nutricional ?? null, apontamentos: nutriApont },
-      food99: ind ? { nota_99food: num(ind.nota_99food), cancelamentos: num(ind.cancelamentos), tempo_medio_entrega: num(ind.tempo_medio_entrega) } : null,
+      food99: ind ? { nota_99food: num(ind.nota_99food), cancelamentos: num(ind.cancelamentos), tempo_medio_entrega: num(ind.tempo_medio_entrega), pedidos: num(ind.pedidos) } : null,
     });
   }
 
@@ -445,7 +490,7 @@ export async function buildMonthlyReportData(admin: AdminClient, mesInput: strin
     .filter((u) => u.tipo === "loja")
     .map((u) => {
       const i = (indicators ?? []).find((x) => x.unit_id === u.id);
-      return i ? { unidade: u.nome, nota_99food: num(i.nota_99food), cancelamentos: num(i.cancelamentos), tempo_medio_entrega: num(i.tempo_medio_entrega) } : null;
+      return i ? { unidade: u.nome, nota_99food: num(i.nota_99food), cancelamentos: num(i.cancelamentos), tempo_medio_entrega: num(i.tempo_medio_entrega), pedidos: num(i.pedidos) } : null;
     })
     .filter((x): x is NonNullable<typeof x> => x != null);
 

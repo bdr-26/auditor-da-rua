@@ -31,7 +31,7 @@ Auditorias do mês (todos os status), resumo mensal, fechamento (se houver), úl
 
 ## Fechamento (`/dashboard/fechamento/[mes]`)
 
-1. **Indicadores 99Food** — upsert em `external_indicators` (`mes, unit_id`), `lancado_por`. Somente leitura com o mês fechado.
+1. **Indicadores do mês por loja** — upsert em `external_indicators` (`mes, unit_id`), `lancado_por`: nota 99Food, cancelamentos, tempo médio, **pedidos** (nº de pedidos do mês) e **recado** (texto do proprietário para a loja, até 600 caracteres). Informativos — não compõem a nota, mas saem no relatório do supervisor. Somente leitura com o mês fechado.
 2. **Ajuste de pontualidade** — apenas o item `chave = 'pontualidade'` de auditorias completa/simplificada concluídas. `adjustPontualidade` grava `owner_adjustments` (valor original/novo, justificativa obrigatória, autor), altera `audit_answers.nota` e **recalcula** a auditoria com `computeAuditScore` (template + respostas + contagem de fotos), atualizando `nota_final`, `notas_blocos`, `falha_grave`, `produto_vencido`. Tudo com service_role (trigger de imutabilidade libera). Bloqueado com o mês fechado.
 3. **Fechar mês** — `closeMonth(admin, mes, userId)`:
    - recusa mês futuro, mês atual antes do último dia ("O mês ainda não terminou") e mês já fechado;
@@ -40,6 +40,27 @@ Auditorias do mês (todos os status), resumo mensal, fechamento (se houver), úl
    - **Reabrir mês** apaga as linhas de `monthly_closings` do mês (relatórios antigos continuam listados até nova geração).
 
 Depois de fechado, dashboard e loja mostram a nota fechada, a posição e "Loja premiada: X (R$ prêmio)" ou "Sem loja premiada este mês".
+
+### Relatório mensal por loja para o grupo dos supervisores
+
+Na virada do mês o proprietário envia **um PDF por loja** ao grupo de WhatsApp dos supervisores. O relatório (`src/lib/reports/loja-report.tsx`, dados em `buildMonthlyReportData`) traz, nesta ordem:
+
+1. Nota do mês, posição no ranking, mês anterior e nº de auditorias (+ selos: falha grave, produto vencido, amostra reduzida, premiada).
+2. **Resumo do mês para o supervisor** — bullets em linguagem simples: nota e variação, auditorias, onde acertaram (itens com média 5), prioridades (3 piores médias), recorrências, pendências, nutrição e delivery (pedidos, nota 99Food, cancelamentos, tempo). Abaixo, o **Recado da direção** (campo `recado` dos indicadores), se preenchido.
+3. **Pontos de atenção** — do mais grave para o menos: falhas graves (com os itens), produto vencido, bloco zerado, pendências reincidentes, itens recorrentes, queda da nota ≥ 5 pts, bloco com queda ≥ 10 pts, nutrição Regular/Insatisfatório, pendências abertas, nota 99Food < 4,5, cancelamentos ≥ 2% dos pedidos, amostra reduzida. Sem nada disso: selo "SEM PONTOS CRÍTICOS".
+4. Decomposição por bloco · O que está bom · O que manter · O que melhorar (iguais ao relatório anterior).
+5. **O que é recorrente** — itens com média ≤ 3 neste mês **e** no mês anterior (`recorrentes`: média dos dois meses e nº de notas 1–3).
+6. **Pendências em aberto** — `pending_issues` com `status = 'aberta'` da unidade (gerente e nutrição), com data da auditoria de origem, visitas sem resolver e selo reincidente.
+7. Apontamentos (nota 1–2 com fotos) · Nutrição · **Delivery e indicadores 99Food** (pedidos, nota, cancelamentos, tempo) · Auditorias do mês · assinatura do supervisor.
+
+Onde gerar/compartilhar (`LojaReportLinks` → `ShareReport`, folha de compartilhamento do celular ou link assinado de 7 dias):
+
+- `/dashboard/fechamento/[mes]` — card "Relatório por loja — grupo dos supervisores", com todas as lojas ranqueadas + Moema Produção, antes e depois do fechamento;
+- `/dashboard/lojas/[unitId]` e `/dashboard/auditorias?loja=…` — a loja selecionada.
+
+Rota `GET/POST /api/reports/loja?unit=<id>&mes=YYYY-MM` (proprietário e gerente): gera o PDF na hora com `buildMonthlyReportData(admin, mes, { unitIds: [unit] })` — **oficial** quando o mês tem `monthly_closings` (mesmos números do fechamento), **PRÉVIA** enquanto está aberto (marca d'água no cabeçalho e no nome do arquivo). O `POST` guarda em `reports/loja/<unit>/<mes>.pdf` e devolve o link assinado. Os PDFs gerados no fechamento (`generateMonthlyReports`) usam o mesmo documento.
+
+Lembrete: no dia 1 de cada mês o cron das 8h envia push aos proprietários ("Virada de mês: relatórios de <mês>", dedup `virada:<mês>`) apontando para o fechamento do mês anterior.
 
 ## Admin
 

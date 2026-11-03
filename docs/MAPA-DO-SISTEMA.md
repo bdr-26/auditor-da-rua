@@ -18,7 +18,7 @@ Visão de negócio do sistema (para quem opera). Detalhes técnicos: `ARQUITETUR
 3. **Auditoria** por blocos com peso, notas 1–5, fotos, falha grave, produto vencido, "o que conferir" por item; autosave offline.
 4. **Resumo**: nota, pontos perdidos, pendências anteriores, assinatura do supervisor, PDF e WhatsApp.
 5. **Nota do mês e ranking**: média por loja, amostra reduzida, elegibilidade; auditorias surpresa contam igual.
-6. **Fechamento**: indicadores externos, ajustes, relatórios PDF, loja premiada.
+6. **Fechamento**: indicadores do mês (pedidos, 99Food, recado por loja), ajustes, relatórios PDF, loja premiada, relatório por loja para o grupo dos supervisores (resumo, pontos de atenção, recorrências, pendências).
 
 ## Rotina da nutrição
 

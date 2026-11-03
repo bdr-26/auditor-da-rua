@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { AlertTriangle, ChevronRight, ClipboardPen, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MonthlyReportLinks } from "@/components/nutri/monthly-report-links";
+import { LojaReportLinks } from "@/components/reports/loja-report-links";
 import { Card, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
@@ -67,6 +68,14 @@ export default async function UnitPage({ params, searchParams }: { params: Promi
         </span>
         <ChevronRight className="h-4 w-4 shrink-0 text-gray-400" />
       </Link>
+
+      {(d.unit.entra_no_ranking || isProd) && (
+        <Card className="mb-4">
+          <CardTitle>Relatório mensal da loja (PDF)</CardTitle>
+          <p className="mb-2 text-xs text-gray-500">Para o grupo dos supervisores: resumo, pontos de atenção, o que melhorar, recorrências, pendências, pedidos e 99Food. {d.closed ? "Números do fechamento." : "Prévia enquanto o mês está aberto."}</p>
+          <LojaReportLinks compact mes={mes} oficial={d.closed} units={[{ id: d.unit.id, nome: d.unit.nome, slug: d.unit.slug, supervisor_nome: d.unit.supervisor_nome }]} />
+        </Card>
+      )}
 
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
         <Card className="flex flex-col justify-between">

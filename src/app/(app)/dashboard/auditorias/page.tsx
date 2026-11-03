@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ClipboardCheck, ExternalLink, Leaf } from "lucide-react";
 import { ClassBadge } from "@/components/nutri/nutri-badges";
+import { LojaReportLinks } from "@/components/reports/loja-report-links";
 import { ShareReport } from "@/components/reports/share-report";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -25,11 +26,13 @@ export default async function AuditoriasPage({ searchParams }: { searchParams: P
   const today = todaySP();
   const mes = /^\d{4}-\d{2}(-\d{2})?$/.test(mesParam ?? "") ? monthStart(mesParam!.length === 7 ? `${mesParam}-01` : mesParam!) : monthStart(today);
   const supabase = await createClient();
-  const [units, audits, profilesRes] = await Promise.all([
+  const [units, audits, profilesRes, closingRes] = await Promise.all([
     getUnits(supabase, { ativas: false }),
     getMonthAudits(supabase, mes, { unitId: loja || undefined, status: "todas" }),
     supabase.from("profiles").select("id, nome"),
+    supabase.from("monthly_closings").select("id").eq("mes", mes).limit(1),
   ]);
+  const fechado = (closingRes.data ?? []).length > 0;
   const unitById = new Map(units.map((u) => [u.id, u]));
   const nome = new Map(((profilesRes.data ?? []) as { id: string; nome: string }[]).map((p) => [p.id, p.nome]));
   const unit = loja ? unitById.get(loja) ?? null : null;
@@ -67,6 +70,14 @@ export default async function AuditoriasPage({ searchParams }: { searchParams: P
             </Link>
           ))}
       </div>
+
+      {unit && (unit.entra_no_ranking || unit.tipo === "producao") && (
+        <div className="mb-4 rounded-2xl border border-line bg-white p-4">
+          <div className="mb-1 text-sm font-semibold">Relatório mensal de {unit.nome} · {formatMonthPT(mes)}</div>
+          <p className="mb-2 text-xs text-gray-500">PDF para o grupo dos supervisores: resumo, pontos de atenção, o que melhorar, recorrências, pendências, pedidos e 99Food.{fechado ? "" : " Prévia enquanto o mês está aberto."}</p>
+          <LojaReportLinks compact mes={mes} oficial={fechado} units={[{ id: unit.id, nome: unit.nome, slug: unit.slug, supervisor_nome: unit.supervisor_nome }]} />
+        </div>
+      )}
 
       <Bloco
         titulo="Auditorias do gerente"

@@ -6,6 +6,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { CloseMonthButton, RegenerateReportsButton, ReopenMonthButton } from "@/components/dashboard/close-month-panel";
 import { IndicatorsForm } from "@/components/dashboard/indicators-form";
+import { LojaReportLinks } from "@/components/reports/loja-report-links";
 import { PontualidadeItem } from "@/components/dashboard/pontualidade-form";
 import { RankingTable } from "@/components/dashboard/ranking-table";
 import { requireProfile } from "@/lib/auth";
@@ -26,6 +27,7 @@ export default async function FechamentoMesPage({ params }: { params: Promise<{ 
   const ov = wb.overview;
   const closed = ov.closed;
   const lojas = wb.units.filter((u) => u.tipo === "loja" && !u.somente_nutri);
+  const lojasRelatorio = wb.units.filter((u) => u.ativa && (u.entra_no_ranking || u.tipo === "producao"));
   const blocker = closed ? null : closingBlocker(mes);
   const hasPontualidade = Array.from(wb.pontualidade.values()).some((rows) => rows.length > 0);
 
@@ -55,8 +57,8 @@ export default async function FechamentoMesPage({ params }: { params: Promise<{ 
       <div className="space-y-4">
         {/* Indicadores 99Food */}
         <Card>
-          <CardTitle>Indicadores 99Food</CardTitle>
-          <p className="mb-3 text-xs text-gray-500">Um lançamento por loja no mês. Informativo — não compõe a nota. {closed && "Somente leitura com o mês fechado."}</p>
+          <CardTitle>Indicadores do mês por loja</CardTitle>
+          <p className="mb-3 text-xs text-gray-500">Pedidos, 99Food e o recado do mês para cada loja. Informativo — não compõe a nota, mas sai no relatório do supervisor. {closed && "Somente leitura com o mês fechado."}</p>
           <IndicatorsForm mes={mes} units={lojas} indicators={wb.indicators} readOnly={closed} />
         </Card>
 
@@ -140,6 +142,16 @@ export default async function FechamentoMesPage({ params }: { params: Promise<{ 
               <CloseMonthButton mes={mes} blocker={blocker} disabled={ov.ranking.length === 0 && !ov.production?.summary.n_auditorias} />
             )}
           </div>
+        </Card>
+
+        {/* Relatório por loja para os supervisores */}
+        <Card>
+          <CardTitle>Relatório por loja — grupo dos supervisores</CardTitle>
+          <p className="mb-3 text-xs text-gray-500">
+            Um PDF por loja com resumo do mês, pontos de atenção, o que melhorar, o que é recorrente, pendências, auditorias, nutrição, pedidos e 99Food.
+            {closed ? " Gerado na hora com os números do fechamento." : " Enquanto o mês está aberto sai como PRÉVIA (valores parciais)."}
+          </p>
+          <LojaReportLinks mes={mes} units={lojasRelatorio.map((u) => ({ id: u.id, nome: u.nome, slug: u.slug, supervisor_nome: u.supervisor_nome }))} oficial={closed} />
         </Card>
 
         {/* Relatórios */}
