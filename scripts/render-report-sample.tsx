@@ -19,6 +19,7 @@ const foto = `data:image/png;base64,${png.toString("base64")}`;
 const loja: LojaReportData = {
   mes: "2026-09-01",
   mesLabel: "setembro de 2026",
+  mesAnteriorLabel: "agosto de 2026",
   geradoEm: "01/10/2026 09:12",
   oficial: true,
   unidade: { id: "u-bela-vista", nome: "Bela Vista", slug: "bela-vista", tipo: "loja", supervisor_nome: "Carla Souza" },
@@ -57,6 +58,16 @@ const loja: LojaReportData = {
     { chave: "planilhas", descricao: "Preenchimento correto das planilhas e registros de controle", media: 2.75, n: 4, ocorrencias: 3 },
     { chave: "pontualidade", descricao: "Pontualidade e cumprimento da escala", media: 3, n: 4, ocorrencias: 2 },
   ],
+  recorrentes: [
+    { chave: "temperaturas", descricao: "Controle de temperatura dos alimentos (quente/frio)", media: 2.25, media_anterior: 2.75, ocorrencias: 3, ocorrencias_anterior: 2 },
+    { chave: "planilhas", descricao: "Preenchimento correto das planilhas e registros de controle", media: 2.75, media_anterior: 3, ocorrencias: 3, ocorrencias_anterior: 2 },
+  ],
+  pendencias: [
+    { descricao: "Termômetro da câmara fria sem calibração", origem: "gerente", desde: "2026-08-14", visitas_sem_resolver: 3, reincidente: true, nota_origem: 1 },
+    { descricao: "Planilha de temperatura sem registro das 14h e 18h", origem: "gerente", desde: "2026-09-05", visitas_sem_resolver: 1, reincidente: false, nota_origem: 2 },
+    { descricao: "GN na pista desprotegidas", origem: "nutri", desde: "2026-09-10", visitas_sem_resolver: 0, reincidente: false, nota_origem: null },
+  ],
+  recado: "Setembro foi de evolução no atendimento — parabéns à equipe. Em outubro o foco é temperatura e planilhas: nenhuma auditoria pode fechar com esses itens abaixo de 4.",
   apontamentos: [
     { data: "2026-09-05", tipo: "completa", item: "Controle de temperatura dos alimentos (quente/frio)", nota: 1, falha_grave: true, observacao: "Câmara fria a 9 °C no início do turno; termômetro descalibrado.", fotos: [foto, foto] },
     { data: "2026-09-05", tipo: "completa", item: "Preenchimento correto das planilhas e registros de controle", nota: 2, falha_grave: false, observacao: "Planilha de temperatura sem registro das 14h e 18h.", fotos: [foto] },
@@ -79,7 +90,7 @@ const loja: LojaReportData = {
       { data: "2026-09-24", area: "Cozinha / Chapa", item: "Amostras de água não foram coletadas", observacao: "Coleta do dia 22 não realizada." },
     ],
   },
-  food99: { nota_99food: 4.7, cancelamentos: 3, tempo_medio_entrega: 38 },
+  food99: { nota_99food: 4.7, cancelamentos: 3, tempo_medio_entrega: 38, pedidos: 1532 },
 };
 
 const producao: LojaReportData = {
@@ -95,6 +106,9 @@ const producao: LojaReportData = {
   anterior: { nota: 88.5, posicao: null },
   blocos: [{ chave: "producao", nome: "Cozinha central", nota: 91, nota_anterior: 88.5, zerado: false }],
   apontamentos: [],
+  recorrentes: [],
+  pendencias: [],
+  recado: null,
   nutri: null,
   food99: null,
   auditorias: [{ data: "2026-09-01", tipo: "producao", nota: 91, falha_grave: false, auditor: "Rodrigo" }],
@@ -140,11 +154,11 @@ const consolidado: ConsolidadoReportData = {
     { unidade: "Mooca", n: 1, datas: ["2026-09-17"], nota: 93, classificacao: "Excelente" },
   ],
   food99: [
-    { unidade: "Moema Salão", nota_99food: 4.6, cancelamentos: 2, tempo_medio_entrega: 41 },
-    { unidade: "Moema Delivery", nota_99food: 4.3, cancelamentos: 9, tempo_medio_entrega: 47 },
-    { unidade: "Imigrantes", nota_99food: 4.8, cancelamentos: 1, tempo_medio_entrega: 35 },
-    { unidade: "Bela Vista", nota_99food: 4.7, cancelamentos: 3, tempo_medio_entrega: 38 },
-    { unidade: "Mooca", nota_99food: 4.9, cancelamentos: 0, tempo_medio_entrega: 33 },
+    { unidade: "Moema Salão", nota_99food: 4.6, cancelamentos: 2, tempo_medio_entrega: 41, pedidos: null },
+    { unidade: "Moema Delivery", nota_99food: 4.3, cancelamentos: 9, tempo_medio_entrega: 47, pedidos: null },
+    { unidade: "Imigrantes", nota_99food: 4.8, cancelamentos: 1, tempo_medio_entrega: 35, pedidos: null },
+    { unidade: "Bela Vista", nota_99food: 4.7, cancelamentos: 3, tempo_medio_entrega: 38, pedidos: null },
+    { unidade: "Mooca", nota_99food: 4.9, cancelamentos: 0, tempo_medio_entrega: 33, pedidos: null },
   ],
   pendencias: [
     { unidade: "Moema Salão", abertas: 3, reincidentes: 1 },

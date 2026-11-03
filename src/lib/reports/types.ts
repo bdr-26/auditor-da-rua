@@ -47,11 +47,33 @@ export interface ReportFood99 {
   nota_99food: number | null;
   cancelamentos: number | null;
   tempo_medio_entrega: number | null;
+  pedidos: number | null;
+}
+
+/** Item com média ≤ 3 neste mês E no mês anterior (problema que se repete). */
+export interface ReportRecorrente {
+  chave: string;
+  descricao: string;
+  media: number;
+  media_anterior: number;
+  ocorrencias: number; // respostas com nota ≤ 3 neste mês
+  ocorrencias_anterior: number;
+}
+
+/** Pendência da auditoria ainda em aberto ao gerar o relatório. */
+export interface ReportPendencia {
+  descricao: string;
+  origem: "gerente" | "nutri";
+  desde: string; // YYYY-MM-DD (data da auditoria de origem)
+  visitas_sem_resolver: number;
+  reincidente: boolean;
+  nota_origem: number | null;
 }
 
 export interface LojaReportData {
   mes: string; // YYYY-MM-01
   mesLabel: string; // "setembro de 2026"
+  mesAnteriorLabel: string; // "agosto de 2026"
   geradoEm: string; // "21/09/2026 18:30"
   oficial: boolean; // true = baseado no fechamento; false = prévia calculada na hora
   unidade: { id: string; nome: string; slug: string; tipo: "loja" | "producao"; supervisor_nome: string | null };
@@ -73,8 +95,12 @@ export interface LojaReportData {
   bons: ReportItemStat[];
   manter: ReportItemStat[];
   melhorar: ReportItemStat[];
+  recorrentes: ReportRecorrente[];
+  pendencias: ReportPendencia[];
   apontamentos: ReportApontamento[];
   auditorias: ReportAuditRow[];
+  /** Recado do mês do proprietário para a loja (external_indicators.recado). */
+  recado: string | null;
   nutri: {
     nota: number | null;
     classificacao: string | null;
@@ -118,6 +144,6 @@ export interface ConsolidadoReportData {
     nao_cumpridos_lista: { data: string; unidade: string; tipo: AuditType }[];
   };
   nutri_frequencia: { unidade: string; n: number; datas: string[]; nota: number | null; classificacao: string | null }[];
-  food99: { unidade: string; nota_99food: number | null; cancelamentos: number | null; tempo_medio_entrega: number | null }[];
+  food99: { unidade: string; nota_99food: number | null; cancelamentos: number | null; tempo_medio_entrega: number | null; pedidos: number | null }[];
   pendencias: { unidade: string; abertas: number; reincidentes: number }[];
 }

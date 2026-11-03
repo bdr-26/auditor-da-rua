@@ -308,6 +308,10 @@ export interface ExternalIndicator {
   nota_99food: number | null;
   cancelamentos: number | null;
   tempo_medio_entrega: number | null;
+  /** Nº de pedidos da loja no mês (informativo). */
+  pedidos: number | null;
+  /** Recado do mês para a loja, impresso no relatório do supervisor. */
+  recado: string | null;
   lancado_por: string | null;
   updated_at: string;
 }

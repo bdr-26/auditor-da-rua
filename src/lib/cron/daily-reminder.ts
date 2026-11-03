@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AUDIT_TYPE_LABELS, NUTRI_AGENDA_TIPO_LABELS } from "../constants";
-import { addDays, formatDateShortPT, todaySP, weekday } from "../dates";
+import { addDays, addMonths, formatDateShortPT, formatMonthPT, monthStart, todaySP, weekday } from "../dates";
 import { getVencimentos } from "../data/nutri-vencimentos";
 import { materializeNutriRotinas } from "../nutri/rotinas-sync";
 import { appUrl, ownerIds, sendPushToUsers } from "../push";
@@ -26,6 +26,8 @@ export interface DailyReminderResult {
   motivo?: string;
   /** Rotina padrão da nutrição materializada + lembretes do dia para a equipe nutri. */
   nutri?: { agenda_criada: number; lembretes: { responsavel_id: string; tarefas: number; enviados: number; pulados: number }[]; vencimentos?: { vencidos: number; proximos: number; enviados: number }; erro?: string };
+  /** Virada de mês (dia 1): aviso aos proprietários para fechar o mês e enviar os relatórios por loja. */
+  virada_mes?: { mes: string; enviados: number; pulados: number };
 }
 
 /**
@@ -41,6 +43,7 @@ export async function runDailyReminder(admin: AdminClient, opts: { data?: string
   const previstas = ((rows ?? []) as ScheduleDay[]).filter((r) => r.status === "prevista");
   const result: DailyReminderResult = { data, agenda_criada: agendaCriada, lembretes: [] };
   result.nutri = await nutriDailyReminder(admin, data);
+  if (data.endsWith("-01")) result.virada_mes = await avisarViradaDeMes(admin, data);
   if (previstas.length === 0) {
     result.motivo = (rows ?? []).length === 0 ? "sem auditoria prevista para a data" : "agenda do dia já concluída/encerrada";
     return result;
@@ -155,6 +158,22 @@ async function avisarVencimentos(admin: AdminClient, data: string): Promise<{ ve
     tag: `vencimentos-${segunda}`,
   });
   return { vencidos, proximos, enviados: r.enviados };
+}
+
+/**
+ * Dia 1: lembra os proprietários de fechar o mês anterior e mandar o relatório de cada loja
+ * para o grupo dos supervisores. Dedup por `virada:<mês>`.
+ */
+async function avisarViradaDeMes(admin: AdminClient, data: string): Promise<NonNullable<DailyReminderResult["virada_mes"]>> {
+  const mes = addMonths(monthStart(data), -1);
+  const owners = await ownerIds(admin);
+  const r = await sendPushToUsers(admin, owners, "virada_mes", `virada:${mes}`, {
+    titulo: `Virada de mês: relatórios de ${formatMonthPT(mes)}`,
+    corpo: "Lance pedidos e 99Food, feche o mês e envie o relatório de cada loja ao grupo dos supervisores.",
+    url: appUrl(`/dashboard/fechamento/${mes}`),
+    tag: `virada-${mes}`,
+  });
+  return { mes, ...r };
 }
 
 async function activeGeneralAuditors(admin: AdminClient): Promise<string[]> {

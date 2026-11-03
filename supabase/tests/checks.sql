@@ -103,3 +103,7 @@ insert into units (nome, slug) values ('Loja Nova', 'loja-nova');
 select case when count(*) = 8 then 'rls proprietário cria unidade: OK' else 'FALHA criar unidade' end from units;
 reset role;
 rollback;
+
+-- 0016: indicadores do mês com pedidos e recado (relatório do supervisor)
+select case when (select count(*) from information_schema.columns where table_name = 'external_indicators' and column_name in ('pedidos', 'recado')) = 2
+  then 'external_indicators.pedidos/recado: OK' else 'FALHA colunas 0016' end;

@@ -140,15 +140,16 @@ export function ConsolidadoReportDocument({ data }: { data: ConsolidadoReportDat
           />
         </Section>
 
-        <Section title="Indicadores 99Food" hint="Informativos, lançados pelo proprietário no fechamento; não compõem a nota.">
+        <Section title="Pedidos e indicadores 99Food" hint="Informativos, lançados pelo proprietário no fechamento; não compõem a nota.">
           <Table
             rows={d.food99}
             empty="Indicadores não lançados para este mês."
             columns={[
-              { key: "unidade", label: "Loja", width: "34%", render: (r) => r.unidade },
-              { key: "nota", label: "Nota média", width: "22%", align: "right", render: (r) => (r.nota_99food == null ? "—" : fmtNum(r.nota_99food, 2)) },
-              { key: "canc", label: "Cancelamentos", width: "22%", align: "right", render: (r) => (r.cancelamentos == null ? "—" : String(r.cancelamentos)) },
-              { key: "tempo", label: "Tempo médio", width: "22%", align: "right", render: (r) => (r.tempo_medio_entrega == null ? "—" : `${r.tempo_medio_entrega} min`) },
+              { key: "unidade", label: "Loja", width: "28%", render: (r) => r.unidade },
+              { key: "pedidos", label: "Pedidos", width: "18%", align: "right", render: (r) => (r.pedidos == null ? "—" : r.pedidos.toLocaleString("pt-BR")) },
+              { key: "nota", label: "Nota média", width: "18%", align: "right", render: (r) => (r.nota_99food == null ? "—" : fmtNum(r.nota_99food, 2)) },
+              { key: "canc", label: "Cancelamentos", width: "18%", align: "right", render: (r) => (r.cancelamentos == null ? "—" : String(r.cancelamentos)) },
+              { key: "tempo", label: "Tempo médio", width: "18%", align: "right", render: (r) => (r.tempo_medio_entrega == null ? "—" : `${r.tempo_medio_entrega} min`) },
             ]}
           />
         </Section>

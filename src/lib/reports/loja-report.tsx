@@ -17,12 +17,85 @@ import {
   Stat,
   styles,
   Table,
+  type Tone,
   toneColors,
   toneOfNutri,
   toneOfPct,
   toneOfScore,
 } from "./pdf-ui";
-import type { LojaReportData, ReportApontamento, ReportAuditRow, ReportBlockRow, ReportItemStat, ReportNutriApontamento } from "./types";
+import type { LojaReportData, ReportApontamento, ReportAuditRow, ReportBlockRow, ReportItemStat, ReportNutriApontamento, ReportPendencia, ReportRecorrente } from "./types";
+
+const plural = (n: number, s: string, p: string) => (n === 1 ? s : p);
+
+/** Resumo em linguagem simples para o supervisor: o que importa do mês em poucas linhas. */
+function resumoDoMes(d: LojaReportData): string[] {
+  const out: string[] = [];
+  if (d.n_auditorias === 0) {
+    out.push(`A loja não teve auditoria concluída em ${d.mesLabel}.`);
+  } else {
+    const nota = `Nota do mês: ${fmtPct(d.nota, 1)}`;
+    const varia = d.anterior?.nota != null && d.nota != null ? ` (${fmtDeltaPts(d.nota, d.anterior.nota)} em relação a ${d.mesAnteriorLabel})` : d.anterior ? ` (sem nota em ${d.mesAnteriorLabel})` : "";
+    const pos = d.fora_do_ranking ? "" : d.posicao != null ? ` · ${d.posicao}º de ${d.total_ranqueadas} lojas${d.premiada ? " · loja premiada" : ""}` : "";
+    out.push(`${nota}${varia}${pos}.`);
+    out.push(
+      d.unidade.tipo === "producao"
+        ? `${d.n_auditorias} ${plural(d.n_auditorias, "auditoria", "auditorias")} da cozinha central no mês.`
+        : `${d.n_auditorias} ${plural(d.n_auditorias, "auditoria", "auditorias")} no mês (${d.n_completas} ${plural(d.n_completas, "completa", "completas")}, ${d.n_simplificadas} ${plural(d.n_simplificadas, "simplificada", "simplificadas")}).`,
+    );
+  }
+  if (d.bons.length > 0) out.push(`Onde acertaram: ${d.bons.length} ${plural(d.bons.length, "item ficou", "itens ficaram")} no padrão máximo em todas as auditorias — ex.: ${d.bons.slice(0, 3).map((b) => b.descricao).join("; ")}.`);
+  if (d.melhorar.length > 0) out.push(`Prioridades: ${d.melhorar.slice(0, 3).map((m) => `${m.descricao} (média ${fmtNum(m.media, 1)})`).join("; ")}.`);
+  if (d.recorrentes.length > 0) out.push(`${d.recorrentes.length} ${plural(d.recorrentes.length, "item repete", "itens repetem")} nota baixa pelo 2º mês seguido — ver "O que é recorrente".`);
+  const reinc = d.pendencias.filter((p) => p.reincidente).length;
+  if (d.pendencias.length > 0) out.push(`${d.pendencias.length} ${plural(d.pendencias.length, "pendência", "pendências")} em aberto para a próxima visita${reinc ? ` (${reinc} ${plural(reinc, "reincidente", "reincidentes")})` : ""}.`);
+  if (d.nutri && d.nutri.n > 0) out.push(`Nutrição: ${fmtPct(d.nutri.nota, 1)} (${d.nutri.classificacao ?? "—"}) em ${d.nutri.n} ${plural(d.nutri.n, "visita", "visitas")}, ${d.nutri.apontamentos.length} ${plural(d.nutri.apontamentos.length, "não conformidade", "não conformidades")}.`);
+  if (d.food99) {
+    const partes: string[] = [];
+    if (d.food99.pedidos != null) partes.push(`${d.food99.pedidos.toLocaleString("pt-BR")} pedidos`);
+    if (d.food99.nota_99food != null) partes.push(`nota 99Food ${fmtNum(d.food99.nota_99food, 2)}`);
+    if (d.food99.cancelamentos != null) partes.push(`${d.food99.cancelamentos} ${plural(d.food99.cancelamentos, "cancelamento", "cancelamentos")}`);
+    if (d.food99.tempo_medio_entrega != null) partes.push(`entrega média ${d.food99.tempo_medio_entrega} min`);
+    if (partes.length) out.push(`Delivery: ${partes.join(" · ")}.`);
+  }
+  return out;
+}
+
+/** Pontos de atenção: tudo que precisa de ação imediata do supervisor, do mais grave para o menos. */
+function pontosDeAtencao(d: LojaReportData): { tone: Tone; texto: string }[] {
+  const out: { tone: Tone; texto: string }[] = [];
+  if (d.falhas_graves > 0) {
+    const itens = Array.from(new Set(d.apontamentos.filter((a) => a.falha_grave).map((a) => a.item)));
+    out.push({ tone: "red", texto: `${d.falhas_graves} ${plural(d.falhas_graves, "falha grave", "falhas graves")} no mês${itens.length ? `: ${itens.join("; ")}` : ""}. Zera o bloco e tira a loja da premiação.` });
+  }
+  if (d.produto_vencido) out.push({ tone: "red", texto: "Produto vencido encontrado em auditoria: loja inelegível à premiação do mês." });
+  for (const b of d.blocos.filter((b) => b.zerado)) out.push({ tone: "red", texto: `Bloco "${b.nome}" zerado por falha grave.` });
+  for (const p of d.pendencias.filter((p) => p.reincidente)) out.push({ tone: "red", texto: `Pendência reincidente sem resolver desde ${formatDatePT(p.desde)}: ${p.descricao}` });
+  for (const r of d.recorrentes) out.push({ tone: "orange", texto: `Recorrente: ${r.descricao} — média ${fmtNum(r.media, 1)} agora e ${fmtNum(r.media_anterior, 1)} em ${d.mesAnteriorLabel}.` });
+  if (d.nota != null && d.anterior?.nota != null && d.nota - d.anterior.nota <= -5) out.push({ tone: "orange", texto: `A nota caiu ${fmtNum(d.anterior.nota - d.nota, 1)} pontos em relação a ${d.mesAnteriorLabel}.` });
+  for (const b of d.blocos.filter((b) => !b.zerado && b.nota != null && b.nota_anterior != null && b.nota - b.nota_anterior <= -10)) out.push({ tone: "orange", texto: `Bloco "${b.nome}" caiu ${fmtNum(b.nota_anterior! - b.nota!, 0)} pontos (${fmtPct(b.nota_anterior)} → ${fmtPct(b.nota)}).` });
+  if (d.nutri && d.nutri.n > 0 && (d.nutri.classificacao === "Insatisfatório" || d.nutri.classificacao === "Regular")) out.push({ tone: d.nutri.classificacao === "Insatisfatório" ? "red" : "orange", texto: `Nutrição com classificação ${d.nutri.classificacao} (${fmtPct(d.nutri.nota, 1)}): ${d.nutri.apontamentos.length} ${plural(d.nutri.apontamentos.length, "não conformidade", "não conformidades")} no mês.` });
+  const abertas = d.pendencias.filter((p) => !p.reincidente).length;
+  if (abertas > 0) out.push({ tone: "yellow", texto: `${abertas} ${plural(abertas, "pendência aberta", "pendências abertas")} da auditoria: serão conferidas na próxima visita.` });
+  if (d.food99) {
+    if (d.food99.nota_99food != null && d.food99.nota_99food < 4.5) out.push({ tone: "orange", texto: `Nota 99Food em ${fmtNum(d.food99.nota_99food, 2)} (abaixo de 4,5).` });
+    if (d.food99.pedidos && d.food99.cancelamentos != null && d.food99.cancelamentos / d.food99.pedidos >= 0.02) out.push({ tone: "orange", texto: `${d.food99.cancelamentos} cancelamentos em ${d.food99.pedidos.toLocaleString("pt-BR")} pedidos (${fmtNum((d.food99.cancelamentos / d.food99.pedidos) * 100, 1)}%).` });
+  }
+  if (d.amostra_reduzida) out.push({ tone: "yellow", texto: "Amostra reduzida: menos auditorias que o previsto; a nota do mês tem menos peso." });
+  return out;
+}
+
+function Bullets({ items, tone }: { items: string[]; tone?: Tone }) {
+  return (
+    <View>
+      {items.map((t, i) => (
+        <View key={i} style={[styles.row, { marginBottom: 3 }]} wrap={false}>
+          <Text style={[styles.bullet, { color: tone ? toneColors(tone).fg : COLORS.muted }]}>•</Text>
+          <Text style={[styles.td, { flex: 1, lineHeight: 1.35 }]}>{t}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
 
 function ItemList({ items, empty, showOcorrencias }: { items: ReportItemStat[]; empty: string; showOcorrencias?: boolean }) {
   if (items.length === 0) return <Empty text={empty} />;
@@ -85,6 +158,8 @@ export function LojaReportDocument({ data }: { data: LojaReportData }) {
   if (d.premiada) selos.push({ label: "Loja premiada", tone: "green" });
 
   const footer = `ROTA · Relatório mensal · ${d.unidade.nome} · ${d.mesLabel}${d.oficial ? "" : " · PRÉVIA"}`;
+  const resumo = resumoDoMes(d);
+  const atencao = pontosDeAtencao(d);
 
   return (
     <Document title={`Relatório mensal — ${d.unidade.nome} — ${d.mesLabel}`} author="ROTA" language="pt-BR">
@@ -119,6 +194,35 @@ export function LojaReportDocument({ data }: { data: LojaReportData }) {
           </View>
         ) : null}
 
+        <View style={[styles.card, { marginTop: 14, backgroundColor: COLORS.graySoft, borderColor: COLORS.border }]}>
+          <Text style={[styles.bold, { fontSize: 10.5, marginBottom: 5, color: COLORS.ink }]}>Resumo do mês para o supervisor</Text>
+          <Bullets items={resumo} />
+          {d.recado ? (
+            <View style={{ marginTop: 8, paddingTop: 6, borderTopWidth: 0.5, borderTopColor: COLORS.border }}>
+              <Text style={[styles.bold, { fontSize: 9, color: COLORS.graphite }]}>Recado da direção</Text>
+              <Text style={[styles.td, { marginTop: 2, lineHeight: 1.35 }]}>{d.recado}</Text>
+            </View>
+          ) : null}
+        </View>
+
+        <Section title="Pontos de atenção" hint="O que precisa de ação imediata, do mais grave para o menos grave.">
+          {atencao.length === 0 ? (
+            <View style={[styles.row, { alignItems: "center", gap: 6 }]}>
+              <Chip label="SEM PONTOS CRÍTICOS" tone="green" />
+              <Text style={styles.tdMuted}>Nenhuma falha grave, recorrência ou pendência reincidente no mês.</Text>
+            </View>
+          ) : (
+            <View>
+              {atencao.map((a, i) => (
+                <View key={i} style={[styles.row, { marginBottom: 4, alignItems: "flex-start" }]} wrap={false}>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, marginTop: 3, marginRight: 6, backgroundColor: toneColors(a.tone).fg }} />
+                  <Text style={[styles.td, { flex: 1, lineHeight: 1.35 }]}>{a.texto}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </Section>
+
         <Section title="Decomposição por bloco" hint="Nota do bloco = média dos itens aplicáveis (1 = 0%, 5 = 100%). Bloco zerado = item de falha grave com nota 1.">
           <Table<ReportBlockRow>
             rows={d.blocos}
@@ -143,6 +247,33 @@ export function LojaReportDocument({ data }: { data: LojaReportData }) {
 
         <Section title="O que melhorar" hint="Itens com média 3 ou menos, do pior para o melhor, com nº de ocorrências de nota 1–3.">
           <ItemList items={d.melhorar} empty="Nenhum item com média 3 ou menos. Parabéns!" showOcorrencias />
+        </Section>
+
+        <Section title="O que é recorrente" hint={`Itens com média 3 ou menos neste mês e também em ${d.mesAnteriorLabel}: o problema se repete e precisa de plano de ação.`}>
+          <Table<ReportRecorrente>
+            rows={d.recorrentes}
+            empty={d.anterior ? "Nenhum item repetiu nota baixa em relação ao mês anterior." : "Sem mês anterior para comparar."}
+            columns={[
+              { key: "item", label: "Item", width: "52%", render: (r) => r.descricao },
+              { key: "media", label: `Média ${d.mesLabel.split(" de ")[0]}`, width: "16%", align: "right", render: (r) => <Text style={[styles.td, styles.bold, { textAlign: "right", color: toneColors(toneOfScore(r.media)).fg }]}>{fmtNum(r.media, 1)}</Text> },
+              { key: "ant", label: `Média ${d.mesAnteriorLabel.split(" de ")[0]}`, width: "16%", align: "right", render: (r) => <Text style={[styles.td, { textAlign: "right", color: toneColors(toneOfScore(r.media_anterior)).fg }]}>{fmtNum(r.media_anterior, 1)}</Text> },
+              { key: "oc", label: "Notas 1–3", width: "16%", align: "right", render: (r) => `${r.ocorrencias} + ${r.ocorrencias_anterior}` },
+            ]}
+          />
+        </Section>
+
+        <Section title="Pendências em aberto" hint="Apontadas em auditorias anteriores e ainda não resolvidas; serão conferidas na próxima visita. Reincidente = segue sem resolver há mais de uma visita.">
+          <Table<ReportPendencia>
+            rows={d.pendencias}
+            empty="Nenhuma pendência em aberto."
+            columns={[
+              { key: "desde", label: "Desde", width: "13%", render: (p) => formatDatePT(p.desde) },
+              { key: "origem", label: "Origem", width: "13%", render: (p) => (p.origem === "nutri" ? "Nutrição" : "Gerente") },
+              { key: "desc", label: "Pendência", width: "50%", render: (p) => p.descricao },
+              { key: "visitas", label: "Visitas", width: "10%", align: "right", render: (p) => String(p.visitas_sem_resolver) },
+              { key: "st", label: "", width: "14%", render: (p) => (p.reincidente ? <Chip label="REINCIDENTE" tone="red" /> : <Chip label="aberta" tone="yellow" />) },
+            ]}
+          />
         </Section>
 
         <Section title="Apontamentos" hint="Itens com nota 1 ou 2 registrados nas auditorias do mês, com observação e foto.">
@@ -175,10 +306,11 @@ export function LojaReportDocument({ data }: { data: LojaReportData }) {
           )}
         </Section>
 
-        <Section title="Indicadores 99Food" hint="Informativos: não compõem a nota (lançados pelo proprietário no fechamento).">
+        <Section title="Delivery e indicadores 99Food" hint="Informativos: não compõem a nota (lançados pelo proprietário no fechamento).">
           {d.food99 ? (
             <View style={[styles.statGrid, { marginTop: 0 }]}>
-              <Stat label="Nota média" value={d.food99.nota_99food == null ? "—" : fmtNum(d.food99.nota_99food, 2)} small />
+              <Stat label="Pedidos no mês" value={d.food99.pedidos == null ? "—" : d.food99.pedidos.toLocaleString("pt-BR")} small />
+              <Stat label="Nota 99Food" value={d.food99.nota_99food == null ? "—" : fmtNum(d.food99.nota_99food, 2)} small />
               <Stat label="Cancelamentos" value={d.food99.cancelamentos == null ? "—" : String(d.food99.cancelamentos)} small />
               <Stat label="Tempo médio de entrega" value={d.food99.tempo_medio_entrega == null ? "—" : `${d.food99.tempo_medio_entrega} min`} small />
             </View>

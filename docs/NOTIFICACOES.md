@@ -16,6 +16,7 @@ O payload é `{ titulo, corpo, url, tag? }`. `tag` agrupa notificações no apar
 | 2 | `auditoria_concluida` | proprietários | ao concluir qualquer auditoria (server action de conclusão, gerente ou nutricionista) | `<audit_id>` | `/auditorias/<id>/resumo` (gerente) · `/nutri/auditorias/<id>/resumo` (nutricional) |
 | 3 | `rotina_nao_cumprida` | gerente **e** proprietários | 23:05 SP: dia previsto sem auditoria concluída → `schedule_days.status = 'nao_cumprida'` | `rotina:YYYY-MM-DD:<unit_id>` | gerente: `/auditor/agenda?mes=YYYY-MM-01` · proprietários: `/dashboard/calendario?mes=YYYY-MM-01` |
 | 4 | `pendencia_reincidente` | proprietários | pendência avaliada como não resolvida pela 2ª visita consecutiva (`pendencia_reincidente_visitas`, padrão 2) | `<pending_issue_id>` | `/dashboard/lojas/<unit_id>` |
+| 5 | `virada_mes` | proprietários | 08:00 SP do dia 1: lembrete para lançar pedidos/99Food, fechar o mês anterior e enviar o relatório de cada loja ao grupo dos supervisores | `virada:YYYY-MM-01` (mês anterior) | `/dashboard/fechamento/YYYY-MM-01` |
 
 ### Textos
 

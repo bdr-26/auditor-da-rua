@@ -193,7 +193,7 @@ export const TABLE_DEFAULTS = {
   audit_pending_reviews: { resolvida: null, observacao: null },
   monthly_closings: { n_auditorias: 0, n_auditorias_nutri: 0, falhas_graves: 0, amostra_reduzida: false, inelegivel_produto_vencido: false, posicao_ranking: null, elegivel: false, premiada: false, empate: false, fechado_por: null },
   owner_adjustments: { closing_id: null, valor_original: null, valor_novo: null },
-  external_indicators: { nota_99food: null, cancelamentos: null, tempo_medio_entrega: null, lancado_por: null },
+  external_indicators: { nota_99food: null, cancelamentos: null, tempo_medio_entrega: null, pedidos: null, recado: null, lancado_por: null },
   reports: { unit_id: null, gerado_por: null },
   auditor_days_off: { auditor_id: null, motivo: "Folga de domingo", criado_por: null },
   demandas: { descricao: null, prazo: null, prioridade: "normal", categoria: "geral", status: "aberta", unit_id: null, conclusao_texto: null, concluida_em: null, concluida_por: null },
@@ -1460,12 +1460,12 @@ export function buildFixtures(today = todaySP()) {
 
   // ----- indicadores 99Food (mês anterior) e relatórios -----
   const ind = [
-    ["moema-salao", 4.8, 2, 31],
-    ["moema-delivery", 4.6, 5, 38],
-    ["imigrantes", 4.3, 7, 42],
+    ["moema-salao", 4.8, 2, 31, 1840, "Parabéns pelo atendimento no mês. Foco agora: planilhas de temperatura preenchidas em todos os turnos."],
+    ["moema-delivery", 4.6, 5, 38, 2615, null],
+    ["imigrantes", 4.3, 7, 42, 1210, "Atenção aos cancelamentos: revisar o tempo de preparo nos horários de pico."],
   ];
-  for (const [slug, nota_99food, cancelamentos, tempo] of ind) {
-    t.external_indicators.push({ id: uuid(`ind:${prevStart}:${slug}`), mes: prevStart, unit_id: UNIT_IDS[slug], nota_99food, cancelamentos, tempo_medio_entrega: tempo, lancado_por: USERS.antonio.id, updated_at: atSP(curStart, "18:00") });
+  for (const [slug, nota_99food, cancelamentos, tempo, pedidos, recado] of ind) {
+    t.external_indicators.push({ id: uuid(`ind:${prevStart}:${slug}`), mes: prevStart, unit_id: UNIT_IDS[slug], nota_99food, cancelamentos, tempo_medio_entrega: tempo, pedidos, recado, lancado_por: USERS.antonio.id, updated_at: atSP(curStart, "18:00") });
   }
   t.reports.push({ id: uuid(`report:${prevStart}:consolidado`), mes: prevStart, unit_id: null, tipo: "consolidado", storage_path: `${prevStart.slice(0, 7)}/consolidado.pdf`, gerado_por: USERS.antonio.id, gerado_em: addIsoMinutes(fechadoEm, 2) });
   t.reports.push({ id: uuid(`report:${prevStart}:moema-salao`), mes: prevStart, unit_id: UNIT_IDS["moema-salao"], tipo: "loja", storage_path: `${prevStart.slice(0, 7)}/moema-salao.pdf`, gerado_por: USERS.antonio.id, gerado_em: addIsoMinutes(fechadoEm, 3) });
