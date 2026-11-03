@@ -72,7 +72,7 @@ export default async function UnitPage({ params, searchParams }: { params: Promi
       {(d.unit.entra_no_ranking || isProd) && (
         <Card className="mb-4">
           <CardTitle>Relatório mensal da loja (PDF)</CardTitle>
-          <p className="mb-2 text-xs text-gray-500">Para o grupo dos supervisores: resumo, pontos de atenção, o que melhorar, recorrências, pendências, pedidos e 99Food. {d.closed ? "Números do fechamento." : "Prévia enquanto o mês está aberto."}</p>
+          <p className="mb-2 text-xs text-gray-500">Resumo de uma página para o grupo dos supervisores: nota, o que precisa de ação, auditoria do gerente, auditoria da nutrição e delivery. {d.closed ? "Números do fechamento." : "Prévia enquanto o mês está aberto."}</p>
           <LojaReportLinks compact mes={mes} oficial={d.closed} units={[{ id: d.unit.id, nome: d.unit.nome, slug: d.unit.slug, supervisor_nome: d.unit.supervisor_nome }]} />
         </Card>
       )}

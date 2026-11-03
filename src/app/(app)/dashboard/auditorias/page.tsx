@@ -74,7 +74,7 @@ export default async function AuditoriasPage({ searchParams }: { searchParams: P
       {unit && (unit.entra_no_ranking || unit.tipo === "producao") && (
         <div className="mb-4 rounded-2xl border border-line bg-white p-4">
           <div className="mb-1 text-sm font-semibold">Relatório mensal de {unit.nome} · {formatMonthPT(mes)}</div>
-          <p className="mb-2 text-xs text-gray-500">PDF para o grupo dos supervisores: resumo, pontos de atenção, o que melhorar, recorrências, pendências, pedidos e 99Food.{fechado ? "" : " Prévia enquanto o mês está aberto."}</p>
+          <p className="mb-2 text-xs text-gray-500">Resumo de uma página para o grupo dos supervisores: nota, o que precisa de ação, auditoria do gerente, auditoria da nutrição e delivery.{fechado ? "" : " Prévia enquanto o mês está aberto."}</p>
           <LojaReportLinks compact mes={mes} oficial={fechado} units={[{ id: unit.id, nome: unit.nome, slug: unit.slug, supervisor_nome: unit.supervisor_nome }]} />
         </div>
       )}

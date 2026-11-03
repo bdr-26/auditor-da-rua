@@ -148,7 +148,7 @@ export default async function FechamentoMesPage({ params }: { params: Promise<{ 
         <Card>
           <CardTitle>Relatório por loja — grupo dos supervisores</CardTitle>
           <p className="mb-3 text-xs text-gray-500">
-            Um PDF por loja com resumo do mês, pontos de atenção, o que melhorar, o que é recorrente, pendências, auditorias, nutrição, pedidos e 99Food.
+            Um PDF de uma página por loja: nota, o que precisa de ação, auditoria do gerente, auditoria da nutrição e delivery. O relatório completo (todos os itens, fotos e detalhe do delivery) fica no link abaixo de cada loja.
             {closed ? " Gerado na hora com os números do fechamento." : " Enquanto o mês está aberto sai como PRÉVIA (valores parciais)."}
           </p>
           <LojaReportLinks mes={mes} units={lojasRelatorio.map((u) => ({ id: u.id, nome: u.nome, slug: u.slug, supervisor_nome: u.supervisor_nome }))} oficial={closed} />
