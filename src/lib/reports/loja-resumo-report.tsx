@@ -4,7 +4,8 @@
 import { Document, Page, Text, View } from "@react-pdf/renderer";
 import { formatDatePT } from "../dates";
 import { BrandHeader, Chip, COLORS, deltaTone, fmtDeltaPts, fmtNum, fmtPct, PageFooter, styles, type Tone, toneColors, toneOfNutri, toneOfPct, toneOfScore } from "./pdf-ui";
-import { plural, pontosDeAtencao } from "./loja-report";
+import { descreverNutriRecorrente, plural, pontosDeAtencao } from "./loja-report";
+import { nutriRecorrenteCritico } from "./nutri-recorrencia";
 import type { LojaReportData, ReportItemStat } from "./types";
 
 const MAX_ATENCAO = 5;
@@ -132,19 +133,23 @@ export function LojaResumoReportDocument({ data }: { data: LojaReportData }) {
           {d.nutri && d.nutri.n > 0 ? (
             <View>
               <Text style={[styles.bold, { fontSize: 8.5, color: toneColors(d.nutri.apontamentos.length ? "orange" : "green").fg, marginBottom: 3, textTransform: "uppercase", letterSpacing: 0.4 }]}>
-                {d.nutri.apontamentos.length === 0 ? "Nenhuma não conformidade" : `${d.nutri.apontamentos.length} ${plural(d.nutri.apontamentos.length, "não conformidade", "não conformidades")} — corrigir`}
+                {d.nutri.apontamentos.length === 0
+                  ? "Nenhuma não conformidade"
+                  : `${d.nutri.apontamentos.length} ${plural(d.nutri.apontamentos.length, "não conformidade", "não conformidades")} em ${d.nutri.recorrentes.length} ${plural(d.nutri.recorrentes.length, "item", "itens")} — o que mais se repete:`}
               </Text>
-              {d.nutri.apontamentos.slice(0, MAX_ITENS).map((a, i) => (
-                <View key={i} style={[styles.row, { alignItems: "flex-start", marginBottom: 2.5 }]}>
-                  <View style={{ width: 5, height: 5, borderRadius: 2.5, marginTop: 3.5, marginRight: 5, backgroundColor: toneColors("orange").fg }} />
-                  <Text style={[styles.td, { flex: 1, fontSize: 8.5, lineHeight: 1.3 }]}>
-                    <Text style={{ color: COLORS.muted }}>{a.area} · </Text>
-                    {a.item}
-                    {a.observacao ? <Text style={{ color: COLORS.graphite }}> — {a.observacao}</Text> : null}
-                  </Text>
-                </View>
-              ))}
-              {d.nutri.apontamentos.length > MAX_ITENS ? <Text style={styles.tdMuted}>+ {d.nutri.apontamentos.length - MAX_ITENS} no relatório completo.</Text> : null}
+              {d.nutri.recorrentes.slice(0, MAX_ITENS).map((r, i) => {
+                const crit = nutriRecorrenteCritico(r);
+                return (
+                  <View key={i} style={[styles.row, { alignItems: "flex-start", marginBottom: 2.5 }]}>
+                    <View style={{ width: 5, height: 5, borderRadius: 2.5, marginTop: 3.5, marginRight: 5, backgroundColor: toneColors(crit ? "orange" : r.visitas >= 2 ? "yellow" : "gray").fg }} />
+                    <Text style={[styles.td, { flex: 1, fontSize: 8.5, lineHeight: 1.3 }]}>
+                      <Text style={crit ? { fontFamily: "Helvetica-Bold", color: toneColors("orange").fg } : styles.bold}>{r.item}</Text>
+                      <Text style={{ color: COLORS.graphite }}> — {descreverNutriRecorrente(r)}</Text>
+                    </Text>
+                  </View>
+                );
+              })}
+              {d.nutri.recorrentes.length > MAX_ITENS ? <Text style={styles.tdMuted}>+ {d.nutri.recorrentes.length - MAX_ITENS} {plural(d.nutri.recorrentes.length - MAX_ITENS, "item", "itens")} no relatório completo.</Text> : null}
             </View>
           ) : (
             <Text style={styles.empty}>Sem auditoria nutricional em {d.mesLabel}.</Text>

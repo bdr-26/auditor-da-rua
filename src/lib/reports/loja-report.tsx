@@ -24,7 +24,17 @@ import {
   toneOfPct,
   toneOfScore,
 } from "./pdf-ui";
-import type { LojaReportData, ReportApontamento, ReportAuditRow, ReportBlockRow, ReportItemStat, ReportNutriApontamento, ReportPendencia, ReportRecorrente } from "./types";
+import { nutriRecorrenteCritico } from "./nutri-recorrencia";
+import type { LojaReportData, ReportApontamento, ReportAuditRow, ReportBlockRow, ReportItemStat, ReportNutriApontamento, ReportNutriRecorrente, ReportPendencia, ReportRecorrente } from "./types";
+
+/** "3 vezes em 2 de 4 visitas · Cozinha, Estoque" */
+export function descreverNutriRecorrente(r: ReportNutriRecorrente): string {
+  const vezes = `${r.ocorrencias} ${plural(r.ocorrencias, "vez", "vezes")} em ${r.visitas} de ${r.total_visitas} ${plural(r.total_visitas, "visita", "visitas")}`;
+  const areas = r.areas.length ? ` · ${r.areas.join(", ")}` : "";
+  const ant = r.ocorrencias_anterior ? ` · também ${r.ocorrencias_anterior}x no mês anterior` : "";
+  const corr = r.corrigidos ? ` · ${r.corrigidos} corrigid${r.corrigidos === 1 ? "a" : "as"} na hora` : "";
+  return `${vezes}${areas}${ant}${corr}`;
+}
 
 export const plural = (n: number, s: string, p: string) => (n === 1 ? s : p);
 
@@ -49,7 +59,10 @@ function resumoDoMes(d: LojaReportData): string[] {
   if (d.recorrentes.length > 0) out.push(`${d.recorrentes.length} ${plural(d.recorrentes.length, "item repete", "itens repetem")} nota baixa pelo 2º mês seguido — ver "O que é recorrente".`);
   const reinc = d.pendencias.filter((p) => p.reincidente).length;
   if (d.pendencias.length > 0) out.push(`${d.pendencias.length} ${plural(d.pendencias.length, "pendência", "pendências")} em aberto para a próxima visita${reinc ? ` (${reinc} ${plural(reinc, "reincidente", "reincidentes")})` : ""}.`);
-  if (d.nutri && d.nutri.n > 0) out.push(`Nutrição: ${fmtPct(d.nutri.nota, 1)} (${d.nutri.classificacao ?? "—"}) em ${d.nutri.n} ${plural(d.nutri.n, "visita", "visitas")}, ${d.nutri.apontamentos.length} ${plural(d.nutri.apontamentos.length, "não conformidade", "não conformidades")}.`);
+  if (d.nutri && d.nutri.n > 0) {
+    const rep = d.nutri.recorrentes.filter((r) => r.visitas >= 2).length;
+    out.push(`Nutrição: ${fmtPct(d.nutri.nota, 1)} (${d.nutri.classificacao ?? "—"}) em ${d.nutri.n} ${plural(d.nutri.n, "visita", "visitas")}, ${d.nutri.apontamentos.length} ${plural(d.nutri.apontamentos.length, "não conformidade", "não conformidades")} em ${d.nutri.recorrentes.length} ${plural(d.nutri.recorrentes.length, "item", "itens")}${rep ? ` (${rep} ${plural(rep, "repetiu", "repetiram")} em mais de uma visita)` : ""}.`);
+  }
   if (d.food99) {
     const partes: string[] = [];
     if (d.food99.pedidos != null) partes.push(`${d.food99.pedidos.toLocaleString("pt-BR")} pedidos`);
@@ -79,6 +92,7 @@ export function pontosDeAtencao(d: LojaReportData): { tone: Tone; texto: string 
   for (const r of d.recorrentes) out.push({ tone: "orange", texto: `Recorrente: ${r.descricao} — média ${fmtNum(r.media, 1)} agora e ${fmtNum(r.media_anterior, 1)} em ${d.mesAnteriorLabel}.` });
   if (d.nota != null && d.anterior?.nota != null && d.nota - d.anterior.nota <= -5) out.push({ tone: "orange", texto: `A nota caiu ${fmtNum(d.anterior.nota - d.nota, 1)} pontos em relação a ${d.mesAnteriorLabel}.` });
   for (const b of d.blocos.filter((b) => !b.zerado && b.nota != null && b.nota_anterior != null && b.nota - b.nota_anterior <= -10)) out.push({ tone: "orange", texto: `Bloco "${b.nome}" caiu ${fmtNum(b.nota_anterior! - b.nota!, 0)} pontos (${fmtPct(b.nota_anterior)} → ${fmtPct(b.nota)}).` });
+  for (const r of (d.nutri?.recorrentes ?? []).filter(nutriRecorrenteCritico).slice(0, 2)) out.push({ tone: "orange", texto: `Nutrição, repete: ${r.item} — ${descreverNutriRecorrente(r)}.` });
   if (d.nutri && d.nutri.n > 0 && (d.nutri.classificacao === "Insatisfatório" || d.nutri.classificacao === "Regular")) out.push({ tone: d.nutri.classificacao === "Insatisfatório" ? "red" : "orange", texto: `Nutrição com classificação ${d.nutri.classificacao} (${fmtPct(d.nutri.nota, 1)}): ${d.nutri.apontamentos.length} ${plural(d.nutri.apontamentos.length, "não conformidade", "não conformidades")} no mês.` });
   const abertas = d.pendencias.filter((p) => !p.reincidente).length;
   if (abertas > 0) out.push({ tone: "yellow", texto: `${abertas} ${plural(abertas, "pendência aberta", "pendências abertas")} da auditoria: serão conferidas na próxima visita.` });
@@ -361,7 +375,29 @@ export function LojaReportDocument({ data }: { data: LojaReportData }) {
                 <Stat label="Visitas no mês" value={String(d.nutri.n)} small />
                 <Stat label="Mês anterior" value={fmtPct(d.nutri.anterior, 1)} hint={`variação: ${fmtDeltaPts(d.nutri.nota, d.nutri.anterior)}`} tone={deltaTone(d.nutri.nota, d.nutri.anterior)} small />
               </View>
+              {d.nutri.recorrentes.length > 0 ? (
+                <View style={{ marginTop: 8 }}>
+                  <Text style={[styles.bold, { fontSize: 9, marginBottom: 2 }]}>O que mais se repete</Text>
+                  <Text style={styles.sectionHint}>Não conformidades agrupadas por item: o mesmo item em áreas ou visitas diferentes conta junto. Em laranja, o que apareceu em metade ou mais das visitas (ou 3+ vezes).</Text>
+                  {d.nutri.recorrentes.slice(0, 8).map((r, i) => {
+                    const crit = nutriRecorrenteCritico(r);
+                    return (
+                      <View key={i} style={[styles.listItem, { alignItems: "flex-start" }]} wrap={false}>
+                        <Text style={[styles.td, { flex: 1 }]}>
+                          <Text style={crit ? { fontFamily: "Helvetica-Bold", color: toneColors("orange").fg } : styles.bold}>{r.item}</Text>
+                          <Text style={{ color: COLORS.graphite }}> — {descreverNutriRecorrente(r)}</Text>
+                        </Text>
+                        <View style={{ width: 64, alignItems: "flex-end" }}>
+                          <Chip label={`${r.visitas}/${r.total_visitas} visitas`} tone={crit ? "orange" : r.visitas >= 2 ? "yellow" : "gray"} />
+                        </View>
+                      </View>
+                    );
+                  })}
+                  {d.nutri.recorrentes.length > 8 ? <Text style={[styles.tdMuted, { marginTop: 2 }]}>+ {d.nutri.recorrentes.length - 8} {plural(d.nutri.recorrentes.length - 8, "item", "itens")} apontados uma vez só (lista completa abaixo).</Text> : null}
+                </View>
+              ) : null}
               <View style={{ marginTop: 8 }}>
+                <Text style={[styles.bold, { fontSize: 9, marginBottom: 4 }]}>Todas as não conformidades, por visita</Text>
                 <Table<ReportNutriApontamento>
                   rows={d.nutri.apontamentos}
                   empty="Nenhuma não conformidade apontada no mês."

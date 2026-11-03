@@ -36,6 +36,17 @@ export interface ReportNutriApontamento {
   observacao: string | null;
 }
 
+/** Não conformidade da nutrição agrupada por item (o mesmo item em áreas/visitas diferentes conta junto). */
+export interface ReportNutriRecorrente {
+  item: string;
+  areas: string[];
+  ocorrencias: number; // respostas não conformes no mês
+  visitas: number; // auditorias em que apareceu
+  total_visitas: number;
+  corrigidos: number; // marcadas "corrigido na hora"
+  ocorrencias_anterior: number; // no mês anterior
+}
+
 export interface ReportAuditRow {
   data: string;
   tipo: AuditType;
@@ -110,6 +121,8 @@ export interface LojaReportData {
     n: number;
     anterior: number | null;
     apontamentos: ReportNutriApontamento[];
+    /** itens agrupados, do que mais se repete para o que menos */
+    recorrentes: ReportNutriRecorrente[];
   } | null;
   food99: ReportFood99 | null;
 }
