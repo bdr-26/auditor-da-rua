@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionProfile } from "@/lib/auth";
+import { canManageAudit, getSessionProfile } from "@/lib/auth";
 import { buildNutriAuditReport, nutriAuditFileName } from "@/lib/reports/nutri-data";
 import { renderNutriAuditReport } from "@/lib/reports/render";
 import { REPORTS_BUCKET } from "@/lib/reports/generate";
@@ -17,7 +17,8 @@ async function authorize(auditId: string) {
   const admin = createAdminClient();
   const { data: audit } = await admin.from("audits").select("id, auditor_id, tipo, unit_id, data, units(slug)").eq("id", auditId).maybeSingle();
   if (!audit || audit.tipo !== "nutricional") return { error: NextResponse.json({ error: "auditoria não encontrada" }, { status: 404 }) };
-  if (profile.role !== "proprietario" && audit.auditor_id !== profile.id) return { error: NextResponse.json({ error: "sem permissão" }, { status: 403 }) };
+  // mesma regra do banco (can_manage_audit): proprietário, quem fez a auditoria ou a nutricionista chefe
+  if (!canManageAudit(profile, audit as { auditor_id: string; tipo: string })) return { error: NextResponse.json({ error: "sem permissão" }, { status: 403 }) };
   const slug = ((audit as { units?: { slug?: string } | { slug?: string }[] }).units as { slug?: string } | undefined)?.slug ?? "unidade";
   return { admin, profile, audit: audit as { id: string; data: string }, slug };
 }
